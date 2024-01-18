@@ -1,0 +1,70 @@
+{
+  "name": "piso",
+  "version": "0.0.1",
+  "description": "ISO 8601 date interval duration parser",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "module": "./src/index.js",
+  "main": "./lib/index.cjs",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "require": "./lib/index.cjs",
+      "import": "./src/index.js"
+    }
+  },
+  "scripts": {
+    "test": "mocha",
+    "posttest": "npm run lint",
+    "lint": "eslint . --cache && prettier . --check --cache",
+    "prepublishOnly": "npm run build",
+    "cov:html": "c8 -n src -r html -r text mocha",
+    "test:lcov": "c8 -n src -r lcov -r text mocha",
+    "build": "rollup -c && dts-buddy"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "keywords": [
+    "ISO8601",
+    "parse",
+    "date",
+    "interval",
+    "duration",
+    "iso",
+    "8601"
+  ],
+  "author": {
+    "name": "Zerodep AB",
+    "url": "https://github.com/zerodep"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerodep/piso.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@bonniernews/eslint-config": "^1.0.1",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/chai": "^4.3.9",
+    "@types/mocha": "^10.0.3",
+    "@types/node": "^18.19.7",
+    "c8": "^9.1.0",
+    "chai": "^5.0.0",
+    "chronokinesis": "^6.0.0",
+    "dts-buddy": "^0.4.0",
+    "eslint": "^8.52.0",
+    "mocha": "^10.2.0",
+    "prettier": "^3.2.4",
+    "rollup": "^4.10.0",
+    "ts-node": "^10.9.1"
+  },
+  "files": [
+    "lib/",
+    "src/",
+    "types/"
+  ]
+}

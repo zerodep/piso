@@ -1,0 +1,7 @@
+{
+  "extends": ["../.eslintrc.json", "@bonniernews/eslint-config/test"],
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": "latest"
+  }
+}
