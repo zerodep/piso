@@ -19,10 +19,10 @@
     "test": "mocha",
     "posttest": "npm run lint",
     "lint": "eslint . --cache && prettier . --check --cache",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
-    "build": "rollup -c && dts-buddy"
+    "dist": "rollup -c && dts-buddy"
   },
   "engines": {
     "node": ">=14"

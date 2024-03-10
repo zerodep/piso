@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm i --loglevel=error
-      - run: npm run build
+      - run: npm run dist
       - run: npm run test:lcov
       - name: Coveralls
         uses: coverallsapp/github-action@v2

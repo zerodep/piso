@@ -13,6 +13,8 @@ const ISOTIME_STARTHOUR = '012';
 const ISOTIME_STARTPART = '012345';
 const NUMBERS = '0123456789';
 
+const kIsParsed = Symbol.for('is parsed');
+
 /**
  * ISO 8601 interval parser
  * @param {string} source
@@ -30,13 +32,47 @@ export function ISOInterval(source) {
   this.duration = undefined;
   /** @type {Partial<import('types').ISODateParts> | undefined} */
   this.end = undefined;
+  this[kIsParsed] = false;
 }
+
+/**
+ * ISO 8601 interval next run
+ * @param {Date} [startDate] optional start date
+ * @returns {Date | null}
+ */
+ISOInterval.prototype.next = function next(startDate) {
+  if (!this[kIsParsed]) this.parse();
+
+  const now = new Date();
+  let nextDt = startDate || this.start ? partsToDate(this.start) : new Date();
+  const endDt = this.end ? partsToDate(this.end) : null;
+
+  if (this.duration) {
+    nextDt = applyDuration(nextDt, this.duration);
+
+    let repeat = this.repeat;
+    if (repeat > 0) {
+      --repeat;
+      while (nextDt < now && repeat) {
+        --repeat;
+        nextDt = applyDuration(nextDt, this.duration);
+      }
+    }
+  }
+
+  if (endDt && endDt < nextDt) return endDt;
+
+  return nextDt;
+};
 
 /**
  * ISO 8601 interval parser
  * @returns {ISOInterval}
  */
 ISOInterval.prototype.parse = function parseInterval() {
+  if (this[kIsParsed]) return this;
+  this[kIsParsed] = true;
+
   let c = this.peek();
   if (c === ISOINTERVAL_REPEAT) {
     this.read();
@@ -509,7 +545,7 @@ ISODurationParser.prototype.end = function end(column) {
 
 /**
  * Parse ISO 8601 interval
- * @param {string} isoInterval
+ * @param {string} isoInterval ISO 8601 interval
  * @returns {ISOInterval}
  */
 export function parseInterval(isoInterval) {
@@ -525,6 +561,16 @@ export function parseInterval(isoInterval) {
 export function parseDuration(isoDuration) {
   const intervalParser = new ISOInterval(isoDuration);
   return intervalParser.parse().duration;
+}
+
+/**
+ * Parse ISO 8601 interval
+ * @param {string} isoInterval
+ * @returns {Date | null} next date point
+ */
+export function next(isoInterval) {
+  const intervalParser = new ISOInterval(isoInterval);
+  return intervalParser.parse().next();
 }
 
 /**
@@ -547,4 +593,34 @@ function validateDate(Y, M, D) {
   }
 
   return true;
+}
+
+/**
+ * Apply duration
+ * @param {Date} dt from date
+ * @param {any} duration duration
+ * @returns {Date} new date with applied duration
+ */
+function applyDuration(dt, duration) {
+  const nextDt = new Date(dt);
+  if ('Y' in duration) nextDt.setFullYear(dt.getFullYear() + duration.Y);
+  if ('M' in duration) nextDt.setMonth(dt.getMonth() + duration.M);
+  if ('D' in duration) nextDt.setMonth(dt.getDate() + duration.D);
+  if ('H' in duration) nextDt.setHours(dt.getHours() + duration.H);
+  if ('m' in duration) nextDt.setHours(dt.getMinutes() + duration.m);
+  if ('S' in duration) nextDt.setHours(dt.getSeconds() + duration.S);
+  return nextDt;
+}
+
+/**
+ * Create date from parts
+ * @param {any} parts date parts
+ * @returns {Date}
+ */
+function partsToDate(parts) {
+  const dt = new Date(parts.Y, parts.M, parts.D);
+  if ('H' in parts) dt.setHours(parts.H);
+  if ('m' in parts) dt.setMinutes(parts.m);
+  if ('S' in parts) dt.setSeconds(parts.S);
+  return dt;
 }

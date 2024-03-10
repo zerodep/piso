@@ -20,6 +20,11 @@ declare module 'piso' {
 		
 		end: Partial<ISODateParts> | undefined;
 		/**
+		 * ISO 8601 interval next run
+		 * @param startDate optional start date
+		 * */
+		next(startDate?: Date | undefined): Date | null;
+		/**
 		 * ISO 8601 interval parser
 		 * */
 		parse(): ISOInterval;
@@ -27,6 +32,7 @@ declare module 'piso' {
 		read(): string;
 		current(): string;
 		peek(): string;
+		[kIsParsed]: boolean;
 	}
 	/**
 	 * ISO 8601 date parser
@@ -142,6 +148,7 @@ declare module 'piso' {
 	}
 	/**
 	 * Parse ISO 8601 interval
+	 * @param isoInterval ISO 8601 interval
 	 * */
 	export function parseInterval(isoInterval: string): ISOInterval;
 	/**
@@ -149,6 +156,12 @@ declare module 'piso' {
 	 * @param isoDuration ISO 8601 interval and/or duration
 	 * */
 	export function parseDuration(isoDuration: string): Partial<ISOParts> | undefined;
+	/**
+	 * Parse ISO 8601 interval
+	 * @returns next date point
+	 */
+	export function next(isoInterval: string): Date | null;
+	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
 	Y: number;
