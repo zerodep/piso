@@ -13,6 +13,8 @@ export interface ISOParts {
   m: number;
   /** Second designator that follows the value for the number of seconds */
   S: number;
+  /** Millisecond designator that follows the value for the number of milliseconds */
+  F: number;
 }
 
 export interface ISODateParts extends ISOParts {
@@ -22,10 +24,28 @@ export interface ISODateParts extends ISOParts {
   OH?: number;
   /** Minutes offset */
   Om?: number;
+  /** Seconds offset as of ISO 8601-2:2019 */
+  OS?: number;
 }
 
 export interface ISOInterval extends ISOParts {
   repeat: number;
   startDate?: string;
   endDate?: string;
+}
+
+export enum ISOIntervalType {
+  None = 0,
+  Repeat = 1,
+  StartDate = 2,
+  Duration = 4,
+  EndDate = 8,
+  RepeatAndStartDate = 3,
+  RepeatAndDuration = 5,
+  StartDateAndDuration = 6,
+  RepeatStartAndDuration = 7,
+  RepeatAndEndDate = 9,
+  StartDateAndEndDate = 10,
+  DurationAndEndDate = 12,
+  RepeatDurationAndEndDate = 13,
 }

@@ -38,3 +38,5 @@ package-lock.json
 
 *.d.ts.map
 *.log
+
+Dockerfile

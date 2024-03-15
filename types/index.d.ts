@@ -1,12 +1,16 @@
 declare module 'piso' {
+	/** @module piso */
 	/**
 	 * ISO 8601 interval parser
-	 * */
+	 * @param source interval source string
+	 */
 	export function ISOInterval(source: string): void;
 	export class ISOInterval {
+		/** @module piso */
 		/**
 		 * ISO 8601 interval parser
-		 * */
+		 * @param source interval source string
+		 */
 		constructor(source: string);
 		source: string;
 		c: string;
@@ -14,21 +18,25 @@ declare module 'piso' {
 		idx: number;
 		repeat: number;
 		
-		start: Partial<ISODateParts> | undefined;
+		start: ISODate | undefined;
 		
-		duration: Partial<ISOParts> | undefined;
+		duration: ISODuration | undefined;
 		
-		end: Partial<ISODateParts> | undefined;
+		end: ISODate | undefined;
+		
+		type: ISOIntervalType;
+		get startDate(): Date;
+		get endDate(): Date;
 		/**
-		 * ISO 8601 interval next run
-		 * @param startDate optional start date
+		 * Opinionated function that attempts to figure out the closest date in the interval
+		 * @param fromDate optional compare date, kind of required if repeat is present, defaults to now
 		 * */
-		next(startDate?: Date | undefined): Date | null;
+		next(fromDate?: Date): Date | null;
 		/**
 		 * ISO 8601 interval parser
 		 * */
 		parse(): ISOInterval;
-		consumeRepeat(): string | undefined;
+		consumeRepeat(): string;
 		read(): string;
 		current(): string;
 		peek(): string;
@@ -41,8 +49,8 @@ declare module 'piso' {
 	 * @param endChars Optional end chars
 	 * @param enforceSeparatorsfalse] Enforce separators between IS0 8601 parts
 	 */
-	export function ISODateParser(source: string, offset?: number | null | undefined, endChars?: string | null | undefined, enforceSeparators?: boolean | undefined): void;
-	export class ISODateParser {
+	export function ISODate(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean): void;
+	export class ISODate {
 		/**
 		 * ISO 8601 date parser
 		 * @param source ISO 8601 date time source
@@ -50,74 +58,80 @@ declare module 'piso' {
 		 * @param endChars Optional end chars
 		 * @param enforceSeparatorsfalse] Enforce separators between IS0 8601 parts
 		 */
-		constructor(source: string, offset?: number | null | undefined, endChars?: string | null | undefined, enforceSeparators?: boolean | undefined);
+		constructor(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean);
 		source: string;
 		
 		idx: number;
 		enforceSeparators: boolean;
 		c: string;
 		parsed: string;
-		endChars: string | null;
+		endChars: string;
 		
 		result: Partial<ISODateParts>;
+		toUTCDate(): Date;
 		/**
 		 * Parse passed source as ISO 8601 date time
 		 * */
-		parse(): ISODateParser;
+		parse(): ISODate;
 		/**
 		 * Parse partial relative date
 		 * @param Y Year if year is not defined
 		 * @param M JavaScript month if month is not defined
+		 * @param D JavaScript date if date is not defined
 		 * */
-		parsePartialDate(Y: number, M: number): ISODateParser;
+		parsePartialDate(Y: number, M: number, D?: number): ISODate;
 		/**
 		 * Consume as ISO date
 		 * @param Y year
 		 * */
-		continueDatePrecision(Y: number): ISODateParser;
+		continueDatePrecision(Y: number): ISODate;
 		/**
 		 * Consume minutes and seconds and so forth
 		 * @param H from hour
 		 * @param useSeparator time separator
 		 * */
-		continueTimePrecision(H: number, useSeparator: boolean): ISODateParser;
+		continueTimePrecision(H: number, useSeparator: boolean): ISODate;
 		/**
 		 * Continue timezone offset parsing
 		 * @param instruction timezone offset instruction
 		 * */
-		continueISOTimeZonePrecision(instruction: string): ISODateParser;
+		continueTimeZonePrecision(instruction: string): ISODate;
 		consume(): string;
 		consumeChar(valid?: string): string;
 		peek(): string;
+		end(): this;
 		/**
 		 * Consume char or end
 		 * @param valid Valid chars, defaults to 0-9
 		 * */
-		consumeCharOrEnd(valid?: string | undefined): string | undefined;
+		consumeCharOrEnd(valid?: string): string | undefined;
 		createUnexpectedError(): RangeError;
+		[kIsParsed]: boolean;
 	}
-	export namespace ISODateParser {
+	export namespace ISODate {
 		/**
 		 * Parse ISO 8601 date string
 		 * @param source ISO 8601 duration
 		 * @param offset source column offset
 		 */
-		function parse(source: string, offset?: number | null | undefined): Partial<ISODateParts>;
+		function parse(source: string, offset?: number): Partial<ISODateParts>;
 	}
 
-	export function ISODurationParser(source: string, offset?: number | undefined): void;
-	export class ISODurationParser {
+	export function ISODuration(source: string, offset?: number): void;
+	export class ISODuration {
 		
-		constructor(source: string, offset?: number | undefined);
+		constructor(source: string, offset?: number);
 		source: string;
 		idx: number;
 		type: string;
 		parsed: string;
 		
-		entity: keyof ISOParts | undefined;
+		designator: keyof ISOParts | undefined;
 		value: string;
 		usedFractions: boolean;
-		entities: string;
+		fractionedDesignator: string;
+		designators: string;
+		usedDesignators: string;
 		
 		result: Partial<ISOParts>;
 		parse(): this;
@@ -129,22 +143,34 @@ declare module 'piso' {
 		write(c: string | undefined, column: number): void;
 		/**
 		 * @internal
-		 * Set duration entity type and value
+		 * Set duration designator and value
 		 * */
-		setEntity(entity: string, value: string): void;
+		setDesignatorValue(designator: string, value: string): void;
 		/**
 		 * Parse completed, no more chars
 		 * @param column Current column
 		 */
 		end(column: number): void;
+		/**
+		 * Get duration in milliseconds from optional start date
+		 * @param startDate start date, defaults to epoch start 1970-01-01T00:00:00Z
+		 * @returns duration in milliseconds from start date
+		 */
+		toMilliseconds(startDate?: Date): number;
+		/**
+		 * Get duration in milliseconds from optional end date
+		 * @param endDate end date, defaults to epoch start 1970-01-01T00:00:00Z
+		 * @returns duration in milliseconds from end date
+		 */
+		untilMilliseconds(endDate?: Date): number;
 	}
-	export namespace ISODurationParser {
+	export namespace ISODuration {
 		/**
 		 * Parse ISO 8601 duration string
 		 * @param source ISO 8601 duration
 		 * @param offset0] Column offset
 		 */
-		function parse(source: string, offset?: number | undefined): Partial<ISOParts>;
+		function parse(source: string, offset?: number): Partial<ISOParts>;
 	}
 	/**
 	 * Parse ISO 8601 interval
@@ -158,9 +184,10 @@ declare module 'piso' {
 	export function parseDuration(isoDuration: string): Partial<ISOParts> | undefined;
 	/**
 	 * Parse ISO 8601 interval
+	 * @param fromDate optional from date, defaults to now
 	 * @returns next date point
 	 */
-	export function next(isoInterval: string): Date | null;
+	export function next(isoInterval: string, fromDate?: Date): Date | null;
 	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
@@ -177,6 +204,8 @@ declare module 'piso' {
 	m: number;
 	/** Second designator that follows the value for the number of seconds */
 	S: number;
+	/** Millisecond designator that follows the value for the number of milliseconds */
+	F: number;
   }
 
   interface ISODateParts extends ISOParts {
@@ -186,6 +215,24 @@ declare module 'piso' {
 	OH?: number;
 	/** Minutes offset */
 	Om?: number;
+	/** Seconds offset as of ISO 8601-2:2019 */
+	OS?: number;
+  }
+
+  enum ISOIntervalType {
+	None = 0,
+	Repeat = 1,
+	StartDate = 2,
+	Duration = 4,
+	EndDate = 8,
+	RepeatAndStartDate = 3,
+	RepeatAndDuration = 5,
+	StartDateAndDuration = 6,
+	RepeatStartAndDuration = 7,
+	RepeatAndEndDate = 9,
+	StartDateAndEndDate = 10,
+	DurationAndEndDate = 12,
+	RepeatDurationAndEndDate = 13,
   }
 }
 
