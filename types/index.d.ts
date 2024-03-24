@@ -29,34 +29,49 @@ declare module 'piso' {
 		get endDate(): Date;
 		/**
 		 * Opinionated function that attempts to figure out the closest date in the interval
-		 * @param fromDate optional compare date, kind of required if repeat is present, defaults to now
+		 * @param compareDate optional compare date, kind of required if repeat is present, defaults to now
 		 * */
-		next(fromDate?: Date): Date | null;
+		next(compareDate?: Date): Date | null;
 		/**
 		 * ISO 8601 interval parser
 		 * */
 		parse(): ISOInterval;
+		/**
+		 * Get interval dates
+		 * @param compareDate optional compare date, default to now, used if start- or end date is missing
+		 * @returns list of cutoff dates
+		 */
+		getDates(compareDate?: Date): Date[];
 		consumeRepeat(): string;
+		consumeStartDate(): ISODate;
+		consumeDuration(): ISODuration;
+		
+		consumePartialEndDate(start: ISODate): ISODate;
+		/**
+		 * Consume date
+		 * */
+		consumeDate(enforceSeparators?: boolean, endChars?: string): ISODate;
 		read(): string;
 		current(): string;
 		peek(): string;
 		[kIsParsed]: boolean;
+		[kDates]: any;
 	}
 	/**
 	 * ISO 8601 date parser
 	 * @param source ISO 8601 date time source
-	 * @param offset-1] Source column offset
+	 * @param offset Source column offset
 	 * @param endChars Optional end chars
-	 * @param enforceSeparatorsfalse] Enforce separators between IS0 8601 parts
+	 * @param enforceSeparators Enforce separators between IS0 8601 parts
 	 */
 	export function ISODate(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean): void;
 	export class ISODate {
 		/**
 		 * ISO 8601 date parser
 		 * @param source ISO 8601 date time source
-		 * @param offset-1] Source column offset
+		 * @param offset Source column offset
 		 * @param endChars Optional end chars
-		 * @param enforceSeparatorsfalse] Enforce separators between IS0 8601 parts
+		 * @param enforceSeparators Enforce separators between IS0 8601 parts
 		 */
 		constructor(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean);
 		source: string;
@@ -123,6 +138,7 @@ declare module 'piso' {
 		constructor(source: string, offset?: number);
 		source: string;
 		idx: number;
+		c: string;
 		type: string;
 		parsed: string;
 		
@@ -134,6 +150,8 @@ declare module 'piso' {
 		usedDesignators: string;
 		
 		result: Partial<ISOParts>;
+		isDateIndifferent: boolean;
+		indifferentMs: number;
 		parse(): this;
 		/**
 		 * Write
@@ -152,23 +170,28 @@ declare module 'piso' {
 		 */
 		end(column: number): void;
 		/**
+		 * Create unexpected error
+		 * */
+		createUnexpectedError(c: string | undefined, column: number): RangeError;
+		/**
 		 * Get duration in milliseconds from optional start date
 		 * @param startDate start date, defaults to epoch start 1970-01-01T00:00:00Z
 		 * @returns duration in milliseconds from start date
 		 */
 		toMilliseconds(startDate?: Date): number;
 		/**
-		 * Get duration in milliseconds from optional end date
+		 * Get duration in milliseconds until optional end date
 		 * @param endDate end date, defaults to epoch start 1970-01-01T00:00:00Z
 		 * @returns duration in milliseconds from end date
 		 */
 		untilMilliseconds(endDate?: Date): number;
+		getDateIndifferentMilliseconds(): number;
 	}
 	export namespace ISODuration {
 		/**
 		 * Parse ISO 8601 duration string
 		 * @param source ISO 8601 duration
-		 * @param offset0] Column offset
+		 * @param offset Column offset
 		 */
 		function parse(source: string, offset?: number): Partial<ISOParts>;
 	}
@@ -181,14 +204,20 @@ declare module 'piso' {
 	 * Parse ISO 8601 duration
 	 * @param isoDuration ISO 8601 interval and/or duration
 	 * */
-	export function parseDuration(isoDuration: string): Partial<ISOParts> | undefined;
+	export function parseDuration(isoDuration: string): ISODuration | undefined;
 	/**
-	 * Parse ISO 8601 interval
-	 * @param fromDate optional from date, defaults to now
+	 * Parse ISO 8601 date
+	 * @param isoDateSource ISO 8601 date
+	 * */
+	export function getDate(isoDateSource: string): Date;
+	/**
+	 * Attempt to figure out the next date in an ISO 8601 interval
+	 * @param compareDate optional compare date, defaults to now
 	 * @returns next date point
 	 */
-	export function next(isoInterval: string, fromDate?: Date): Date | null;
+	export function next(isoInterval: string, compareDate?: Date): Date | null;
 	const kIsParsed: unique symbol;
+	const kDates: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
 	Y: number;
@@ -228,8 +257,7 @@ declare module 'piso' {
 	RepeatAndStartDate = 3,
 	RepeatAndDuration = 5,
 	StartDateAndDuration = 6,
-	RepeatStartAndDuration = 7,
-	RepeatAndEndDate = 9,
+	RepeatStartDateAndDuration = 7,
 	StartDateAndEndDate = 10,
 	DurationAndEndDate = 12,
 	RepeatDurationAndEndDate = 13,

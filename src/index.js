@@ -39,6 +39,7 @@ export function ISOInterval(source) {
   this.end = undefined;
   /** @type {import('types').ISOIntervalType} */
   this.type = 0;
+  // @internal
   this[kIsParsed] = false;
   this[kDates] = undefined;
 }
@@ -61,16 +62,16 @@ Object.defineProperty(ISOInterval.prototype, 'endDate', {
 
 /**
  * Opinionated function that attempts to figure out the closest date in the interval
- * @param {Date} [fromDate] optional compare date, kind of required if repeat is present, defaults to now
+ * @param {Date} [compareDate] optional compare date, kind of required if repeat is present, defaults to now
  * @returns {Date | null}
  */
-ISOInterval.prototype.next = function next(fromDate) {
-  fromDate = new Date(fromDate === undefined ? Date.now() : fromDate.getTime());
+ISOInterval.prototype.next = function next(compareDate) {
+  compareDate = new Date(compareDate === undefined ? Date.now() : compareDate.getTime());
 
-  const dates = this.getDates(fromDate);
+  const dates = this.getDates(compareDate);
 
   for (const date of dates) {
-    if (date < fromDate) continue;
+    if (date < compareDate) continue;
     return date;
   }
   return dates[dates.length - 1];
@@ -94,14 +95,9 @@ ISOInterval.prototype.parse = function parseInterval() {
     c = this.peek();
   }
 
-  let enforceSeparators = false;
+  let start;
   if (NUMBERS.indexOf(c) > -1) {
-    const dateParser = new ISODate(this.source, this.idx, ISOINTERVAL_SEPARATOR);
-    this.start = dateParser.parse();
-    this.idx = dateParser.idx;
-    enforceSeparators = dateParser.enforceSeparators;
-
-    this.type += 2;
+    start = this.consumeStartDate();
   } else if (c !== ISOINTERVAL_DURATION) {
     throw new RangeError(`Invalid ISO 8601 interval "${this.source}"`);
   }
@@ -109,33 +105,18 @@ ISOInterval.prototype.parse = function parseInterval() {
   c = this.peek();
 
   if (c === ISOINTERVAL_DURATION) {
-    this.idx++;
-    const durationParser = new ISODuration(this.source, this.idx);
-    this.duration = durationParser.parse();
-    this.idx = durationParser.idx;
-
-    this.type += 4;
+    this.read();
+    this.consumeDuration();
   }
 
   c = this.current();
 
-  if (c === '/' && this.duration && !this.start) {
-    const dateParser = new ISODate(this.source, this.idx);
-    this.end = dateParser.parse();
-    this.idx = dateParser.idx;
-
+  if (c === '/' && this.duration && !start) {
+    this.end = this.consumeDate();
+    this.parsed = this.end.parsed;
     this.type += 8;
-  } else if (c === '/' && this.start && !this.duration) {
-    const dateParser = new ISODate(this.source, this.idx, undefined, enforceSeparators);
-    // @ts-ignore
-    this.end = dateParser.parsePartialDate(this.start.result.Y, this.start.result.M, this.start.result.D);
-    this.idx = dateParser.idx;
-
-    if (this.start.toUTCDate() > this.end.toUTCDate()) {
-      throw new RangeError('ISO 8601 interval end date occur before start date');
-    }
-
-    this.type += 8;
+  } else if (c === '/' && start && !this.duration) {
+    this.consumePartialEndDate(start);
   } else if (c) {
     throw new RangeError(`ISO 8601 interval "${this.source}" combination is not allowed`);
   }
@@ -145,10 +126,10 @@ ISOInterval.prototype.parse = function parseInterval() {
 
 /**
  * Get interval dates
- * @param {*} [fromDate] optional from date, default to now, used if start- or end date is missing
- * @returns {Date[]} list of treshold dates
+ * @param {Date} [compareDate] optional compare date, default to now, used if start- or end date is missing
+ * @returns {Date[]} list of cutoff dates
  */
-ISOInterval.prototype.getDates = function getDates(fromDate) {
+ISOInterval.prototype.getDates = function getDates(compareDate) {
   if (!this[kIsParsed]) this.parse();
 
   const type = this.type;
@@ -171,14 +152,14 @@ ISOInterval.prototype.getDates = function getDates(fromDate) {
   } else if (hasStartDate) {
     const startDate = this.start.toUTCDate();
     dates.push(startDate);
-    if (duration) dates.push(applyDurationUTC(startDate, duration));
+    if (duration) dates.push(new Date(startDate.getTime() + duration.toMilliseconds(startDate)));
   } else if (hasEndDate) {
     const endDate = this.end.toUTCDate();
     dates.push(endDate);
-    if (duration) dates.unshift(applyDurationUTC(endDate, duration, true));
+    if (duration) dates.unshift(new Date(endDate.getTime() + duration.untilMilliseconds(endDate)));
   } else {
-    const startDate = new Date(fromDate === undefined ? Date.now() : fromDate.getTime());
-    dates.push(applyDurationUTC(startDate, duration));
+    const startDate = new Date(compareDate === undefined ? Date.now() : compareDate.getTime());
+    dates.push(new Date(startDate.getTime() + duration.toMilliseconds(startDate)));
     if (repetitions) repetitions += 1;
   }
 
@@ -186,9 +167,13 @@ ISOInterval.prototype.getDates = function getDates(fromDate) {
     let repeat = repetitions - 2;
     while (repeat) {
       repeat--;
-      if (hasEndDate) dates.unshift(applyDurationUTC(dates[0], duration, true));
-      if (hasStartDate) dates.push(applyDurationUTC(dates[dates.length - 1], duration));
-      else dates.push(applyDurationUTC(dates[dates.length - 1], duration));
+      if (hasEndDate) {
+        const fromDate = dates[0];
+        dates.unshift(new Date(fromDate.getTime() + duration.untilMilliseconds(fromDate)));
+      } else {
+        const fromDate = dates[dates.length - 1];
+        dates.push(new Date(fromDate.getTime() + duration.toMilliseconds(fromDate)));
+      }
     }
   }
 
@@ -213,6 +198,58 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   if (c !== '/') throw new RangeError(`Unexpected character "${this.parsed}[${c}]" at ${this.idx}`);
 };
 
+ISOInterval.prototype.consumeStartDate = function consumeStartDate() {
+  const start = (this.start = this.consumeDate(undefined, ISOINTERVAL_SEPARATOR));
+  this.parsed = start.parsed;
+  this.type += 2;
+  return start;
+};
+
+ISOInterval.prototype.consumeDuration = function consumeDuration() {
+  const duration = (this.duration = new ISODuration(this.source, this.idx).parse());
+  this.idx = duration.idx;
+  this.c = duration.c;
+  this.parsed += duration.parsed;
+  this.type += 4;
+  return duration;
+};
+
+/**
+ *
+ * @param {ISODate} start
+ * @returns
+ */
+ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(start) {
+  const isoDate = new ISODate(this.source, this.idx, undefined, start.enforceSeparators);
+  this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D);
+  this.idx = isoDate.idx;
+  this.c = isoDate.c;
+
+  this.parsed = isoDate.parsed;
+
+  if (start.toUTCDate() > isoDate.toUTCDate()) {
+    throw new RangeError('ISO 8601 interval end date occur before start date');
+  }
+
+  this.type += 8;
+
+  return isoDate;
+};
+
+/**
+ * Consume date
+ * @param {boolean} [enforceSeparators]
+ * @param {string} [endChars]
+ * @returns
+ */
+ISOInterval.prototype.consumeDate = function consumeDate(enforceSeparators, endChars) {
+  const isoDate = new ISODate(this.source, this.idx, endChars, enforceSeparators).parse();
+  this.idx = isoDate.idx;
+  this.c = isoDate.c;
+  this.parsed += isoDate.parsed;
+  return isoDate;
+};
+
 ISOInterval.prototype.read = function read() {
   this.parsed += this.c;
   return (this.c = this.source[++this.idx]);
@@ -229,9 +266,9 @@ ISOInterval.prototype.peek = function peek() {
 /**
  * ISO 8601 date parser
  * @param {string} source ISO 8601 date time source
- * @param {number?} [offset=-1] Source column offset
+ * @param {number?} [offset] Source column offset
  * @param {string?} [endChars] Optional end chars
- * @param {boolean} [enforceSeparators=false] Enforce separators between IS0 8601 parts
+ * @param {boolean} [enforceSeparators] Enforce separators between IS0 8601 parts
  */
 export function ISODate(source, offset = -1, endChars = '', enforceSeparators = false) {
   this.source = source;
@@ -344,8 +381,9 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
 
   const next = this.peek();
   /** @type {string | undefined} */
-  let c;
+
   if (!next) {
+    this.consume();
     const day = (this.result.D = Number(value));
 
     if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}[${this.c}]"`);
@@ -373,7 +411,7 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
 
     if (!validateDate(Y, month, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}[${this.c}]"`);
 
-    c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
+    const c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
     if (c) {
       const hours = (this.result.H = Number(this.consumeChar('012') + this.consumeChar()));
       return this.continueTimePrecision(hours, this.enforceSeparators);
@@ -438,19 +476,22 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
 ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useSeparator) {
   if (H > 24) throw new RangeError(`Invalid ISO 8601 hours "${this.parsed}[${this.c}]"`);
 
+  const midnight = H === 24;
+  const firstChars = midnight ? '0' : ISOTIME_STARTPART;
+  const numberChars = midnight ? '0' : NUMBERS;
   const timeSeparator = useSeparator ? ISOTIME_SEPARATOR : '';
 
   /** @type {string | undefined} */
-  let c = this.consumeChar(timeSeparator + ISOTIME_STARTPART);
+  let c = this.consumeChar(timeSeparator + firstChars);
   if (c === timeSeparator) {
-    c = this.consumeChar(ISOTIME_STARTPART);
+    c = this.consumeChar(firstChars);
   } else if (useSeparator) {
     throw this.createUnexpectedError();
   }
 
-  this.result.m = Number(c + this.consumeChar());
+  this.result.m = Number(c + this.consumeChar(numberChars));
 
-  c = this.consumeCharOrEnd(timeSeparator + ISOTIME_OFFSET + ISOTIME_STARTPART);
+  c = this.consumeCharOrEnd(timeSeparator + ISOTIME_OFFSET + numberChars);
 
   if (!c) {
     return this;
@@ -462,7 +503,7 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useS
     throw this.createUnexpectedError();
   }
 
-  let value = c + this.consumeChar();
+  let value = c + this.consumeChar(numberChars);
   this.result.S = Number(value);
 
   c = this.consumeCharOrEnd(FRACTIONS + ISOTIME_OFFSET);
@@ -471,8 +512,8 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useS
   }
 
   if (FRACTIONS.indexOf(c) > -1) {
-    value = this.consumeChar();
-    while ((c = this.consumeCharOrEnd(NUMBERS + ISOTIME_OFFSET))) {
+    value = this.consumeChar(numberChars);
+    while ((c = this.consumeCharOrEnd(numberChars + ISOTIME_OFFSET))) {
       if (!c || NUMBERS.indexOf(c) === -1) break;
       if (value.length === 3) value += '.';
       value += c;
@@ -559,7 +600,7 @@ ISODate.prototype.consumeCharOrEnd = function consumeCharOrEnd(valid = NUMBERS) 
   return c;
 };
 
-ISODate.prototype.createUnexpectedError = function raiseUnexpectedError() {
+ISODate.prototype.createUnexpectedError = function createUnexpectedError() {
   const c = this.c;
   return new RangeError(`Unexpected ISO 8601 date character "${this.parsed}[${c ? c : 'EOL'}]" at ${this.idx}`);
 };
@@ -567,11 +608,12 @@ ISODate.prototype.createUnexpectedError = function raiseUnexpectedError() {
 /**
  *
  * @param {string} source
- * @param {number} [offset=0]
+ * @param {number} [offset]
  */
 export function ISODuration(source, offset = 0) {
   this.source = source;
   this.idx = offset;
+  this.c = '';
   this.type = '';
   this.parsed = '';
   /** @type {keyof import('types').ISOParts | undefined} */
@@ -583,12 +625,14 @@ export function ISODuration(source, offset = 0) {
   this.usedDesignators = '';
   /** @type {Partial<import('types').ISOParts>} */
   this.result = {};
+  this.isDateIndifferent = true;
+  this.indifferentMs = undefined;
 }
 
 /**
  * Parse ISO 8601 duration string
  * @param {string} source ISO 8601 duration
- * @param {number} [offset=0] Column offset
+ * @param {number} [offset] Column offset
  */
 ISODuration.parse = function parseDuration(source, offset = 0) {
   const writer = new this(source, offset);
@@ -597,9 +641,10 @@ ISODuration.parse = function parseDuration(source, offset = 0) {
 };
 
 ISODuration.prototype.parse = function parseDuration() {
-  if (this.source[this.idx] !== ISOINTERVAL_DURATION) throw new RangeError(`Unexpected ISO 8601 start character "${this.source[0]}"`);
+  if (this.source[this.idx] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(this.source[0], 0);
   for (const c of this.source.slice(this.idx)) {
     if (c === '/') break;
+    this.c = c;
     this.write(c, this.idx++);
   }
   this.end(this.idx);
@@ -616,6 +661,12 @@ ISODuration.prototype.write = function writeDuration(c, column) {
     return this.end(column);
   }
 
+  if (this.fractionedDesignator) {
+    throw new RangeError(
+      'ISO 8601 duration fractions are allowed on the smallest unit in the string, e.g. P0.5D or PT1.001S but not P0.5DT1H',
+    );
+  }
+
   let desitnatorIdx;
   if (NUMBERS.indexOf(c) > -1) {
     this.value += c;
@@ -625,10 +676,6 @@ ISODuration.prototype.write = function writeDuration(c, column) {
     this.designator = c;
     this.setDesignatorValue(c, this.value);
   } else if (FRACTIONS.indexOf(c) > -1) {
-    if (this.usedFractions)
-      throw new RangeError(
-        'ISO 8601 duration fractions are allowed on the smallest unit in the string, e.g. P0.5D or PT1.0001S but not P0.5DT1.0001S',
-      );
     this.usedFractions = true;
     this.value += '.';
   } else if (c === ISOINTERVAL_DURATION && !this.type) {
@@ -637,7 +684,7 @@ ISODuration.prototype.write = function writeDuration(c, column) {
     this.designators = ISODURATION_TIME_DESIGNATORS;
     this.type = c;
   } else {
-    throw new RangeError(`Unexpected ISO 8601 duration character "${this.parsed}[${c}]" at ${column}`);
+    throw this.createUnexpectedError(c, column);
   }
 
   this.parsed += c;
@@ -658,6 +705,10 @@ ISODuration.prototype.setDesignatorValue = function setDesignatorValue(designato
   this.result[designatorKey] = Number(value);
   this.usedDesignators += designatorKey;
 
+  if (designatorKey === 'Y' || designatorKey === 'M') {
+    this.isDateIndifferent = false;
+  }
+
   if (this.usedFractions) {
     this.fractionedDesignator = designatorKey;
   }
@@ -669,8 +720,17 @@ ISODuration.prototype.setDesignatorValue = function setDesignatorValue(designato
  */
 ISODuration.prototype.end = function end(column) {
   if (this.value || this.parsed === ISOINTERVAL_DURATION || this.parsed === ISOINTERVAL_DURATION + ISODATE_TIMEINSTRUCTION) {
-    throw new RangeError(`Unexpected ISO 8601 EOL at ${column}`);
+    throw this.createUnexpectedError('', column);
   }
+};
+
+/**
+ * Create unexpected error
+ * @param {string | undefined} c
+ * @param {number} column
+ */
+ISODuration.prototype.createUnexpectedError = function createUnexpectedError(c, column) {
+  return new RangeError(`Unexpected ISO 8601 duration character "${this.parsed}[${c ? c : 'EOL'}]" at ${column}`);
 };
 
 /**
@@ -679,20 +739,31 @@ ISODuration.prototype.end = function end(column) {
  * @returns {number} duration in milliseconds from start date
  */
 ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate) {
-  const epochStart = startDate || new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
-  /** @type {any} */
-  return Math.round(applyDurationUTC(epochStart, this).getTime() - epochStart.getTime());
+  const indifferentMs = this.getDateIndifferentMilliseconds();
+
+  if (this.isDateIndifferent) return indifferentMs;
+
+  const fromDate = startDate || new Date(0);
+  return applyYearAndMonthDurationUTC(fromDate, this).getTime() + indifferentMs - fromDate.getTime();
 };
 
 /**
- * Get duration in milliseconds from optional end date
+ * Get duration in milliseconds until optional end date
  * @param {Date} [endDate] end date, defaults to epoch start 1970-01-01T00:00:00Z
  * @returns {number} duration in milliseconds from end date
  */
 ISODuration.prototype.untilMilliseconds = function untilMilliseconds(endDate) {
-  const epochStart = endDate || new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
-  /** @type {any} */
-  return Math.round(applyDurationUTC(epochStart, this, true).getTime() - epochStart.getTime());
+  const indifferentMs = this.getDateIndifferentMilliseconds();
+
+  if (this.isDateIndifferent) return -indifferentMs;
+
+  const untilDate = endDate || new Date(0);
+  return applyYearAndMonthDurationUTC(untilDate, this, true).getTime() - indifferentMs - untilDate.getTime();
+};
+
+ISODuration.prototype.getDateIndifferentMilliseconds = function getDateIndifferentMilliseconds() {
+  if (this.indifferentMs === undefined) this.indifferentMs = getIndifferentDurationAsMilliseconds(this);
+  return this.indifferentMs;
 };
 
 /**
@@ -708,22 +779,31 @@ export function parseInterval(isoInterval) {
 /**
  * Parse ISO 8601 duration
  * @param {string} isoDuration ISO 8601 interval and/or duration
- * @returns {Partial<import('types').ISOParts> | undefined}
+ * @returns {ISODuration | undefined}
  */
 export function parseDuration(isoDuration) {
   const intervalParser = new ISOInterval(isoDuration);
-  return intervalParser.parse().duration?.result;
+  return intervalParser.parse().duration;
 }
 
 /**
- * Parse ISO 8601 interval
+ * Parse ISO 8601 date
+ * @param {string} isoDateSource ISO 8601 date
+ * @returns {Date}
+ */
+export function getDate(isoDateSource) {
+  return new ISODate(isoDateSource).toUTCDate();
+}
+
+/**
+ * Attempt to figure out the next date in an ISO 8601 interval
  * @param {string} isoInterval
- * @param {Date} [fromDate] optional from date, defaults to now
+ * @param {Date} [compareDate] optional compare date, defaults to now
  * @returns {Date | null} next date point
  */
-export function next(isoInterval, fromDate) {
+export function next(isoInterval, compareDate) {
   const intervalParser = new ISOInterval(isoInterval);
-  return intervalParser.parse().next(fromDate);
+  return intervalParser.parse().next(compareDate);
 }
 
 /**
@@ -737,11 +817,11 @@ function validateDate(Y, M, D) {
   if (!D) return false;
   if (M < 0) return false;
 
-  if (M === 1 && D - (Y % 4 ? 0 : 1) > 28) {
+  if (M > 11) {
     return false;
-  } else if (M < 13 && D - (M % 2) > 30) {
+  } else if (M === 1 && D - (Y % 4 ? 0 : 1) > 28) {
     return false;
-  } else if (M > 11) {
+  } else if (D - ((M + 1) % 2) > 30) {
     return false;
   }
 
@@ -755,77 +835,91 @@ function validateDate(Y, M, D) {
  * @param {boolean} [upUntil] up until from date
  * @returns {Date} new date with applied duration
  */
-function applyDurationUTC(fromDate, duration, upUntil) {
+function applyYearAndMonthDurationUTC(fromDate, duration, upUntil) {
   const startTime = fromDate.getTime();
   let endTime = startTime;
   const factor = upUntil ? -1 : 1;
 
   /** @type {any} */
-  const { result, fractionedDesignator, usedDesignators } = duration;
+  const { result, fractionedDesignator } = duration;
 
-  for (const designator of usedDesignators) {
+  for (const designator of 'YM') {
+    if (!(designator in result)) continue;
+
     const value = factor * result[designator];
-    switch (designator) {
-      case 'Y': {
-        const fromYear = new Date(endTime);
-        const toYear = new Date(endTime);
-        if (fractionedDesignator !== designator) {
-          toYear.setUTCFullYear(toYear.getUTCFullYear() + value);
-          endTime += toYear.getTime() - fromYear.getTime();
-        } else {
-          const fullValue = ~~value;
-          if (fullValue) {
-            toYear.setUTCFullYear(toYear.getUTCFullYear() + fullValue);
-            endTime += toYear.getTime() - fromYear.getTime();
-          }
+    const fromDate = new Date(endTime);
+    const toDate = new Date(endTime);
 
-          const fraction = new Date(endTime);
-
-          fraction.setUTCFullYear(fraction.getUTCFullYear() + factor);
-
-          endTime += factor * (fraction.getTime() - toYear.getTime()) * (value - fullValue);
+    if (designator === 'Y') {
+      if (fractionedDesignator !== designator) {
+        toDate.setUTCFullYear(toDate.getUTCFullYear() + value);
+        endTime += toDate.getTime() - fromDate.getTime();
+      } else {
+        const fullValue = ~~value;
+        if (fullValue) {
+          toDate.setUTCFullYear(toDate.getUTCFullYear() + fullValue);
+          endTime += toDate.getTime() - fromDate.getTime();
         }
 
-        break;
+        const fraction = new Date(endTime);
+
+        fraction.setUTCFullYear(fraction.getUTCFullYear() + factor);
+
+        endTime += factor * (fraction.getTime() - toDate.getTime()) * (value - fullValue);
       }
-      case 'M': {
-        const fromMonth = new Date(endTime);
-        const toMonth = new Date(endTime);
-        if (fractionedDesignator !== designator) {
-          toMonth.setUTCMonth(toMonth.getUTCMonth() + value);
-          endTime += toMonth.getTime() - fromMonth.getTime();
-        } else {
-          const fullValue = ~~value;
-          if (fullValue) {
-            toMonth.setUTCMonth(toMonth.getUTCMonth() + fullValue);
-            endTime += toMonth.getTime() - fromMonth.getTime();
-          }
-
-          const fraction = new Date(endTime);
-
-          fraction.setUTCMonth(fraction.getUTCMonth() + factor);
-
-          endTime += factor * (fraction.getTime() - toMonth.getTime()) * (value - fullValue);
+    } else if (designator === 'M') {
+      if (fractionedDesignator !== designator) {
+        toDate.setUTCMonth(toDate.getUTCMonth() + value);
+        endTime += toDate.getTime() - fromDate.getTime();
+      } else {
+        const fullValue = ~~value;
+        if (fullValue) {
+          toDate.setUTCMonth(toDate.getUTCMonth() + fullValue);
+          endTime += toDate.getTime() - fromDate.getTime();
         }
-        break;
+
+        const fraction = new Date(endTime);
+
+        fraction.setUTCMonth(fraction.getUTCMonth() + factor);
+
+        endTime += factor * (fraction.getTime() - toDate.getTime()) * (value - fullValue);
       }
-      case 'W':
-        endTime += value * 7 * MILLISECONDS_PER_DAY;
-        break;
-      case 'D':
-        endTime += value * MILLISECONDS_PER_DAY;
-        break;
-      case 'H':
-        endTime += value * MILLISECONDS_PER_HOUR;
-        break;
-      case 'm':
-        endTime += value * 60000;
-        break;
-      case 'S':
-        endTime += value * 1000;
-        break;
     }
   }
 
   return new Date(endTime);
+}
+
+/**
+ * Calculate date indifferent duration milliseconds
+ * @param {ISODuration} [duration] duration
+ * @returns {number} number of date indifferent milliseconds
+ */
+function getIndifferentDurationAsMilliseconds(duration) {
+  /** @type {any} */
+  const { result, usedDesignators } = duration;
+
+  let ms = 0;
+  for (const designator of usedDesignators) {
+    const value = result[designator];
+    switch (designator) {
+      case 'W':
+        ms += value * 7 * MILLISECONDS_PER_DAY;
+        break;
+      case 'D':
+        ms += value * MILLISECONDS_PER_DAY;
+        break;
+      case 'H':
+        ms += value * MILLISECONDS_PER_HOUR;
+        break;
+      case 'm':
+        ms += value * 60000;
+        break;
+      case 'S':
+        ms += value * 1000;
+        break;
+    }
+  }
+
+  return Math.round(ms);
 }

@@ -12,23 +12,6 @@ describe('duration', () => {
     });
   });
 
-  [
-    ['Last wednesday', /unexpected/i],
-    ['P1 Y', /unexpected/i],
-    ['PP', /unexpected/i],
-    ['P1Y2M3W4DT0.5H6M0.7S', /fractions are allowed/i],
-    ['P1Y2M3W4DP0.5H6M0.7S', /unexpected/i],
-    ['PT7', /EOL/i],
-    ['P', /EOL/i],
-    ['R/', /start character/i],
-  ].forEach(([dur, expected]) => {
-    it(`invalid "${dur}" throws`, () => {
-      expect(() => {
-        ISODuration.parse(dur);
-      }, dur).to.throw(expected);
-    });
-  });
-
   describe('write(c)', () => {
     it('ends parsing when falsy character appear', () => {
       const dur = 'PT0.1S';
@@ -144,7 +127,7 @@ describe('duration', () => {
     ].forEach(([dur, expected]) => {
       it(`"without end date ${dur}" returns expected milliseconds ${expected} from epoch`, () => {
         const parser = new ISODuration(dur).parse();
-        expect(parser.untilMilliseconds()).to.deep.equal(expected);
+        expect(parser.untilMilliseconds()).to.equal(expected);
       });
     });
 
@@ -188,6 +171,43 @@ describe('duration', () => {
         const ms = duration.untilMilliseconds(endDate);
 
         expect(ms).to.equal(expected);
+      });
+    });
+  });
+
+  describe('invalid', () => {
+    it('fractions cannot be followed by another value', () => {
+      const source = 'P0.5Y2M';
+      const duration = new ISODuration(source);
+
+      duration.write('P');
+      duration.write('0');
+      duration.write('.');
+      duration.write('5');
+      duration.write('Y');
+
+      expect(duration.result).to.have.property('Y', 0.5);
+
+      expect(() => duration.write('1')).to.throw(RangeError);
+    });
+
+    [
+      ['Last wednesday', /unexpected/i],
+      ['P1 Y', /unexpected/i],
+      ['PP', /unexpected/i],
+      ['P0.5Y2M', /fractions/i],
+      ['PT0.5H2S', /fractions/i],
+      ['PT0.5H2', /fractions/i],
+      ['P1Y2M3W4DT0.5H6M0.7S', /fractions/i],
+      ['P1Y2M3W4DP0.5H', /unexpected/i],
+      ['PT7', /EOL/i],
+      ['P', /EOL/i],
+      ['R/', /unexpected/i],
+    ].forEach(([dur, expected]) => {
+      it(`invalid "${dur}" throws`, () => {
+        expect(() => {
+          ISODuration.parse(dur);
+        }, dur).to.throw(expected);
       });
     });
   });

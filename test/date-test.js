@@ -1,4 +1,4 @@
-import { ISODate } from '../src/index.js';
+import { ISODate, getDate } from '../src/index.js';
 
 describe('ISO date', () => {
   [
@@ -24,6 +24,14 @@ describe('ISO date', () => {
     ['2025-01-01T12:00:42.01-02:00', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '-', OH: 2, Om: 0 }],
     ['2025-01-01T12:00:42.01+02:30', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '+', OH: 2, Om: 30 }],
     ['2025-01-01T12:00:42.01+02:30:30', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '+', OH: 2, Om: 30, OS: 30 }],
+    ['2025-01-01T23:59', { Y: 2025, M: 0, D: 1, H: 23, m: 59 }],
+    ['2025-01-01T24:00', { Y: 2025, M: 0, D: 1, H: 24, m: 0 }],
+    ['2025-01-01T24:00:00', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0 }],
+    ['2025-01-01T24:00:00.000', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0, F: 0 }],
+    ['2025-01-01T24:00Z', { Y: 2025, M: 0, D: 1, H: 24, m: 0, Z: 'Z' }],
+    ['2025-01-01T24:00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, Z: '+', OH: 1 }],
+    ['2025-01-01T24:00:00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0, Z: '+', OH: 1 }],
+    ['2025-01-01T24:00:00.00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0, F: 0, Z: '+', OH: 1 }],
     ['20240127T1200', { Y: 2024, M: 0, D: 27, H: 12, m: 0 }],
     ['20240127T120001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1 }],
     ['20240127T120001,001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1, F: 1 }],
@@ -32,11 +40,21 @@ describe('ISO date', () => {
       expect(ISODate.parse(dt)).to.deep.equal(expected);
     });
 
+    it(`getDate("${dt}") is parsed as expected`, () => {
+      expect(getDate(dt).getFullYear()).to.equal(expected.Y);
+    });
+
     it(`toUTCDate() "${dt}" returns expected date`, () => {
       const parser = new ISODate(dt);
 
       expect(parser.toUTCDate()).to.deep.equal(getDateFromParts(expected));
     });
+  });
+
+  it('hour 24 returns expected date', () => {
+    expect(getDate('2025-01-01T24:00:00.000')).to.deep.equal(new Date(2025, 0, 2));
+    expect(getDate('2025-01-01T24:00:00.000Z')).to.deep.equal(new Date(Date.UTC(2025, 0, 2)));
+    expect(getDate('2024-02-28T24:00:00.000+02')).to.deep.equal(new Date(Date.UTC(2024, 1, 29)));
   });
 
   it('enforce separators forces separators to be used', () => {
@@ -89,6 +107,10 @@ describe('ISO date', () => {
     '2023-02-29',
     '2018-02-29',
     '2018-03-00',
+    '2018-03-01T24:01',
+    '2018-03-01T24:00:01',
+    '2018-03-01T24:00:00.001',
+    '2018-03-01T24:00:01+02',
     '2024-01:27',
     '202401',
     '2024-13',

@@ -17,11 +17,19 @@ describe('ISO 8601 interval', () => {
       ['2008-03-01T13:00:00+0100', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: '+', OH: 1, Om: 0 }],
       ['2008-03-01T13:00:00+01:00:30', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: '+', OH: 1, Om: 0, OS: 30 }],
       ['2008-03-01T13:00:00+010030', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: '+', OH: 1, Om: 0, OS: 30 }],
+      ['2008-03-01T24:00:00', { Y: 2008, M: 2, D: 1, H: 24, m: 0, S: 0 }],
     ].forEach(([interval, expected]) => {
       it(`parsed ${interval} has the expected start date`, () => {
         const iso = parseInterval(interval);
         expect(iso.start.result).to.include(expected);
+        expect(iso.parsed, 'parsed chars').to.equal(interval);
       });
+    });
+
+    it('has the expected start date parsed chars', () => {
+      const iso = parseInterval('2007-03-01T13:00+01/P1Y2M10DT2H30M');
+      expect(iso.start.parsed, 'parsed start date chars', '2007-03-01T13:00+01');
+      expect(iso.parsed, 'parsed chars').to.equal('2007-03-01T13:00+01/P1Y2M10DT2H30M');
     });
   });
 
@@ -63,6 +71,14 @@ describe('ISO 8601 interval', () => {
       ['2007-01-01/2008-03', { Y: 2008, M: 2, D: 1 }],
       ['2007-01-01/2008-03-02', { Y: 2008, M: 2, D: 2 }],
       ['2007-01-01/2008-03-01T13:00-03:30', { Y: 2008, M: 2, D: 1, H: 13, m: 0, Z: '-', OH: 3, Om: 30 }],
+      ['2007-03-01/31', { Y: 2007, M: 2, D: 31 }],
+      ['2007-02-01/28', { Y: 2007, M: 1, D: 28 }],
+      ['2020-02-01/29', { Y: 2020, M: 1, D: 29 }],
+      ['2019-02-01/2020-02-29', { Y: 2020, M: 1, D: 29 }],
+      ['2007-04-01/30', { Y: 2007, M: 3, D: 30 }],
+      ['2007-01-01/31', { Y: 2007, M: 0, D: 31 }],
+      ['2007-01-01/02-28', { Y: 2007, M: 1, D: 28 }],
+      ['2007-01-01/10', { Y: 2007, M: 0, D: 10 }],
       ['2007-01-01/02', { Y: 2007, M: 0, D: 2 }],
       ['2007-01-01/03T01:30', { Y: 2007, M: 0, D: 3, H: 1, m: 30 }],
       ['2007-01-01/03-14', { Y: 2007, M: 2, D: 14 }],
@@ -70,8 +86,8 @@ describe('ISO 8601 interval', () => {
     ].forEach(([interval, expected]) => {
       it(`parsed ${interval} has the expected start and end date`, () => {
         const iso = parseInterval(interval);
-        expect(iso.start.result).to.include({ Y: 2007, M: 0, D: 1 });
         expect(iso.end.result).to.deep.equal(expected);
+        expect(iso.parsed, 'parsed chars').to.equal(interval);
       });
     });
 
@@ -116,6 +132,14 @@ describe('ISO 8601 interval', () => {
       expect(iso.duration).to.be.undefined;
       expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 16, H: 0, m: 0 });
     });
+
+    ['2007-03-01/32', '2007-02-01/29', '2019-02-01/29', '2007-04-01/31', '2007-01-01/00', '2007-02-01/02-29', '2020-02-01/02-30'].forEach(
+      (interval) => {
+        it(`invalid partial end date in "${interval}" throws RangeError`, () => {
+          expect(() => parseInterval(interval)).to.throw(RangeError, /partial date/i);
+        });
+      },
+    );
   });
 
   describe('interval duration and end date', () => {
@@ -129,6 +153,7 @@ describe('ISO 8601 interval', () => {
         const iso = parseInterval(interval);
         expect(iso.duration.result).to.include({ Y: 2 });
         expect(iso.end.result).to.deep.equal(expected);
+        expect(iso.parsed, 'parsed chars').to.equal(interval);
       });
     });
   });
@@ -143,6 +168,7 @@ describe('ISO 8601 interval', () => {
         const iso = parseInterval(interval);
         expect(iso.repeat).to.equal(expectedRepeat);
         expect(iso.start.result).to.include({ Y: 2008, H: 13, Z: 'Z' });
+        expect(iso.parsed).to.equal(interval);
       });
     });
 
@@ -181,13 +207,15 @@ describe('ISO 8601 interval', () => {
       });
     });
 
-    ['  ', 'Last wednesday', 'Past wednesday', 'Rather', 'R/And again', '2pac', '2024-03-08/R', '2024-03-00'].forEach((interval) => {
-      it(`non "${interval}" throws range error`, () => {
-        expect(() => {
-          parseInterval(interval);
-        }).to.throw(RangeError);
-      });
-    });
+    ['  ', 'Last wednesday', 'Past wednesday', 'Rather', 'R/And again', '2pac', '2024-03-08/R', '2024-03-00', 'R3//2027-02-01'].forEach(
+      (interval) => {
+        it(`non "${interval}" throws range error`, () => {
+          expect(() => {
+            parseInterval(interval);
+          }).to.throw(RangeError);
+        });
+      },
+    );
 
     ['2027-0101', '202701-01', '2027-01-01T1200', '2027-01-01T12:0000', '20270101T12:0000', '20270101T1200:00'].forEach((interval) => {
       it(`unbalanced separators in start date "${interval}" throws range error`, () => {
@@ -279,7 +307,7 @@ describe('ISO 8601 interval', () => {
 
   describe('parseDuration', () => {
     it('Start and duration, such as "2007-03-01T13:00:00Z/P1Y2M10DT2H30M"', () => {
-      expect(parseDuration('2007-03-01T13:00:00Z/P1Y2M10DT2H30M')).to.deep.include({
+      expect(parseDuration('2007-03-01T13:00:00Z/P1Y2M10DT2H30M').result).to.deep.include({
         Y: 1,
         M: 2,
         D: 10,
@@ -289,7 +317,7 @@ describe('ISO 8601 interval', () => {
     });
 
     it('Duration and end, such as "P1Y2M10DT2H30M/2008-05-11T15:30:00Z"', () => {
-      expect(parseDuration('P1Y2M10DT2H30M/2008-05-11T15:30:00Z')).to.deep.include({
+      expect(parseDuration('P1Y2M10DT2H30M/2008-05-11T15:30:00Z').result).to.deep.include({
         Y: 1,
         M: 2,
         D: 10,
@@ -299,7 +327,7 @@ describe('ISO 8601 interval', () => {
     });
 
     it('Duration only, such as "P1Y2M10DT2H30M", with additional context information', () => {
-      expect(parseDuration('P1Y2M10DT2H30M')).to.deep.include({
+      expect(parseDuration('P1Y2M10DT2H30M').result).to.deep.include({
         Y: 1,
         M: 2,
         D: 10,
@@ -309,7 +337,7 @@ describe('ISO 8601 interval', () => {
     });
 
     it('Repeat the interval of "P1Y2M10DT2H30M" five times starting at "2008-03-01T13:00:00Z"', () => {
-      expect(parseDuration('R5/2008-03-01T13:00:00Z/P1Y2M10DT2H30M')).to.deep.include({
+      expect(parseDuration('R5/2008-03-01T13:00:00Z/P1Y2M10DT2H30M').result).to.deep.include({
         Y: 1,
         M: 2,
         D: 10,
@@ -319,25 +347,25 @@ describe('ISO 8601 interval', () => {
     });
 
     it('handles R/2017-01-01/P3M', () => {
-      expect(parseDuration('R/2017-01-01/P3M')).to.deep.include({
+      expect(parseDuration('R/2017-01-01/P3M').result).to.deep.include({
         M: 3,
       });
     });
 
     it('handles R-1/2017-01-01/P3M', () => {
-      expect(parseDuration('R-1/2017-01-01/P3M')).to.deep.include({
+      expect(parseDuration('R-1/2017-01-01/P3M').result).to.deep.include({
         M: 3,
       });
     });
 
     it('allows weeks', () => {
-      expect(parseDuration('P1W')).to.deep.include({
+      expect(parseDuration('P1W').result).to.deep.include({
         W: 1,
       });
     });
 
     it('allows fractions', () => {
-      expect(parseDuration('P1Y2M3DT4H5M0.6S')).to.deep.include({
+      expect(parseDuration('P1Y2M3DT4H5M0.6S').result).to.deep.include({
         Y: 1,
         M: 2,
         D: 3,
@@ -348,11 +376,11 @@ describe('ISO 8601 interval', () => {
     });
 
     it('Fractions are allowed on the smallest unit in the string, e.g. P0.5D or PT1.0001S but not PT0.5M0.1S', () => {
-      expect(parseDuration('P0.5D')).to.deep.include({
+      expect(parseDuration('P0.5D').result).to.deep.include({
         D: 0.5,
       });
 
-      expect(parseDuration('PT1.0001S')).to.deep.include({
+      expect(parseDuration('PT1.0001S').result).to.deep.include({
         S: 1.0001,
       });
 
@@ -484,6 +512,58 @@ describe('ISO 8601 interval', () => {
       expect(interval.getDates()).to.deep.equal([new Date(2007, 2, 1)]);
     });
 
+    it('getDates() with repeat monthly interval and end date returns expected', () => {
+      const interval = new ISOInterval('R12/P1M/2007-03-01T00:00Z').parse();
+
+      expect(interval.getDates()).to.deep.equal([
+        new Date(Date.UTC(2006, 3, 1)),
+        new Date(Date.UTC(2006, 4, 1)),
+        new Date(Date.UTC(2006, 5, 1)),
+        new Date(Date.UTC(2006, 6, 1)),
+        new Date(Date.UTC(2006, 7, 1)),
+        new Date(Date.UTC(2006, 8, 1)),
+        new Date(Date.UTC(2006, 9, 1)),
+        new Date(Date.UTC(2006, 10, 1)),
+        new Date(Date.UTC(2006, 11, 1)),
+        new Date(Date.UTC(2007, 0, 1)),
+        new Date(Date.UTC(2007, 1, 1)),
+        new Date(Date.UTC(2007, 2, 1)),
+      ]);
+    });
+
+    it('getDates() with repeat monthly plus one day interval and end date returns expected', () => {
+      const interval = new ISOInterval('R12/P1M1D/2007-03-01T00:00Z').parse();
+
+      expect(interval.getDates()).to.deep.equal([
+        new Date(Date.UTC(2006, 2, 21)),
+        new Date(Date.UTC(2006, 3, 22)),
+        new Date(Date.UTC(2006, 4, 23)),
+        new Date(Date.UTC(2006, 5, 24)),
+        new Date(Date.UTC(2006, 6, 25)),
+        new Date(Date.UTC(2006, 7, 26)),
+        new Date(Date.UTC(2006, 8, 27)),
+        new Date(Date.UTC(2006, 9, 28)),
+        new Date(Date.UTC(2006, 10, 29)),
+        new Date(Date.UTC(2006, 11, 30)),
+        new Date(Date.UTC(2007, 0, 31)),
+        new Date(Date.UTC(2007, 2, 1)),
+      ]);
+    });
+
+    it('getDates() with repeat from start date and monthly plus one day duration returns expected', () => {
+      const interval = new ISOInterval('R7/2007-02-01T00:00Z/P1M1D').parse();
+
+      expect(interval.getDates()).to.deep.equal([
+        new Date(Date.UTC(2007, 1, 1)),
+        new Date(Date.UTC(2007, 2, 2)),
+        new Date(Date.UTC(2007, 3, 3)),
+        new Date(Date.UTC(2007, 4, 4)),
+        new Date(Date.UTC(2007, 5, 5)),
+        new Date(Date.UTC(2007, 6, 6)),
+        new Date(Date.UTC(2007, 7, 7)),
+      ]);
+    });
+
     it('start date interval getDates() returns start date', () => {
       const interval = new ISOInterval('2024-03-24T00:00Z').parse();
       expect(interval.getDates()).to.deep.equal([new Date(Date.UTC(2024, 2, 24))]);
@@ -495,7 +575,7 @@ describe('ISO 8601 interval', () => {
     });
 
     it('repeat start and end date interval getDates() returns start and end date', () => {
-      const interval = new ISOInterval('R3/2024-03-24T00:00Z/25T12:00Z').parse();
+      let interval = new ISOInterval('R3/2024-03-24T00:00Z/25T12:00Z').parse();
       expect(interval.getDates()).to.deep.equal([new Date(Date.UTC(2024, 2, 24)), new Date(Date.UTC(2024, 2, 25, 12, 0))]);
     });
   });

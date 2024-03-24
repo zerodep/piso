@@ -21,12 +21,12 @@ jobs:
       - run: npm i --loglevel=error
       - run: npm run dist
       - run: npm run test:lcov
-      - name: Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.node-version }}
-          parallel: true
+      # - name: Coveralls
+      #   uses: coverallsapp/github-action@v2
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     flag-name: run-${{ matrix.node-version }}
+      #     parallel: true
 # finish:
 #   needs: build
 #   runs-on: ubuntu-latest
