@@ -1,6 +1,6 @@
 # piso
 
-[![Build](https://github.com/zerodep/piso/actions/workflows/build.yaml/badge.svg)](https://github.com/zerodep/piso/actions/workflows/build.yaml)
+[![Build](https://github.com/zerodep/piso/actions/workflows/build.yaml/badge.svg)](https://github.com/zerodep/piso/actions/workflows/build.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/piso/badge.svg?branch=main)](https://coveralls.io/github/zerodep/piso?branch=main)
 
 ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia ISO 8601](https://en.wikipedia.org/wiki/ISO_8601).
 
