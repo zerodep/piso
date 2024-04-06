@@ -47,7 +47,7 @@ describe('ISO date', () => {
     it(`toUTCDate() "${dt}" returns expected date`, () => {
       const parser = new ISODate(dt);
 
-      expect(parser.toUTCDate()).to.deep.equal(getDateFromParts(expected));
+      expect(parser.toDate()).to.deep.equal(getDateFromParts(expected));
     });
   });
 
@@ -83,15 +83,15 @@ describe('ISO date', () => {
     ['2025-02-28T08:06:30-01', new Date(Date.UTC(2025, 1, 28, 8, 6, 30))],
   ].forEach(([dt, expected]) => {
     it(`parse partial "${dt}" returns expected date`, () => {
-      expect(new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1).toUTCDate()).to.deep.equal(expected);
+      expect(new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
     });
 
     it(`parse partial "${dt}" parses once and returns expected date`, () => {
       const parser = new ISODate(dt, -1, null, true);
       parser.parsePartialDate(2024, 0, 1);
       parser.parsePartialDate(2024, 0, 1);
-      expect(parser.toUTCDate()).to.deep.equal(expected);
-      expect(parser.toUTCDate()).to.deep.equal(expected);
+      expect(parser.toDate()).to.deep.equal(expected);
+      expect(parser.toDate()).to.deep.equal(expected);
     });
   });
 
@@ -155,7 +155,7 @@ describe('ISO date', () => {
 
   it('partial parse on parse is ignored', () => {
     const isodate = new ISODate('25');
-    expect(isodate.parsePartialDate(2024, 3, 24).toUTCDate()).to.deep.equal(isodate.parsePartialDate(2024, 3, 24).toUTCDate());
+    expect(isodate.parsePartialDate(2024, 3, 24).toDate()).to.deep.equal(isodate.parsePartialDate(2024, 3, 24).toDate());
   });
 });
 

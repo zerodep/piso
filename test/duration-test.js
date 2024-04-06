@@ -1,14 +1,43 @@
+import * as ck from 'chronokinesis';
+
 import { ISOInterval, ISODuration } from '../src/index.js';
 
 describe('duration', () => {
-  [
-    ['P1Y', { Y: 1 }],
-    ['PT0S', { S: 0 }],
-    ['P0D', { D: 0 }],
-    ['P1Y2M3W4DT5H6M7S', { Y: 1, M: 2, W: 3, D: 4, H: 5, m: 6, S: 7 }],
-  ].forEach(([dur, expected]) => {
-    it(`"${dur}" is parsed as expected`, () => {
-      expect(ISODuration.parse(dur)).to.deep.equal(expected);
+  after(ck.reset);
+
+  describe('getStartAt(endDate[, repetitions])', () => {
+    afterEach(ck.reset);
+    it('duration returns start date compared to now', () => {
+      ck.freeze(Date.UTC(2024, 2, 29));
+
+      const dur = new ISODuration('PT1M').parse();
+      expect(dur.getStartAt()).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+    });
+
+    it('repeated duration returns start date compared to now', () => {
+      ck.freeze(Date.UTC(2024, 2, 29));
+
+      let dur = new ISODuration('PT1M').parse();
+      expect(dur.getStartAt(undefined, 2)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 58)));
+
+      dur = new ISODuration('P1Y').parse();
+      expect(dur.getStartAt(undefined, 51), 'P1Y').to.deep.equal(new Date(Date.UTC(1973, 2, 29)));
+
+      dur = new ISODuration('P1M').parse();
+      expect(dur.getStartAt(undefined, 51)).to.deep.equal(new Date(Date.UTC(2024, 2 - 51, 29)));
+    });
+  });
+
+  describe('parse', () => {
+    [
+      ['P1Y', { Y: 1 }],
+      ['PT0S', { S: 0 }],
+      ['P0D', { D: 0 }],
+      ['P1Y2M3W4DT5H6M7S', { Y: 1, M: 2, W: 3, D: 4, H: 5, m: 6, S: 7 }],
+    ].forEach(([dur, expected]) => {
+      it(`"${dur}" is parsed as expected`, () => {
+        expect(ISODuration.parse(dur)).to.deep.equal(expected);
+      });
     });
   });
 
@@ -41,11 +70,11 @@ describe('duration', () => {
       ['P0.5M', 15.5 * 24 * 3600 * 1000],
       ['P0.5D', 12 * 3600 * 1000],
       ['P1Y', Date.UTC(1971, 0, 1)],
-      ['P1Y2M3W4DT5H6M7S', 38811967000],
+      ['P1Y2M3W4DT5H6M7S', 38898367000],
       ['PT0S', 0],
       ['P0D', 0],
     ].forEach(([dur, expected]) => {
-      it(`"without start date ${dur}" returns expected milliseconds ${expected} from epoch`, () => {
+      it(`"without start date ${dur}" returns expected milliseconds ${expected} from 1971 UTC`, () => {
         const parser = new ISODuration(dur).parse();
         expect(parser.toMilliseconds()).to.deep.equal(expected);
       });
@@ -95,7 +124,7 @@ describe('duration', () => {
       });
     });
 
-    it('ignores leap seconds', () => {
+    it('ignores leap seconds since that`s what javascript does', () => {
       const { startDate, duration } = new ISOInterval('1972-06-28T00:00Z/P3D').parse();
 
       const ms = duration.toMilliseconds(startDate);

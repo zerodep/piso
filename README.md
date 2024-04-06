@@ -69,12 +69,43 @@ Number representing the interval type flags. Available after [parse](#intervalpa
 > Do I have repeat in my interval?
 
 ```js
-console.log((interval.type | 1) === interval.type ? 'Yes' : 'No');
+import { parseInterval } from '@0dep/piso';
+
+console.log((parseInterval('R3/P1Y').type & 1) === 1 ? 'Yes' : 'No');
+// Yes
+
+console.log((parseInterval('R-1/P1Y').type & 1) === 1 ? 'Yes' : 'No');
+// Yes, indefinate number of repetititions
+
+console.log((parseInterval('R-1/2024-03-27/P1Y').type & 1) === 1 ? 'Yes' : 'No');
+// Yes, indefinate number of repetititions from start date
+
+console.log((parseInterval('R-1/P1Y/2024-03-27').type & 1) === 1 ? 'Yes' : 'No');
+// Yes, indefinate number of repetititions until end date
+
+console.log((parseInterval('R0/P1Y').type & 1) === 1 ? 'Yes' : 'No');
+// No, zero is equal to once
+
+console.log((parseInterval('R1/P1Y').type & 1) === 1 ? 'Yes' : 'No');
+// No, since it's just once
+
+console.log((parseInterval('R1/2024-03-28').type & 1) === 1 ? 'Yes' : 'No');
+// No, pointless repeat
+
+console.log((parseInterval('R1/2024-03-28/31').type & 1) === 1 ? 'Yes' : 'No');
+// No, pointless repeat
+
+console.log((parseInterval('R1/P1Y/2024-03-28').type & 1) === 1 ? 'Yes' : 'No');
+// No
 ```
 
 > Is start date defined in my interval?
 
 ```js
+import { parseInterval } from '@0dep/piso';
+
+const interval = parseInterval();
+
 console.log((interval.type | 2) === interval.type ? 'Yes' : 'No');
 ```
 

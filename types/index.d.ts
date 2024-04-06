@@ -1,4 +1,4 @@
-declare module 'piso' {
+declare module '@0dep/piso' {
 	/** @module piso */
 	/**
 	 * ISO 8601 interval parser
@@ -42,6 +42,16 @@ declare module 'piso' {
 		 * @returns list of cutoff dates
 		 */
 		getDates(compareDate?: Date): Date[];
+		/**
+		 * Get expire at
+		 * @param startDate optional start date, duration without start or end will need this
+		 */
+		getExpireAt(startDate?: Date): Date;
+		/**
+		 * Get start at date
+		 * @param compareDate optional compare date, duration without start or end will need this
+		 */
+		getStartAt(compareDate?: Date): Date;
 		consumeRepeat(): string;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
@@ -83,7 +93,7 @@ declare module 'piso' {
 		endChars: string;
 		
 		result: Partial<ISODateParts>;
-		toUTCDate(): Date;
+		toDate(): Date;
 		/**
 		 * Parse passed source as ISO 8601 date time
 		 * */
@@ -151,7 +161,7 @@ declare module 'piso' {
 		
 		result: Partial<ISOParts>;
 		isDateIndifferent: boolean;
-		indifferentMs: number;
+		indifferentMs: any;
 		parse(): this;
 		/**
 		 * Write
@@ -170,22 +180,37 @@ declare module 'piso' {
 		 */
 		end(column: number): void;
 		/**
-		 * Create unexpected error
-		 * */
-		createUnexpectedError(c: string | undefined, column: number): RangeError;
+		 * Get duration expire at date
+		 * @param startDate start ticking from date, defaults to now
+		 * @param repetition repetition
+		 */
+		getExpireAt(startDate?: Date, repetition?: number): Date;
+		/**
+		 * Get duration start date
+		 * @param endDate as compared to date, defaults to now
+		 * @param repetition number of repetitions
+		 */
+		getStartAt(endDate?: Date, repetition?: number): Date;
 		/**
 		 * Get duration in milliseconds from optional start date
 		 * @param startDate start date, defaults to epoch start 1970-01-01T00:00:00Z
+		 * @param repetition repetition
 		 * @returns duration in milliseconds from start date
 		 */
-		toMilliseconds(startDate?: Date): number;
+		toMilliseconds(startDate?: Date, repetition?: number): number;
 		/**
 		 * Get duration in milliseconds until optional end date
 		 * @param endDate end date, defaults to epoch start 1970-01-01T00:00:00Z
+		 * @param repetition repetition
 		 * @returns duration in milliseconds from end date
 		 */
-		untilMilliseconds(endDate?: Date): number;
-		getDateIndifferentMilliseconds(): number;
+		untilMilliseconds(endDate?: Date, repetition?: number): number;
+		
+		getDateIndifferentMilliseconds(repetitions?: number): number;
+		/**
+		 * Create unexpected error
+		 * */
+		createUnexpectedError(c: string | undefined, column: number): RangeError;
 	}
 	export namespace ISODuration {
 		/**
@@ -208,10 +233,22 @@ declare module 'piso' {
 	/**
 	 * Parse ISO 8601 date
 	 * @param isoDateSource ISO 8601 date
-	 * */
+	 */
 	export function getDate(isoDateSource: string): Date;
 	/**
-	 * Attempt to figure out the next date in an ISO 8601 interval
+	 * Interval expire at date
+	 * @param isoInterval ISO 8601 interval
+	 * @param compareDate optional compare date, defaults to now
+	 */
+	export function getExpireAt(isoInterval: string, compareDate?: Date): Date;
+	/**
+	 * Interval expire at date
+	 * @param isoInterval ISO 8601 interval
+	 * @param compareDate optional compare date, defaults to now
+	 */
+	export function getStartAt(isoInterval: string, compareDate?: Date): Date;
+	/**
+	 * Attempt to figure out next date in an ISO 8601 interval
 	 * @param compareDate optional compare date, defaults to now
 	 * @returns next date point
 	 */
