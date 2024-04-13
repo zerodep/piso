@@ -16,11 +16,12 @@
   },
   "scripts": {
     "test": "mocha",
-    "posttest": "npm run lint",
+    "posttest": "npm run lint && npm run dist",
     "lint": "eslint . --cache && prettier . --check --cache",
     "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
+    "test:md": "node --experimental-vm-modules ./scripts/test-markdown.js",
     "dist": "rollup -c && dts-buddy"
   },
   "engines": {

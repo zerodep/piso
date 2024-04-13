@@ -28,30 +28,21 @@ declare module '@0dep/piso' {
 		get startDate(): Date;
 		get endDate(): Date;
 		/**
-		 * Opinionated function that attempts to figure out the closest date in the interval
-		 * @param compareDate optional compare date, kind of required if repeat is present, defaults to now
-		 * */
-		next(compareDate?: Date): Date | null;
-		/**
 		 * ISO 8601 interval parser
 		 * */
 		parse(): ISOInterval;
 		/**
-		 * Get interval dates
-		 * @param compareDate optional compare date, default to now, used if start- or end date is missing
-		 * @returns list of cutoff dates
-		 */
-		getDates(compareDate?: Date): Date[];
-		/**
 		 * Get expire at
-		 * @param startDate optional start date, duration without start or end will need this
+		 * @param compareDate optional compare date, defaults to now
+		 * @param startDate optional start date, duration without start or end defaults to now
 		 */
-		getExpireAt(startDate?: Date): Date;
+		getExpireAt(compareDate?: Date, startDate?: Date): Date;
 		/**
 		 * Get start at date
-		 * @param compareDate optional compare date, duration without start or end will need this
+		 * @param compareDate optional compare date, defaults to now
+		 * @param endDate optional end date, defaults to now
 		 */
-		getStartAt(compareDate?: Date): Date;
+		getStartAt(compareDate?: Date, endDate?: Date): Date;
 		consumeRepeat(): string;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
@@ -65,7 +56,6 @@ declare module '@0dep/piso' {
 		current(): string;
 		peek(): string;
 		[kIsParsed]: boolean;
-		[kDates]: any;
 	}
 	/**
 	 * ISO 8601 date parser
@@ -161,7 +151,6 @@ declare module '@0dep/piso' {
 		
 		result: Partial<ISOParts>;
 		isDateIndifferent: boolean;
-		indifferentMs: any;
 		parse(): this;
 		/**
 		 * Write
@@ -187,13 +176,13 @@ declare module '@0dep/piso' {
 		getExpireAt(startDate?: Date, repetition?: number): Date;
 		/**
 		 * Get duration start date
-		 * @param endDate as compared to date, defaults to now
+		 * @param endDate optional end date, defaults to now
 		 * @param repetition number of repetitions
 		 */
 		getStartAt(endDate?: Date, repetition?: number): Date;
 		/**
 		 * Get duration in milliseconds from optional start date
-		 * @param startDate start date, defaults to epoch start 1970-01-01T00:00:00Z
+		 * @param startDate start date, defaults to 1971-01-01T00:00:00Z since it's not a leap year
 		 * @param repetition repetition
 		 * @returns duration in milliseconds from start date
 		 */
@@ -205,12 +194,34 @@ declare module '@0dep/piso' {
 		 * @returns duration in milliseconds from end date
 		 */
 		untilMilliseconds(endDate?: Date, repetition?: number): number;
-		
+		/**
+		 * Calculate date indifferent duration milliseconds
+		 * @param repetitions repetitions
+		 * @returns number of date indifferent milliseconds
+		 */
 		getDateIndifferentMilliseconds(repetitions?: number): number;
 		/**
 		 * Create unexpected error
 		 * */
 		createUnexpectedError(c: string | undefined, column: number): RangeError;
+		/**
+		 *
+		 * @param useUtc UTC
+		 * @returns new date with applied duration
+		 */
+		applyDuration(date?: Date, repetitions?: number, useUtc?: boolean): Date;
+		/**
+		 * Apply date duration
+		 * @param fromDate apply to date
+		 * @param repetitions repetitions
+		 * @param useUtc UTC
+		 * @returns new date with applied duration
+		 */
+		applyDateDuration(fromDate: Date, repetitions?: number, useUtc?: boolean): Date;
+		/**
+		 * Get date designator getter and setter;
+		 * */
+		_getDateFns(designator: string, useUtc: boolean): any;
 	}
 	export namespace ISODuration {
 		/**
@@ -239,22 +250,17 @@ declare module '@0dep/piso' {
 	 * Interval expire at date
 	 * @param isoInterval ISO 8601 interval
 	 * @param compareDate optional compare date, defaults to now
+	 * @param startDate optional start date for use when only duration is present
 	 */
-	export function getExpireAt(isoInterval: string, compareDate?: Date): Date;
+	export function getExpireAt(isoInterval: string, compareDate?: Date, startDate?: Date): Date;
 	/**
-	 * Interval expire at date
+	 * Interval start at date
 	 * @param isoInterval ISO 8601 interval
 	 * @param compareDate optional compare date, defaults to now
+	 * @param endDate optional end date for use when only duration is present
 	 */
-	export function getStartAt(isoInterval: string, compareDate?: Date): Date;
-	/**
-	 * Attempt to figure out next date in an ISO 8601 interval
-	 * @param compareDate optional compare date, defaults to now
-	 * @returns next date point
-	 */
-	export function next(isoInterval: string, compareDate?: Date): Date | null;
+	export function getStartAt(isoInterval: string, compareDate?: Date, endDate?: Date): Date;
 	const kIsParsed: unique symbol;
-	const kDates: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
 	Y: number;

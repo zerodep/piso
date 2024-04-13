@@ -17,7 +17,6 @@ const MILLISECONDS_PER_HOUR = 3600000;
 const NONLEAPYEAR = new Date(Date.UTC(1971, 0, 1));
 
 const kIsParsed = Symbol.for('is parsed');
-const kDates = Symbol.for('interval dates');
 
 const dateUTCFns = {
   Y: [Date.prototype.getUTCFullYear, Date.prototype.setUTCFullYear],
@@ -54,7 +53,6 @@ export function ISOInterval(source) {
   this.type = 0;
   // @internal
   this[kIsParsed] = false;
-  this[kDates] = undefined;
 }
 
 /** @name module:piso.ISOInterval#startDate */
@@ -65,30 +63,13 @@ Object.defineProperty(ISOInterval.prototype, 'startDate', {
   },
 });
 
-/** @name module:piso.ISOInterval#startDate */
+/** @name module:piso.ISOInterval#endDate */
 Object.defineProperty(ISOInterval.prototype, 'endDate', {
   /** @returns {Date | null} */
   get() {
     return this.end === undefined ? null : this.end.toDate();
   },
 });
-
-/**
- * Opinionated function that attempts to figure out the closest date in the interval
- * @param {Date} [compareDate] optional compare date, kind of required if repeat is present, defaults to now
- * @returns {Date | null}
- */
-ISOInterval.prototype.next = function next(compareDate) {
-  compareDate = new Date(compareDate === undefined ? Date.now() : compareDate.getTime());
-
-  const dates = this.getDates(compareDate);
-
-  for (const date of dates) {
-    if (date < compareDate) continue;
-    return date;
-  }
-  return dates[dates.length - 1];
-};
 
 /**
  * ISO 8601 interval parser
@@ -140,125 +121,71 @@ ISOInterval.prototype.parse = function parseInterval() {
 };
 
 /**
- * Get interval dates
- * @param {Date} [compareDate] optional compare date, default to now, used if start- or end date is missing
- * @returns {Date[]} list of cutoff dates
- */
-ISOInterval.prototype.getDates = function getDates(compareDate) {
-  if (!this[kIsParsed]) this.parse();
-
-  const type = this.type;
-  const duration = (type & 4) === 4 && this.duration;
-  let repetitions = (type & 1) === 1 ? this.repeat : 1;
-  const hasStartDate = (type & 2) === 2;
-  const hasEndDate = (type & 8) === 8;
-
-  if (this[kDates]) return this[kDates].slice();
-
-  /** @type {Date[]} */
-  const dates = (this[kDates] = []);
-  if (hasStartDate && hasEndDate) {
-    const startDate = this.start.toDate();
-    dates.push(startDate);
-    const endDate = this.end.toDate();
-    if (endDate.getTime() !== startDate.getTime()) {
-      dates.push(endDate);
-    }
-  } else if (hasStartDate) {
-    const startDate = this.start.toDate();
-    dates.push(startDate);
-    if (duration) dates.push(new Date(startDate.getTime() + duration.toMilliseconds(startDate)));
-  } else if (hasEndDate) {
-    const endDate = this.end.toDate();
-    dates.push(endDate);
-    if (duration) dates.unshift(new Date(endDate.getTime() + duration.untilMilliseconds(endDate)));
-  } else {
-    const startDate = new Date(compareDate === undefined ? Date.now() : compareDate.getTime());
-    dates.push(new Date(startDate.getTime() + duration.toMilliseconds(startDate)));
-    if (repetitions) repetitions += 1;
-  }
-
-  if (repetitions > 2 && duration) {
-    let repeat = repetitions - 2;
-    while (repeat) {
-      repeat--;
-      if (hasEndDate) {
-        const fromDate = dates[0];
-        dates.unshift(new Date(fromDate.getTime() + duration.untilMilliseconds(fromDate)));
-      } else {
-        const fromDate = dates[dates.length - 1];
-        dates.push(new Date(fromDate.getTime() + duration.toMilliseconds(fromDate)));
-      }
-    }
-  }
-
-  return dates.slice();
-};
-
-/**
  * Get expire at
- * @param {Date} [startDate] optional start date, duration without start or end will need this, defaults to now
+ * @param {Date} [compareDate] optional compare date, defaults to now
+ * @param {Date} [startDate] optional start date, duration without start or end defaults to now
  */
-ISOInterval.prototype.getExpireAt = function getExpireAt(startDate) {
+ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate) {
   if (!this[kIsParsed]) this.parse();
 
   const type = this.type;
-  let repetitions = (type & 1) === 1 ? this.repeat : 1;
+  const repetitions = (type & 1) === 1 ? this.repeat : 1;
   const duration = (type & 4) === 4 && this.duration;
   const hasEndDate = (type & 8) === 8;
 
-  if (repetitions < 2 && hasEndDate) return this.end.toDate();
+  if (repetitions === 1 && hasEndDate) return this.end.toDate();
 
   const hasStartDate = (type & 2) === 2;
-  startDate = startDate === undefined ? new Date() : startDate;
+
+  compareDate = compareDate === undefined ? new Date() : compareDate;
 
   if (hasStartDate && duration) {
-    const dateFns = new ISODateDurationFunctions(this.start.toDate(), duration, this.start.result.Z);
-    return dateFns.getExpireAt(repetitions);
-  } else if (hasEndDate && duration) {
-    const dateFns = new ISODateDurationFunctions(this.end.toDate(), duration, this.end.result.Z);
-    return dateFns.untilEndDate(repetitions);
+    const dateFns = new ISODateDurationFunctions(this.start.toDate(), duration, compareDate, this.start.result.Z);
+    return dateFns.addDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
+  } else if (hasEndDate && duration && repetitions) {
+    const dateFns = new ISODateDurationFunctions(this.end.toDate(), duration, compareDate, this.end.result.Z);
+    return dateFns.reduceDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
   }
 
-  const dateFns = new ISODateDurationFunctions(startDate, duration, 'Z');
-  if (!repetitions || repetitions === 1) return dateFns.applyDuration(startDate);
+  startDate = startDate === undefined ? new Date() : startDate;
 
-  const nowReps = dateFns.getRepetitions();
+  const dateFns = new ISODateDurationFunctions(startDate, duration, compareDate, 'Z');
 
-  if (nowReps <= 0) return dateFns.applyDuration(startDate, 1);
-  if (nowReps < repetitions) return dateFns.applyDuration(startDate, nowReps + 1);
-  if (nowReps >= repetitions) return dateFns.applyDuration(startDate, repetitions);
+  return dateFns.addDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
 };
 
 /**
  * Get start at date
- * @param {Date} [compareDate] optional compare date, duration without start or end will need this, defaults to now
+ * @param {Date} [compareDate] optional compare date, defaults to now
+ * @param {Date} [endDate] optional end date, defaults to now
  */
-ISOInterval.prototype.getStartAt = function getStartAt(compareDate) {
+ISOInterval.prototype.getStartAt = function getStartAt(compareDate, endDate) {
   if (!this[kIsParsed]) this.parse();
 
   const type = this.type;
-  let repetitions = (type & 1) === 1 ? this.repeat : false;
+  const repetitions = (type & 1) === 1 ? this.repeat : 1;
   const duration = (type & 4) === 4 && this.duration;
   const hasStartDate = (type & 2) === 2;
 
-  if (!repetitions && hasStartDate) return this.start.toDate();
+  if (repetitions === 1 && hasStartDate) return this.start.toDate();
 
   const hasEndDate = (type & 8) === 8;
+
   compareDate = compareDate === undefined ? new Date() : compareDate;
 
-  if (hasEndDate && duration && !repetitions) {
-    const durationFns = new ISODateDurationFunctions(this.end.toDate(), duration, this.end.result.Z);
-    return durationFns.applyDuration(undefined, -1);
-  } else if (!hasEndDate && duration && repetitions) {
-    const dateFns = new ISODateDurationFunctions(this.start.toDate(), duration, this.start.result.Z);
-    return dateFns.getExpireAt(repetitions - 1);
-  } else if (hasEndDate && duration && repetitions) {
-    const dateFns = new ISODateDurationFunctions(this.end.toDate(), duration, this.end.result.Z);
-    return dateFns.untilEndDate(repetitions);
+  if (hasStartDate && duration) {
+    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, !!this.start.result.Z);
+  } else if (hasEndDate && duration) {
+    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, !!this.end.result.Z);
+  } else if (endDate === undefined) {
+    return duration.getStartAt(this.getExpireAt(undefined, compareDate));
+  } else if (repetitions === 1) {
+    return duration.getStartAt(endDate);
   }
 
-  return duration.getExpireAt(compareDate);
+  const dateFns = new ISODateDurationFunctions(endDate, duration, compareDate, 'Z');
+  const expireAt = dateFns.reduceDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
+  return duration.getStartAt(expireAt);
 };
 
 ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
@@ -459,7 +386,7 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
   this.result.M = M;
   this.result.D = D;
 
-  let value = this.consumeChar() + this.consumeChar();
+  const value = this.consumeChar() + this.consumeChar();
 
   const next = this.peek();
   /** @type {string | undefined} */
@@ -708,7 +635,6 @@ export function ISODuration(source, offset = 0) {
   /** @type {Partial<import('types').ISOParts>} */
   this.result = {};
   this.isDateIndifferent = true;
-  this.indifferentMs = undefined;
 }
 
 /**
@@ -812,29 +738,16 @@ ISODuration.prototype.end = function end(column) {
  * @param {number} [repetition] repetition
  */
 ISODuration.prototype.getExpireAt = function getExpireAt(startDate, repetition = 1) {
-  const indifferentMs = this.getDateIndifferentMilliseconds(repetition);
-  startDate = startDate === undefined ? new Date() : startDate;
-
-  const ms = startDate.getTime();
-  if (this.isDateIndifferent) return new Date(ms + indifferentMs);
-
-  return applyDateDuration(new Date(ms + indifferentMs), this, repetition);
+  return this.applyDuration(startDate, repetition, true);
 };
 
 /**
  * Get duration start date
- * @param {Date} [endDate] as compared to date, defaults to now
+ * @param {Date} [endDate] optional end date, defaults to now
  * @param {number} [repetition] number of repetitions
  */
 ISODuration.prototype.getStartAt = function getStartAt(endDate, repetition = 1) {
-  const indifferentMs = this.getDateIndifferentMilliseconds(repetition);
-  endDate = endDate === undefined ? new Date() : endDate;
-
-  const ms = endDate.getTime();
-
-  if (this.isDateIndifferent) return new Date(ms - indifferentMs);
-
-  return applyDateDuration(new Date(ms - indifferentMs), this, -repetition);
+  return this.applyDuration(endDate, repetition ? -repetition : -1, true);
 };
 
 /**
@@ -856,23 +769,36 @@ ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate, repeti
  * @returns {number} duration in milliseconds from end date
  */
 ISODuration.prototype.untilMilliseconds = function untilMilliseconds(endDate, repetition = 1) {
-  const indifferentMs = this.getDateIndifferentMilliseconds(repetition);
-
-  if (this.isDateIndifferent) return -indifferentMs;
-
-  endDate = endDate === undefined ? new Date(0) : endDate;
-
-  const untilDate = endDate || new Date(0);
-  return applyDateDuration(untilDate, this, -1 * repetition).getTime() - indifferentMs - untilDate.getTime();
+  endDate = endDate === undefined ? NONLEAPYEAR : endDate;
+  return this.getStartAt(endDate, repetition).getTime() - endDate.getTime();
 };
 
 /**
- *
- * @param {number} [repetitions]
- * @returns
+ * Calculate date indifferent duration milliseconds
+ * @param {number} [repetitions] repetitions
+ * @returns {number} number of date indifferent milliseconds
  */
-ISODuration.prototype.getDateIndifferentMilliseconds = function getDateIndifferentMilliseconds(repetitions) {
-  return getIndifferentDurationAsMilliseconds(this, repetitions);
+ISODuration.prototype.getDateIndifferentMilliseconds = function getDateIndifferentMilliseconds(repetitions = 1) {
+  /** @type {any} */
+  const { result, usedDesignators } = this;
+
+  let ms = 0;
+  for (const designator of usedDesignators) {
+    const value = result[designator];
+    switch (designator) {
+      case 'H':
+        ms += value * MILLISECONDS_PER_HOUR * repetitions;
+        break;
+      case 'm':
+        ms += value * 60000 * repetitions;
+        break;
+      case 'S':
+        ms += value * 1000 * repetitions;
+        break;
+    }
+  }
+
+  return Math.round(ms);
 };
 
 /**
@@ -886,104 +812,37 @@ ISODuration.prototype.createUnexpectedError = function createUnexpectedError(c, 
 
 /**
  *
- * @param {Date} date
- * @param {ISODuration} duration
- * @param {string} [UTC]
- */
-function ISODateDurationFunctions(date, duration, UTC) {
-  this.date = date;
-  this.duration = duration;
-  this.UTC = UTC;
-}
-
-/**
- * Add duration to date
- * @param {number} [repetitions] repetition
- */
-ISODateDurationFunctions.prototype.getExpireAt = function getExpiraAt(repetitions = 1) {
-  if (!repetitions || repetitions === 1) {
-    return this.applyDuration(this.date);
-  }
-
-  const q = this.getRepetitions();
-
-  if (q < 1) return this.applyDuration(this.date);
-  if (q < repetitions) return this.applyDuration(this.date, q + 1);
-  return this.applyDuration(this.date, repetitions);
-};
-
-/**
- * Reduce duration from date
- * @param {number} [repetitions] number of repetitions
- */
-ISODateDurationFunctions.prototype.untilEndDate = function untilEndDate(repetitions = 0) {
-  const endDate = this.date;
-
-  const q = this.getRepetitions();
-  if (q >= 0) return endDate;
-  if (-repetitions > q) return this.applyDuration(endDate, -repetitions + 1);
-
-  return this.applyDuration(endDate, q + 1);
-};
-
-/**
- * Get number of durations between date and now
- * @returns
- */
-ISODateDurationFunctions.prototype.getRepetitions = function getRepetitions() {
-  const ms = this.date.getTime();
-  const diff = Date.now() - ms;
-  const durationMs = this.duration.toMilliseconds();
-  return Math.round(diff / durationMs);
-};
-
-/**
- *
- * @param {number} repetitions
- * @returns
- */
-ISODateDurationFunctions.prototype.applyRepetitions = function applyRepetitions(repetitions) {
-  const date = this.date;
-  const q = this.getRepetitions();
-
-  if (q < repetitions) return this.applyDuration(date, q);
-
-  return this.applyDuration(date, repetitions);
-};
-
-/**
- *
  * @param {Date} [date]
  * @param {number} [repetitions]
+ * @param {boolean} [useUtc] UTC
  * @returns {Date} new date with applied duration
  */
-ISODateDurationFunctions.prototype.applyDuration = function applyDuration(date, repetitions = 1) {
-  const fromDate = date !== undefined ? date : this.date;
-  if (!repetitions) return date;
+ISODuration.prototype.applyDuration = function applyDuration(date, repetitions = 1, useUtc = false) {
+  date = date === undefined ? new Date() : date;
 
-  const duration = this.duration;
-  const indifferentMs = duration.getDateIndifferentMilliseconds(repetitions);
+  const indifferentMs = this.getDateIndifferentMilliseconds(repetitions);
 
-  const ms = fromDate.getTime();
-  if (duration.isDateIndifferent) return new Date(ms + indifferentMs);
+  const ms = date.getTime();
 
-  return this.applyDateDuration(new Date(ms + indifferentMs), repetitions);
+  if (this.isDateIndifferent) return new Date(ms + indifferentMs);
+
+  return this.applyDateDuration(new Date(ms + indifferentMs), repetitions, useUtc);
 };
 
 /**
  * Apply date duration
  * @param {Date} fromDate apply to date
  * @param {number} [repetitions] repetitions
+ * @param {boolean} [useUtc] UTC
  * @returns {Date} new date with applied duration
  */
-ISODateDurationFunctions.prototype.applyDateDuration = function applyDateDuration(fromDate, repetitions = 1) {
-  const duration = this.duration;
+ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, repetitions = 1, useUtc = false) {
   const startTime = fromDate.getTime();
   let endTime = startTime;
   const factor = repetitions;
 
   /** @type {any} */
-  const { result, fractionedDesignator } = duration;
+  const { result, fractionedDesignator } = this;
 
   for (const designator of 'YMWD') {
     if (!(designator in result)) continue;
@@ -999,7 +858,7 @@ ISODateDurationFunctions.prototype.applyDateDuration = function applyDateDuratio
     const toDate = new Date(endTime);
 
     // @ts-ignore
-    const [getter, setter] = this.getDateFns(designatorKey);
+    const [getter, setter] = this._getDateFns(designatorKey, useUtc);
     const current = getter.call(toDate);
 
     if (fractionedDesignator !== designator) {
@@ -1025,11 +884,96 @@ ISODateDurationFunctions.prototype.applyDateDuration = function applyDateDuratio
 /**
  * Get date designator getter and setter;
  * @param {string} designator
+ * @param {boolean} useUtc
  */
-ISODateDurationFunctions.prototype.getDateFns = function getDateFns(designator) {
-  const fns = this.UTC ? dateUTCFns : dateLocalFns;
+ISODuration.prototype._getDateFns = function getDateFns(designator, useUtc) {
+  const fns = useUtc ? dateUTCFns : dateLocalFns;
   // @ts-ignore
   return fns[designator];
+};
+
+/**
+ *
+ * @param {Date} date
+ * @param {Date} compareTo
+ * @param {ISODuration} duration
+ * @param {string} [UTC]
+ */
+function ISODateDurationFunctions(date, duration, compareTo, UTC) {
+  this.date = date;
+  this.duration = duration;
+  this.compareTo = compareTo;
+  this.UTC = UTC;
+}
+
+/**
+ * Add duration to date
+ * @param {number} [repetitions] repetition
+ */
+ISODateDurationFunctions.prototype.addDuration = function addDuration(repetitions = 1) {
+  const startDate = this.date;
+
+  const repeat = repetitions;
+  const ms = this.date.getTime();
+  const now = this.compareTo;
+  const diff = now.getTime() - ms;
+  const q = diff / this.duration.toMilliseconds();
+
+  if (q < 0) return this.applyDuration(startDate);
+
+  let qs = ~~q;
+
+  if (qs >= repeat) return this.applyDuration(startDate, repeat);
+
+  let expireAt = this.applyDuration(startDate, ++qs);
+
+  while (expireAt <= now && qs < repeat) {
+    expireAt = this.applyDuration(startDate, ++qs);
+  }
+
+  return expireAt;
+};
+
+/**
+ * Reduce duration from date
+ * @param {number} [repetitions] number of repetitions
+ */
+ISODateDurationFunctions.prototype.reduceDuration = function reduceDuration(repetitions = 0) {
+  const endDate = this.date;
+
+  const repeat = 1 - repetitions;
+  const ms = this.date.getTime();
+  const now = this.compareTo;
+  const diff = now.getTime() - ms;
+  const q = diff / this.duration.toMilliseconds();
+
+  if (q >= 0) return endDate;
+
+  const qs = ~~q;
+
+  if (qs < repeat) return this.applyDuration(endDate, repeat);
+
+  let expireAt = this.applyDuration(endDate, qs);
+  let iter = qs;
+  while (expireAt > now && iter > repeat) {
+    expireAt = this.applyDuration(endDate, --iter);
+  }
+
+  if (expireAt <= now) {
+    return this.applyDuration(endDate, ++iter);
+  }
+
+  return this.applyDuration(endDate, repeat);
+};
+
+/**
+ *
+ * @param {Date} [date]
+ * @param {number} [repetitions]
+ * @returns {Date} new date with applied duration
+ */
+ISODateDurationFunctions.prototype.applyDuration = function applyDuration(date, repetitions = 1) {
+  return this.duration.applyDuration(date, repetitions, !!this.UTC);
 };
 
 /**
@@ -1038,8 +982,7 @@ ISODateDurationFunctions.prototype.getDateFns = function getDateFns(designator) 
  * @returns {ISOInterval}
  */
 export function parseInterval(isoInterval) {
-  const intervalParser = new ISOInterval(isoInterval);
-  return intervalParser.parse();
+  return new ISOInterval(isoInterval).parse();
 }
 
 /**
@@ -1048,8 +991,7 @@ export function parseInterval(isoInterval) {
  * @returns {ISODuration | undefined}
  */
 export function parseDuration(isoDuration) {
-  const intervalParser = new ISOInterval(isoDuration);
-  return intervalParser.parse().duration;
+  return new ISOInterval(isoDuration).parse().duration;
 }
 
 /**
@@ -1064,29 +1006,20 @@ export function getDate(isoDateSource) {
  * Interval expire at date
  * @param {string} isoInterval ISO 8601 interval
  * @param {Date} [compareDate] optional compare date, defaults to now
+ * @param {Date} [startDate] optional start date for use when only duration is present
  */
-export function getExpireAt(isoInterval, compareDate) {
-  return new ISOInterval(isoInterval).getExpireAt(compareDate);
+export function getExpireAt(isoInterval, compareDate, startDate) {
+  return new ISOInterval(isoInterval).getExpireAt(compareDate, startDate);
 }
 
 /**
- * Interval expire at date
+ * Interval start at date
  * @param {string} isoInterval ISO 8601 interval
  * @param {Date} [compareDate] optional compare date, defaults to now
+ * @param {Date} [endDate] optional end date for use when only duration is present
  */
-export function getStartAt(isoInterval, compareDate) {
-  return new ISOInterval(isoInterval).getStartAt(compareDate);
-}
-
-/**
- * Attempt to figure out next date in an ISO 8601 interval
- * @param {string} isoInterval
- * @param {Date} [compareDate] optional compare date, defaults to now
- * @returns {Date | null} next date point
- */
-export function next(isoInterval, compareDate) {
-  const intervalParser = new ISOInterval(isoInterval);
-  return intervalParser.parse().next(compareDate);
+export function getStartAt(isoInterval, compareDate, endDate) {
+  return new ISOInterval(isoInterval).getStartAt(compareDate, endDate);
 }
 
 /**
@@ -1109,85 +1042,4 @@ function validateDate(Y, M, D) {
   }
 
   return true;
-}
-
-/**
- * Apply date duration
- * @param {Date} fromDate from date
- * @param {ISODuration} [duration] duration
- * @param {number} [repetitions] repetitions
- * @returns {Date} new date with applied duration
- */
-function applyDateDuration(fromDate, duration, repetitions = 1) {
-  const startTime = fromDate.getTime();
-  let endTime = startTime;
-  const factor = repetitions;
-
-  /** @type {any} */
-  const { result, fractionedDesignator } = duration;
-
-  for (const designator of 'YMWD') {
-    if (!(designator in result)) continue;
-
-    let value = factor * result[designator];
-    let fnKey = designator;
-    if (designator === 'W') {
-      fnKey = 'D';
-      value = value * 7;
-    }
-
-    const fromDate = new Date(endTime);
-    const toDate = new Date(endTime);
-
-    // @ts-ignore
-    const [getter, setter] = dateUTCFns[fnKey];
-    const current = getter.call(toDate);
-
-    if (fractionedDesignator !== designator) {
-      setter.call(toDate, current + value);
-      endTime += toDate.getTime() - fromDate.getTime();
-    } else {
-      const fullValue = ~~value;
-      if (fullValue) {
-        setter.call(toDate, current + fullValue);
-        endTime += toDate.getTime() - fromDate.getTime();
-      }
-
-      const fraction = new Date(endTime);
-      setter.call(fraction, getter.call(fraction) + factor);
-
-      endTime += factor * (fraction.getTime() - toDate.getTime()) * (value - fullValue);
-    }
-  }
-
-  return new Date(endTime);
-}
-
-/**
- * Calculate date indifferent duration milliseconds
- * @param {ISODuration} duration duration
- * @param {number} [repetitions] repetitions
- * @returns {number} number of date indifferent milliseconds
- */
-function getIndifferentDurationAsMilliseconds(duration, repetitions = 1) {
-  /** @type {any} */
-  const { result, usedDesignators } = duration;
-
-  let ms = 0;
-  for (const designator of usedDesignators) {
-    const value = result[designator];
-    switch (designator) {
-      case 'H':
-        ms += value * MILLISECONDS_PER_HOUR * repetitions;
-        break;
-      case 'm':
-        ms += value * 60000 * repetitions;
-        break;
-      case 'S':
-        ms += value * 1000 * repetitions;
-        break;
-    }
-  }
-
-  return Math.round(ms);
 }

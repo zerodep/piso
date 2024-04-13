@@ -5,26 +5,60 @@ import { ISOInterval, ISODuration } from '../src/index.js';
 describe('duration', () => {
   after(ck.reset);
 
+  describe('getExpireAt(startDate[, repetitions])', () => {
+    afterEach(ck.reset);
+    it('without arguments adds duration to now', () => {
+      ck.freeze(Date.UTC(2024, 2, 29));
+
+      const dur = new ISODuration('PT1M').parse();
+      expect(dur.getExpireAt()).to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 1)));
+    });
+
+    it('repeated duration without start date returns now with applied repeated durations', () => {
+      ck.freeze(Date.UTC(2024, 2, 29));
+
+      let dur = new ISODuration('PT1M').parse();
+      expect(dur.getExpireAt(undefined, 2), '2 per minute repetitions').to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 2)));
+
+      dur = new ISODuration('P1Y').parse();
+      expect(dur.getExpireAt(undefined, 51), '51 annually').to.deep.equal(new Date(Date.UTC(2075, 2, 29)));
+
+      dur = new ISODuration('P1M').parse();
+      expect(dur.getExpireAt(undefined, 51), '51 monthly').to.deep.equal(new Date(Date.UTC(2024, 2 + 51, 29)));
+    });
+  });
+
   describe('getStartAt(endDate[, repetitions])', () => {
     afterEach(ck.reset);
-    it('duration returns start date compared to now', () => {
+    it('without arguments reduces duration from now', () => {
       ck.freeze(Date.UTC(2024, 2, 29));
 
       const dur = new ISODuration('PT1M').parse();
       expect(dur.getStartAt()).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
     });
 
-    it('repeated duration returns start date compared to now', () => {
+    it('with end date arguments reduces duration from end date', () => {
+      const dur = new ISODuration('PT1M').parse();
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+    });
+
+    it('with end date and falsy repetitions reduces 1 duration from end date', () => {
+      const dur = new ISODuration('PT1M').parse();
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), 0)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), null)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+    });
+
+    it('repeated duration without end date returns now with reduced repeated durations', () => {
       ck.freeze(Date.UTC(2024, 2, 29));
 
       let dur = new ISODuration('PT1M').parse();
-      expect(dur.getStartAt(undefined, 2)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 58)));
+      expect(dur.getStartAt(undefined, 2), '2 per minute repetitions').to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 58)));
 
       dur = new ISODuration('P1Y').parse();
-      expect(dur.getStartAt(undefined, 51), 'P1Y').to.deep.equal(new Date(Date.UTC(1973, 2, 29)));
+      expect(dur.getStartAt(undefined, 51), '51 annually').to.deep.equal(new Date(Date.UTC(1973, 2, 29)));
 
       dur = new ISODuration('P1M').parse();
-      expect(dur.getStartAt(undefined, 51)).to.deep.equal(new Date(Date.UTC(2024, 2 - 51, 29)));
+      expect(dur.getStartAt(undefined, 51), '51 monthly').to.deep.equal(new Date(Date.UTC(2024, 2 - 51, 29)));
     });
   });
 

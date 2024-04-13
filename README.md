@@ -68,7 +68,7 @@ Number representing the interval type flags. Available after [parse](#intervalpa
 
 > Do I have repeat in my interval?
 
-```js
+```javascript
 import { parseInterval } from '@0dep/piso';
 
 console.log((parseInterval('R3/P1Y').type & 1) === 1 ? 'Yes' : 'No');
@@ -101,10 +101,10 @@ console.log((parseInterval('R1/P1Y/2024-03-28').type & 1) === 1 ? 'Yes' : 'No');
 
 > Is start date defined in my interval?
 
-```js
+```javascript
 import { parseInterval } from '@0dep/piso';
 
-const interval = parseInterval();
+const interval = parseInterval('R-1/2024-03-28/P1Y');
 
 console.log((interval.type | 2) === interval.type ? 'Yes' : 'No');
 ```
@@ -114,14 +114,6 @@ console.log((interval.type | 2) === interval.type ? 'Yes' : 'No');
 Returns [ISOInterval](#new-isointervalsource).
 
 Throws `RangeError` if something is off.
-
-### `interval.next([compareDate])`
-
-Opinionated function that attempts to figure out the closest date in the interval.
-
-- `compareDate`: optional compare date, defaults to now
-
-Runs parse if not parsed. Throws `RangeError` if something is off.
 
 ## `new ISODate(source[, offset])`
 
@@ -157,7 +149,7 @@ ISO date instance.
 
 Returns [ISODate](#new-isodatesource-offset)
 
-### `date.toUTCDate()`
+### `date.toDate()`
 
 Get Date represented by source.
 
@@ -194,28 +186,39 @@ Get duration in milliseconds until optional end date.
 An example to get start and end date:
 
 ```javascript
-import { parseInterval } from 'piso';
+import { parseInterval } from '@0dep/piso';
 
 const source = '2007-03-01T13:00:00Z/P1Y2M10DT2H30M';
 
 const interval = parseInterval(source);
 
-const cutoffDates = interval.getDates();
-
-console.log('starts at', cutoffDates[0]);
-console.log('ends at', cutoffDates[1]);
+console.log('starts at', interval.getStartAt());
+console.log('expires at', interval.getExpireAt());
 console.log('duration milliseconds', interval.duration.toMilliseconds());
 ```
 
 An example to get duration milliseconds:
 
 ```javascript
-import { parseDuration } from 'piso';
+import { parseDuration } from '@0dep/piso';
 
 const duration = parseDuration('PT2H30M');
 
 console.log('duration millisecods', duration.toMilliseconds(new Date()));
 ```
+
+# Repetitions
+
+## With end date
+
+`R4/P2Y/2007-08-01`
+
+| Repetition | start at | expire at |
++------------+----------+-----------+
+| 4 | 1999-08-01 | 2001-08-01 |
+| 3 | 2001-08-01 | 2003-08-01 |
+| 2 | 2003-08-01 | 2005-08-01 |
+| 1 | 2005-08-01 | 2007-08-01 |
 
 # Benchmarking
 

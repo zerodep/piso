@@ -44,7 +44,7 @@ describe('ISO date', () => {
       expect(getDate(dt).getFullYear()).to.equal(expected.Y);
     });
 
-    it(`toUTCDate() "${dt}" returns expected date`, () => {
+    it(`toDate() "${dt}" returns expected date`, () => {
       const parser = new ISODate(dt);
 
       expect(parser.toDate()).to.deep.equal(getDateFromParts(expected));

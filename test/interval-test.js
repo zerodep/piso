@@ -6,128 +6,9 @@ import { getDateFromParts } from './helpers.js';
 describe('ISO 8601 interval', () => {
   after(ck.reset);
 
-  describe('start at', () => {
-    [
-      ['2007-03-01T13:00:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['2007-03-01T13:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
-      ['2008-03-01T13:00:00Z/P2Y', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['2008-03-01/P2Y', { Y: 2008, M: 2, D: 1 }],
-    ].forEach(([interval, expected]) => {
-      it(`getStartAt("${interval}") with returns start date`, () => {
-        const startAt = getStartAt(interval);
-        expect(startAt).to.deep.equal(getDateFromParts(expected));
-      });
-    });
-
-    [
-      ['P2Y/2007-03-01T13:00:00Z', { Y: 2005, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['P2Y/2007-03-01T13:00Z', { Y: 2005, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
-      ['P2Y/2008-03-01T13:00:00Z', { Y: 2006, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['P2Y/2008-03-01', { Y: 2006, M: 2, D: 1 }],
-    ].forEach(([interval, expected]) => {
-      it(`getStartAt("${interval}") with end date returns end date with applied duration`, () => {
-        const startAt = getStartAt(interval);
-        expect(startAt).to.deep.equal(getDateFromParts(expected));
-      });
-    });
-
-    [
-      ['R2/2007-03-01T13:00:00Z/P2Y', { Y: 2009, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['R2/2007-03-01T13:00Z/P2Y', { Y: 2009, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
-      ['R2/2008-03-01T13:00:00Z/P2Y', { Y: 2010, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['R2/2008-01-01/P1M', { Y: 2008, M: 1, D: 1 }],
-      ['R2/2008-03-01/P1M', { Y: 2008, M: 3, D: 1 }],
-      ['R2/2008-03-01/P2Y', { Y: 2010, M: 2, D: 1 }],
-    ].forEach(([interval, expected]) => {
-      it(`getStartAt("${interval}") with repeat, start date has passed returns start date with first applied duration`, () => {
-        const parsed = parseInterval(interval);
-
-        ck.freeze(parsed.startDate.getTime());
-
-        expect(getStartAt(interval), 'at start date').to.deep.equal(getDateFromParts(expected));
-
-        ck.freeze(parsed.startDate.getTime() + 1);
-
-        expect(getStartAt(interval), 'one ms beyond start date').to.deep.equal(getDateFromParts(expected));
-      });
-
-      it(`getStartAt("${interval}") first repeat has passed, start date returns start date with second applied duration`, () => {
-        const parsed = parseInterval(interval);
-
-        ck.freeze(parsed.startDate.getTime());
-
-        const expireAt = getStartAt(interval);
-        ck.freeze(expireAt);
-
-        expect(expireAt).to.deep.equal(getDateFromParts(expected));
-      });
-    });
-
-    [
-      ['R3/P2Y/2007-03-01T13:00:00Z', { Y: 2003, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['R3/P2Y/2007-03-01T13:00Z', { Y: 2009, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
-      ['R3/P2Y/2008-03-01T13:00:00Z', { Y: 2010, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
-      ['R3/P1M/2008-01-01', { Y: 2008, M: 1, D: 1 }],
-      ['R3/P1M/2008-03-01', { Y: 2008, M: 3, D: 1 }],
-      ['R3/P2Y/2008-03-01', { Y: 2010, M: 2, D: 1 }],
-    ].forEach(([interval, expected]) => {
-      it(`getStartAt("${interval}") with repeat, end date has NOT passed returns end date all applied durations`, () => {
-        const parsed = parseInterval(interval);
-
-        ck.freeze(Date.UTC(1990, 0, 1));
-
-        const first = getStartAt(interval);
-        expect(first, 'way before end date').to.deep.equal(getDateFromParts(expected));
-
-        ck.freeze(first.getTime() - 1);
-
-        expect(getStartAt(interval), 'one ms before first').to.deep.equal(getDateFromParts(expected));
-      });
-
-      it(`getStartAt("${interval}") first repeat has passed, end date returns start date with second applied duration`, () => {
-        const parsed = parseInterval(interval);
-
-        ck.freeze(parsed.endDate.getTime());
-
-        const expireAt = getStartAt(interval);
-        ck.freeze(expireAt);
-
-        expect(expireAt).to.deep.equal(getDateFromParts(expected));
-      });
-    });
-
-    it('with monthly-hourly repetitions, duration, and end date returns date relative to end date', () => {
-      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
-
-      const interval = 'R4/P1MT1H/2024-07-27T00:00Z';
-
-      let startAt = getStartAt(interval);
-      expect(startAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 3, 26, 21, 0)));
-
-      ck.freeze(startAt);
-
-      startAt = getStartAt(interval);
-      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 4, 26, 22, 0)));
-
-      ck.freeze(startAt);
-
-      startAt = getStartAt(interval);
-      expect(startAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 5, 26, 23, 0)));
-
-      ck.freeze(startAt);
-
-      startAt = getStartAt(interval);
-      expect(startAt, 'fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
-
-      ck.freeze(startAt);
-
-      startAt = getStartAt(interval);
-      expect(startAt, 'after fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
-    });
-  });
-
   describe('expire at', () => {
     [
+      ['2007-03-01/2007-04-01', { Y: 2007, M: 3, D: 1 }],
       ['P2Y/2007-03-01T13:00:00Z', { Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
       ['P2Y/2007-03-01T13:00Z', { Y: 2007, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
       ['P2Y/2008-03-01T13:00:00Z', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
@@ -188,8 +69,11 @@ describe('ISO 8601 interval', () => {
     });
 
     it('with duration and passed start date returns duration applied to start date', () => {
-      const expireAt = getExpireAt('P1M', new Date(Date.UTC(2024, 5, 27)));
+      let expireAt = getExpireAt('P1M', undefined, new Date(Date.UTC(2024, 5, 27)));
       expect(expireAt).to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+
+      expireAt = getExpireAt('P1M', undefined, new Date(0));
+      expect(expireAt).to.deep.equal(new Date(Date.UTC(1970, 1, 1)));
     });
 
     it('with repetitions and duration returns date compared to passed start date', () => {
@@ -197,23 +81,26 @@ describe('ISO 8601 interval', () => {
 
       const interval = 'R3/P1M';
 
-      let expireAt = getExpireAt(interval, startDate);
+      let expireAt = getExpireAt(interval, undefined, startDate);
       expect(expireAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 4, 27)));
 
       ck.freeze(expireAt);
 
-      expireAt = getExpireAt(interval, startDate);
+      expireAt = getExpireAt(interval, undefined, startDate);
       expect(expireAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 5, 27)));
 
       ck.freeze(expireAt);
 
-      expireAt = getExpireAt(interval, startDate);
+      expireAt = getExpireAt(interval, undefined, startDate);
       expect(expireAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
 
       ck.freeze(expireAt);
 
-      expireAt = getExpireAt(interval, startDate);
+      expireAt = getExpireAt(interval, undefined, startDate);
       expect(expireAt, 'after third repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+
+      expireAt = getExpireAt(interval, new Date(Date.UTC(2024, 3, 27)), startDate);
+      expect(expireAt, 'with compare date').to.deep.equal(new Date(Date.UTC(2024, 4, 27)));
     });
 
     it('with repetitions, start date, and monthly duration returns date relative to start date', () => {
@@ -240,6 +127,91 @@ describe('ISO 8601 interval', () => {
       expect(expireAt, 'after third repetition').to.deep.equal(new Date(Date.UTC(2024, 9, 27)));
     });
 
+    it('with unlimited repetitions, start date, and monthly duration returns date relative to start date', () => {
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/2024-07-27T00:00Z/P1M';
+
+      let expireAt = getExpireAt(interval);
+      expect(expireAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 7, 27)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 8, 27)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 9, 27)));
+
+      ck.freeze(expireAt);
+
+      ck.freeze(Date.UTC(2034, 0, 1));
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'after a long time').to.deep.equal(new Date(Date.UTC(2034, 0, 27)));
+    });
+
+    it('with unlimited repetitions and monthly duration returns date relative to now', () => {
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M';
+
+      let expireAt = getExpireAt(interval);
+      expect(expireAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 1, 27, 12, 0, 42, 12)));
+
+      ck.freeze(Date.UTC(2024, 6, 27));
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 7, 27)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 8, 27)));
+
+      ck.freeze(expireAt);
+
+      ck.freeze(Date.UTC(2034, 0, 1));
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'after a long time').to.deep.equal(new Date(Date.UTC(2034, 1, 1)));
+    });
+
+    it('with unlimited repetitions and monthly duration and fixed start date returns date relative to start date and now', () => {
+      const startDate = new Date(Date.UTC(2024, 10, 2));
+
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M';
+
+      let expireAt = getExpireAt(interval, undefined, startDate);
+      expect(expireAt, 'before start date').to.deep.equal(new Date(Date.UTC(2024, 11, 2)));
+
+      ck.freeze(startDate);
+
+      expireAt = getExpireAt(interval, undefined, startDate);
+      expect(expireAt, 'at start date').to.deep.equal(new Date(Date.UTC(2024, 11, 2)));
+
+      ck.freeze(startDate.getTime() + 1);
+
+      expireAt = getExpireAt(interval, undefined, startDate);
+      expect(expireAt, 'one ms from start date').to.deep.equal(new Date(Date.UTC(2024, 11, 2)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval, undefined, startDate);
+      expect(expireAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2025, 0, 2)));
+
+      ck.freeze(expireAt);
+
+      ck.freeze(Date.UTC(2034, 0, 1));
+
+      expireAt = getExpireAt(interval, undefined, startDate);
+      expect(expireAt, 'after a long time').to.deep.equal(new Date(Date.UTC(2034, 0, 2)));
+    });
+
     it('with three repetitions, monthly duration, and end date returns date relative to end date', () => {
       ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
 
@@ -264,7 +236,37 @@ describe('ISO 8601 interval', () => {
       expect(expireAt, 'after third repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
     });
 
-    it('with hourly repetitions, duration, and end date returns date relative to end date', () => {
+    it('with unlimited repetitions, monthly duration, and end date returns date relative to end date', () => {
+      ck.freeze(Date.UTC(1990, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M/2024-07-27T00:00Z';
+
+      let expireAt = getExpireAt(interval);
+      expect(expireAt, 'first repetition').to.deep.equal(new Date(Date.UTC(1990, 1, 27)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'second repetition').to.deep.equal(new Date(Date.UTC(1990, 2, 27)));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'third repetition').to.deep.equal(new Date(Date.UTC(1990, 3, 27)));
+
+      ck.freeze(Date.UTC(2024, 0, 1));
+
+      expireAt = getExpireAt(interval);
+      expect(expireAt, 'closer to end date').to.deep.equal(new Date(Date.UTC(2024, 0, 27)));
+
+      ck.freeze(Date.UTC(2024, 10, 1));
+
+      expireAt = getExpireAt(interval);
+
+      expect(expireAt, 'after end date').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+    });
+
+    it('with hourly repetition, duration, and end date returns date relative to end date', () => {
       ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
 
       const interval = 'R4/PT1H/2024-07-27T00:00Z';
@@ -293,17 +295,17 @@ describe('ISO 8601 interval', () => {
       expect(expireAt, 'after fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
     });
 
-    it('with yearly repetitions, duration, and end date returns date relative to end date', () => {
+    it('with yearly repetition, duration, and end date returns date relative to end date', () => {
       ck.freeze(Date.UTC(1700, 0, 27, 12, 0, 42, 12));
 
       const interval = 'R200/P1Y/2024-07-27T00:00Z';
 
       for (let year = 1825; year < 2025; year++) {
-        let expireAt = getExpireAt(interval);
+        const expireAt = getExpireAt(interval);
 
         expect(expireAt, year).to.deep.equal(new Date(Date.UTC(year, 6, 27)));
 
-        ck.freeze(expireAt);
+        ck.freeze(expireAt.getTime());
       }
 
       expect(getExpireAt(interval), 'last repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
@@ -336,6 +338,372 @@ describe('ISO 8601 interval', () => {
 
       expireAt = getExpireAt(interval);
       expect(expireAt, 'after fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+    });
+
+    it('with three repetitions and hourly duration and fixed end date returns date relative to end date and now', () => {
+      const endDate = new Date(Date.UTC(2025, 10, 2, 12, 42));
+
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R3/PT2H';
+
+      let startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'way before end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at first start date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(startAt.getTime() + 1);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'one ms from start date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(Date.UTC(2025, 10, 2, 8, 42));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 8, 42)));
+
+      ck.freeze(startAt.getTime() + 3500000);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'some time after second repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 8, 42)));
+
+      ck.freeze(Date.UTC(2025, 10, 2, 10, 42, 1));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+
+      ck.freeze(endDate);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+
+      ck.freeze(Date.UTC(2034, 11, 12));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'after end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+
+      startAt = getStartAt(interval, new Date(Date.UTC(2024, 0, 27, 12, 0, 42, 12)), endDate);
+      expect(startAt, 'with compare date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+    });
+  });
+
+  describe('start at', () => {
+    it('"R4/P2Y/2007-08-01" returns the expected start and expire at during the duration', () => {
+      const interval = 'R4/P2Y/2007-08-01';
+
+      ck.freeze(Date.UTC(1990, 0, 1));
+
+      const startAt = getStartAt(interval);
+      expect(startAt, '#1 start at').to.deep.equal(new Date(1999, 7, 1));
+      expect(getExpireAt(interval), '#1 expire at').to.deep.equal(new Date(2001, 7, 1));
+
+      ck.freeze(startAt.getTime());
+
+      expect(getStartAt(interval), '#1 start at start date').to.deep.equal(new Date(1999, 7, 1));
+      expect(getExpireAt(interval), '#1 expire at start date').to.deep.equal(new Date(2001, 7, 1));
+
+      ck.freeze(parseDuration('P1Y').getExpireAt());
+
+      let expireAt = getExpireAt(interval);
+      expect(getStartAt(interval), '#1 start at within interval').to.deep.equal(new Date(1999, 7, 1));
+      expect(expireAt, '#1 expire at within interval').to.deep.equal(new Date(2001, 7, 1));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(getStartAt(interval), '#2 start at').to.deep.equal(new Date(2001, 7, 1));
+      expect(expireAt, '#2 expire at').to.deep.equal(new Date(2003, 7, 1));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(getStartAt(interval), '#3 start at').to.deep.equal(new Date(2003, 7, 1));
+      expect(expireAt, '#3 expire at').to.deep.equal(new Date(2005, 7, 1));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(getStartAt(interval), '#4 start at').to.deep.equal(new Date(2005, 7, 1));
+      expect(expireAt, '#4 expire at').to.deep.equal(new Date(2007, 7, 1));
+
+      ck.freeze(expireAt);
+
+      expireAt = getExpireAt(interval);
+      expect(getStartAt(interval), '#5 start at').to.deep.equal(new Date(2005, 7, 1));
+      expect(expireAt, '#5 expire at').to.deep.equal(new Date(2007, 7, 1));
+    });
+
+    [
+      ['2007-03-01/2007-04-01', { Y: 2007, M: 2, D: 1 }],
+      ['2007-03-01T13:00:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['2007-03-01T13:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
+      ['2008-03-01T13:00:00Z/P2Y', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['2008-03-01/P2Y', { Y: 2008, M: 2, D: 1 }],
+    ].forEach(([interval, expected]) => {
+      it(`getStartAt("${interval}") returns start date`, () => {
+        const startAt = getStartAt(interval);
+        expect(startAt).to.deep.equal(getDateFromParts(expected));
+      });
+    });
+
+    [
+      ['P2Y/2007-03-01T13:00:00Z', { Y: 2005, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['P2Y/2007-03-01T13:00Z', { Y: 2005, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
+      ['P2Y/2008-03-01T13:00:00Z', { Y: 2006, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['P2Y/2008-03-01', { Y: 2006, M: 2, D: 1 }],
+    ].forEach(([interval, expected]) => {
+      it(`getStartAt("${interval}") with end date returns end date with applied duration`, () => {
+        const startAt = getStartAt(interval);
+        expect(startAt).to.deep.equal(getDateFromParts(expected));
+      });
+    });
+
+    [
+      ['R2/2008-01-01/P1M', { Y: 2008, M: 0, D: 1 }],
+      ['R2/2007-03-01T13:00:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['R2/2007-03-01T13:00Z/P2Y', { Y: 2007, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
+      ['R2/2008-03-01T13:00:00Z/P2Y', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['R2/2008-03-01/P1M', { Y: 2008, M: 2, D: 1 }],
+      ['R2/2008-03-01/P2Y', { Y: 2008, M: 2, D: 1 }],
+    ].forEach(([interval, expected]) => {
+      it(`getStartAt("${interval}") with repeat, start date has passed returns start date with first applied duration`, () => {
+        const parsed = parseInterval(interval);
+
+        ck.freeze(parsed.startDate.getTime());
+
+        expect(getStartAt(interval), 'at start date').to.deep.equal(getDateFromParts(expected));
+
+        ck.freeze(parsed.startDate.getTime() + 1);
+
+        expect(getStartAt(interval), 'one ms beyond start date').to.deep.equal(getDateFromParts(expected));
+      });
+
+      it(`getStartAt("${interval}") first repeat has passed, start date returns start date with second applied duration`, () => {
+        const parsed = parseInterval(interval);
+
+        ck.freeze(parsed.startDate.getTime());
+
+        const expireAt = getStartAt(interval);
+        ck.freeze(expireAt);
+
+        expect(expireAt).to.deep.equal(getDateFromParts(expected));
+      });
+    });
+
+    [
+      ['R3/P2Y/2007-03-01T13:00:00Z', { Y: 2001, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['R3/P2Y/2007-03-01T13:00Z', { Y: 2001, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
+      ['R3/P2Y/2008-03-01T13:00:00Z', { Y: 2002, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
+      ['R3/P1M/2008-01-01', { Y: 2007, M: 9, D: 1 }],
+      ['R3/P1M/2008-03-01', { Y: 2007, M: 11, D: 1 }],
+      ['R3/P2Y/2008-03-01', { Y: 2002, M: 2, D: 1 }],
+    ].forEach(([interval, expected]) => {
+      it(`getStartAt("${interval}") with repeat, end date has NOT passed returns end date with all applied durations`, () => {
+        ck.freeze(Date.UTC(1990, 0, 1));
+
+        const expectedDate = getDateFromParts(expected);
+
+        const first = getStartAt(interval);
+        expect(first, 'way before first start at').to.deep.equal(expectedDate);
+
+        ck.freeze(first.getTime() - 1);
+
+        expect(getStartAt(interval), 'one ms before first start at').to.deep.equal(expectedDate);
+      });
+    });
+
+    it('with monthly-hourly repetitions, duration, and end date returns date relative to end date', () => {
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R4/P1MT1H/2024-07-27T00:00Z';
+
+      let startAt = getStartAt(interval);
+      expect(startAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 2, 26, 20, 0)));
+
+      ck.freeze(getExpireAt(interval));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 3, 26, 21, 0)));
+
+      ck.freeze(getExpireAt(interval));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 4, 26, 22, 0)));
+
+      ck.freeze(getExpireAt(interval));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 5, 26, 23, 0)));
+
+      ck.freeze(getExpireAt(interval));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'after fourth repetition').to.deep.equal(new Date(Date.UTC(2024, 5, 26, 23, 0)));
+    });
+
+    it('with unlimited repetitions, monthly duration, and end date returns date relative to end date', () => {
+      ck.freeze(Date.UTC(1990, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M/2024-07-27T00:00Z';
+
+      let startAt = getStartAt(interval);
+      expect(startAt, 'first repetition').to.deep.equal(new Date(Date.UTC(1989, 12, 27)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'first repetition at start date').to.deep.equal(new Date(Date.UTC(1989, 12, 27)));
+
+      ck.freeze(getExpireAt(interval));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(1990, 1, 27)));
+
+      ck.freeze(Date.UTC(2024, 0, 1));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'closer to end date').to.deep.equal(new Date(Date.UTC(2023, 11, 27)));
+
+      ck.freeze(Date.UTC(2024, 10, 1));
+
+      startAt = getStartAt(interval);
+
+      expect(startAt, 'after end date').to.deep.equal(new Date(Date.UTC(2024, 5, 27)));
+    });
+
+    it('with three repetitions and hourly duration and fixed end date returns date relative to end date and now', () => {
+      const endDate = new Date(Date.UTC(2025, 10, 2, 12, 42));
+
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R3/PT2H';
+
+      let startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'way before end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at first start date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(startAt.getTime() + 1);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'one ms from start date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 6, 42)));
+
+      ck.freeze(Date.UTC(2025, 10, 2, 8, 42));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 8, 42)));
+
+      ck.freeze(startAt.getTime() + 3500000);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'some time after second repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 8, 42)));
+
+      ck.freeze(Date.UTC(2025, 10, 2, 10, 42, 1));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+
+      ck.freeze(endDate);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+
+      ck.freeze(Date.UTC(2034, 11, 12));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'after end date').to.deep.equal(new Date(Date.UTC(2025, 10, 2, 10, 42)));
+    });
+
+    it('with unlimited repetitions and monthly duration and fixed end date returns date relative to end date and now', () => {
+      const endDate = new Date(Date.UTC(2034, 10, 2));
+
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M';
+
+      let startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'way before end date').to.deep.equal(new Date(Date.UTC(2024, 0, 2)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at first start date').to.deep.equal(new Date(Date.UTC(2024, 0, 2)));
+
+      ck.freeze(startAt.getTime() + 1);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'one ms from start date').to.deep.equal(new Date(Date.UTC(2024, 0, 2)));
+
+      ck.freeze(Date.UTC(2024, 1, 2));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 1, 2)));
+
+      ck.freeze(startAt);
+
+      ck.freeze(Date.UTC(2034, 0, 1, 12, 0));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'after some time').to.deep.equal(new Date(Date.UTC(2033, 11, 2)));
+
+      ck.freeze(endDate);
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'at end date').to.deep.equal(new Date(Date.UTC(2034, 9, 2)));
+
+      ck.freeze(Date.UTC(2034, 11, 12));
+
+      startAt = getStartAt(interval, undefined, endDate);
+      expect(startAt, 'after end date').to.deep.equal(new Date(Date.UTC(2034, 9, 2)));
+    });
+
+    it('with unlimited repetitions and monthly duration returns date relative to now', () => {
+      ck.freeze(Date.UTC(2024, 0, 27, 12, 0, 42, 12));
+
+      const interval = 'R-1/P1M';
+
+      let startAt = getStartAt(interval);
+      expect(startAt, 'first repetition').to.deep.equal(new Date(Date.UTC(2024, 0, 27, 12, 0, 42, 12)));
+
+      ck.freeze(Date.UTC(2024, 6, 27));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'second repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'third repetition').to.deep.equal(new Date(Date.UTC(2024, 6, 27)));
+
+      ck.freeze(startAt);
+
+      ck.freeze(Date.UTC(2034, 0, 1));
+
+      startAt = getStartAt(interval);
+      expect(startAt, 'after a long time').to.deep.equal(new Date(Date.UTC(2034, 0, 1)));
+    });
+
+    it('with duration and passed end date returns duration applied to end date', () => {
+      ck.freeze(Date.UTC(2024, 0, 1));
+
+      const endDate = new Date(Date.UTC(2024, 5, 27));
+
+      let startAt = getStartAt('P1M', undefined, endDate);
+      expect(startAt, 'future end date').to.deep.equal(new Date(Date.UTC(2024, 4, 27)));
+
+      ck.freeze(startAt);
+
+      startAt = getStartAt('P1M', undefined, endDate);
+      expect(startAt, 'at start date').to.deep.equal(new Date(Date.UTC(2024, 4, 27)));
+
+      startAt = getStartAt('P1M', undefined, new Date(0));
+      expect(startAt).to.deep.equal(new Date(Date.UTC(1969, 11, 1)));
     });
   });
 
@@ -810,12 +1178,6 @@ describe('ISO 8601 interval', () => {
       expect(intervalParser.parse().start).to.equal(intervalParser.parse().start);
     });
 
-    it('next on next returns the same', () => {
-      const intervalParser = new ISOInterval('2007-03-01T13:00:00Z/P1Y2M10DT2H30M');
-
-      expect(intervalParser.next()).to.deep.equal(intervalParser.next());
-    });
-
     it('startDate contains parsed start date', () => {
       const intervalParserUTC = new ISOInterval('2007-03-01T13:00:00Z/P1Y2M10DT2H30M');
       const intervalParser = new ISOInterval('2007-03-01T13:00:00/P1Y2M10DT2H30M');
@@ -827,129 +1189,6 @@ describe('ISO 8601 interval', () => {
     it('unparsed return startDate and endDate as null', () => {
       expect(new ISOInterval('2007-03-01T13:00:00/P1Y2M10DT2H30M').startDate).to.be.null;
       expect(new ISOInterval('P1Y2M10DT2H30M/2007-03-01T13:00:00').endDate).to.be.null;
-    });
-
-    it('getDates(null) with repeat and duration returns dates calculated from now', () => {
-      ck.freeze(Date.UTC(2024, 3, 24));
-      const interval = new ISOInterval('R4/P1Y').parse();
-      expect(interval.getDates()).to.deep.equal([
-        new Date(Date.UTC(2025, 3, 24)),
-        new Date(Date.UTC(2026, 3, 24)),
-        new Date(Date.UTC(2027, 3, 24)),
-        new Date(Date.UTC(2028, 3, 24)),
-      ]);
-    });
-
-    it('getDates(fromDate) with repeat and duration returns dates calculated from passed date', () => {
-      const interval = new ISOInterval('R5/P1Y');
-      expect(interval.getDates(new Date(Date.UTC(2022, 3, 24)))).to.deep.equal([
-        new Date(Date.UTC(2023, 3, 24)),
-        new Date(Date.UTC(2024, 3, 24)),
-        new Date(Date.UTC(2025, 3, 24)),
-        new Date(Date.UTC(2026, 3, 24)),
-        new Date(Date.UTC(2027, 3, 24)),
-      ]);
-    });
-
-    it('getDates(fromDate) on getDates() returns the same since the list is cached', () => {
-      ck.freeze(Date.UTC(2022, 3, 24));
-
-      const interval = new ISOInterval('R5/P1Y');
-      interval.getDates();
-
-      expect(interval.getDates(new Date(Date.UTC(2028, 3, 24)))).to.deep.equal([
-        new Date(Date.UTC(2023, 3, 24)),
-        new Date(Date.UTC(2024, 3, 24)),
-        new Date(Date.UTC(2025, 3, 24)),
-        new Date(Date.UTC(2026, 3, 24)),
-        new Date(Date.UTC(2027, 3, 24)),
-      ]);
-    });
-
-    it('getDates() on getDates(fromDate) returns the same since the list is cached', () => {
-      const interval = new ISOInterval('R5/P1Y');
-      interval.getDates(new Date(Date.UTC(2022, 3, 24)));
-
-      expect(interval.getDates()).to.deep.equal([
-        new Date(Date.UTC(2023, 3, 24)),
-        new Date(Date.UTC(2024, 3, 24)),
-        new Date(Date.UTC(2025, 3, 24)),
-        new Date(Date.UTC(2026, 3, 24)),
-        new Date(Date.UTC(2027, 3, 24)),
-      ]);
-    });
-
-    it('getDates() where start and end are equal returns only start', () => {
-      ck.freeze(Date.UTC(2024, 3, 24));
-      const interval = new ISOInterval('2007-03-01/2007-03-01').parse();
-      expect(interval.getDates()).to.deep.equal([new Date(2007, 2, 1)]);
-    });
-
-    it('getDates() with repeat monthly interval and end date returns expected', () => {
-      const interval = new ISOInterval('R12/P1M/2007-03-01T00:00Z').parse();
-
-      expect(interval.getDates()).to.deep.equal([
-        new Date(Date.UTC(2006, 3, 1)),
-        new Date(Date.UTC(2006, 4, 1)),
-        new Date(Date.UTC(2006, 5, 1)),
-        new Date(Date.UTC(2006, 6, 1)),
-        new Date(Date.UTC(2006, 7, 1)),
-        new Date(Date.UTC(2006, 8, 1)),
-        new Date(Date.UTC(2006, 9, 1)),
-        new Date(Date.UTC(2006, 10, 1)),
-        new Date(Date.UTC(2006, 11, 1)),
-        new Date(Date.UTC(2007, 0, 1)),
-        new Date(Date.UTC(2007, 1, 1)),
-        new Date(Date.UTC(2007, 2, 1)),
-      ]);
-    });
-
-    it('getDates() with repeat monthly plus one day interval and end date returns expected', () => {
-      const interval = new ISOInterval('R12/P1M1D/2007-03-01T00:00Z').parse();
-
-      expect(interval.getDates()).to.deep.equal([
-        new Date(Date.UTC(2006, 2, 21)),
-        new Date(Date.UTC(2006, 3, 22)),
-        new Date(Date.UTC(2006, 4, 23)),
-        new Date(Date.UTC(2006, 5, 24)),
-        new Date(Date.UTC(2006, 6, 25)),
-        new Date(Date.UTC(2006, 7, 26)),
-        new Date(Date.UTC(2006, 8, 27)),
-        new Date(Date.UTC(2006, 9, 28)),
-        new Date(Date.UTC(2006, 10, 29)),
-        new Date(Date.UTC(2006, 11, 30)),
-        new Date(Date.UTC(2007, 0, 31)),
-        new Date(Date.UTC(2007, 2, 1)),
-      ]);
-    });
-
-    it('getDates() with repeat from start date and monthly plus one day duration returns expected', () => {
-      const interval = new ISOInterval('R7/2007-02-01T00:00Z/P1M1D').parse();
-
-      expect(interval.getDates()).to.deep.equal([
-        new Date(Date.UTC(2007, 1, 1)),
-        new Date(Date.UTC(2007, 2, 2)),
-        new Date(Date.UTC(2007, 3, 3)),
-        new Date(Date.UTC(2007, 4, 4)),
-        new Date(Date.UTC(2007, 5, 5)),
-        new Date(Date.UTC(2007, 6, 6)),
-        new Date(Date.UTC(2007, 7, 7)),
-      ]);
-    });
-
-    it('start date interval getDates() returns start date', () => {
-      const interval = new ISOInterval('2024-03-24T00:00Z').parse();
-      expect(interval.getDates()).to.deep.equal([new Date(Date.UTC(2024, 2, 24))]);
-    });
-
-    it('repeat and start date interval getDates() returns start date', () => {
-      const interval = new ISOInterval('R3/2024-03-24T00:00Z').parse();
-      expect(interval.getDates()).to.deep.equal([new Date(Date.UTC(2024, 2, 24))]);
-    });
-
-    it('repeat start and end date interval getDates() returns start and end date', () => {
-      let interval = new ISOInterval('R3/2024-03-24T00:00Z/25T12:00Z').parse();
-      expect(interval.getDates()).to.deep.equal([new Date(Date.UTC(2024, 2, 24)), new Date(Date.UTC(2024, 2, 25, 12, 0))]);
     });
   });
 });

@@ -36,7 +36,7 @@ const rules = {
   'no-script-url': 2,
   'no-sequences': 2,
   'no-shadow-restricted-names': 2,
-  'no-shadow': 2,
+  'no-shadow': 0,
   'no-spaced-func': 2,
   'no-trailing-spaces': 2,
   'no-undef-init': 2,
@@ -73,6 +73,15 @@ export default [
       },
       globals: {
         ...globals['shared-node-browser'],
+        ...globals.es6,
+      },
+    },
+  },
+  {
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
         ...globals.es6,
       },
     },
