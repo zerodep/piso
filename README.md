@@ -222,4 +222,4 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 # Benchmarking
 
-Seems to run 4 times more efficient than RegExp implementations. But, date parsing is, off course, slower, compared to `new Date('2024-03-26')`.
+Seems to run 3 times more efficient than RegExp implementations. But, date parsing is, off course, slower, compared to `new Date('2024-03-26')`.
