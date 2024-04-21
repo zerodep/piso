@@ -33,6 +33,62 @@ Get Date from an ISO 8601 date time string.
 
 Returns date.
 
+```javascript
+import { getDate } from '@0dep/piso';
+
+const viableDates = [
+  '2024-01-27',
+  '2024-02-28',
+  '2024-02-29',
+  '2020-02-29',
+  '2016-02-29',
+  '2024-01',
+  '2024-12',
+  '20240127',
+  '2024-02-27T08:06:30',
+  '2024-02-27T08:06:30.001',
+  '2024-02-27T08:06:30.0011',
+  '2024-02-27T08:06:30.0',
+  '2024-02-27T08:06:30,001',
+  '2024-02-27T08:06:30Z',
+  '2024-02-03T08:06:30+02:00',
+  '2024-02-03T08:06:30.5+02:00',
+  '20240203T080630+0200',
+  '2024-02-03T08:06:30-02:30',
+  '2024-02-03T08:06:30-02',
+  '2025-01-01T12:00:42.01-02:00',
+  '2025-01-01T12:00:42.01+02:30',
+  '2025-01-01T12:00:42.01+02:30:30',
+  '2025-01-01T23:59',
+  '2025-01-01T24:00',
+  '2025-01-01T24:00:00',
+  '2025-01-01T24:00:00.000',
+  '2025-01-01T24:00Z',
+  '2025-01-01T24:00+01',
+  '2025-01-01T24:00:00+01',
+  '2025-01-01T24:00:00.00+01',
+  '20240127T1200',
+  '20240127T120001',
+  '20240127T120001,001',
+];
+
+for (const d of viableDates) {
+  console.log({ [d]: getDate(d) });
+}
+
+try {
+  getDate('2023-02-29');
+} catch (err) {
+  console.log({ err });
+}
+
+try {
+  getDate('2023-02-28T1200');
+} catch (err) {
+  console.log({ err });
+}
+```
+
 ## `new ISOInterval(source)`
 
 Interval instance.
@@ -75,13 +131,13 @@ console.log((parseInterval('R3/P1Y').type & 1) === 1 ? 'Yes' : 'No');
 // Yes
 
 console.log((parseInterval('R-1/P1Y').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinate number of repetititions
+// Yes, indefinite number of repetititions
 
 console.log((parseInterval('R-1/2024-03-27/P1Y').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinate number of repetititions from start date
+// Yes, indefinite number of repetititions from start date
 
 console.log((parseInterval('R-1/P1Y/2024-03-27').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinate number of repetititions until end date
+// Yes, indefinite number of repetititions until end date
 
 console.log((parseInterval('R0/P1Y').type & 1) === 1 ? 'Yes' : 'No');
 // No, zero is equal to once

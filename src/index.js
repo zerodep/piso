@@ -331,35 +331,11 @@ ISODate.prototype.parse = function parseISODate() {
 
   const Y = (this.result.Y = Number(value));
 
-  /** @type {string | undefined} */
-  let c = this.consumeChar(ISODATE_SEPARATOR + '01');
-  let dateSeparator = '';
-  if (c === ISODATE_SEPARATOR || this.enforceSeparators) {
+  if (this.peek() === ISODATE_SEPARATOR || this.enforceSeparators) {
     this.enforceSeparators = true;
-    dateSeparator = c;
-    c = this.consumeChar('01');
   }
 
-  const M = (this.result.M = Number(c + this.consumeChar()) - 1);
-
-  if (dateSeparator && !this.consumeCharOrEnd(dateSeparator)) {
-    if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
-    this.result.D = 1;
-    return this;
-  }
-
-  c = this.consumeChar();
-
-  const D = (this.result.D = Number(c + this.consumeChar()));
-
-  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
-
-  c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
-  if (!c) return this;
-
-  const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
-
-  return this.continueTimePrecision(hours, !!dateSeparator);
+  return this.continueDatePrecision(Y);
 };
 
 /**
@@ -454,7 +430,7 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   if (dateSeparator) {
     c = this.consumeCharOrEnd(dateSeparator);
     if (!c) {
-      if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
+      if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
       this.result.D = 1;
       return this;
     }
@@ -464,12 +440,10 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
 
   const D = (this.result.D = Number(c + this.consumeChar()));
 
-  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
+  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
 
-  c = this.consume();
+  c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
   if (!c) return this;
-
-  if (c !== ISODATE_TIMEINSTRUCTION) throw this.createUnexpectedError();
 
   const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
 

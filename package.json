@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
