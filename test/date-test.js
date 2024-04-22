@@ -51,6 +51,40 @@ describe('ISO date', () => {
     });
   });
 
+  it('getDate(new Date()) returns cloned date', () => {
+    const dt = new Date();
+
+    expect(getDate(dt)).to.deep.equal(dt);
+    expect(getDate(dt)).to.not.equal(dt);
+  });
+
+  it('getDate(new Date().toISOString()) returns date', () => {
+    const dts = new Date().toISOString();
+
+    expect(getDate(dts)).to.deep.equal(new Date(dts));
+  });
+
+  it('getDate(number) returns date', () => {
+    expect(getDate(0)).to.deep.equal(new Date(0));
+
+    const ms = Date.UTC(2024, 1, 32);
+    expect(getDate(ms)).to.deep.equal(new Date(ms));
+  });
+
+  it('getDate(number) returns cloned date', () => {
+    const dt = new Date(0);
+
+    expect(getDate(dt)).to.deep.equal(new Date(0));
+    expect(getDate(dt)).to.not.equal(dt);
+  });
+
+  it('getDate(null | undefined, {}) throws range error', () => {
+    expect(() => getDate(null)).to.throw(TypeError);
+    expect(() => getDate(undefined)).to.throw(TypeError);
+    expect(() => getDate({})).to.throw(TypeError);
+    expect(() => getDate('')).to.throw(TypeError);
+  });
+
   it('hour 24 returns expected date', () => {
     expect(getDate('2025-01-01T24:00:00.000')).to.deep.equal(new Date(2025, 0, 2));
     expect(getDate('2025-01-01T24:00:00.000Z')).to.deep.equal(new Date(Date.UTC(2025, 0, 2)));
@@ -151,6 +185,11 @@ describe('ISO date', () => {
   it('parse on parse is ignored', () => {
     const isodate = new ISODate('2024-03-24');
     expect(isodate.parse()).to.equal(isodate.parse());
+  });
+
+  it('partial parse on parse is ignored', () => {
+    const isodate = new ISODate('25');
+    expect(isodate.parsePartialDate(2024, 3, 24).toDate()).to.deep.equal(isodate.parsePartialDate(2024, 3, 24).toDate());
   });
 
   it('partial parse on parse is ignored', () => {

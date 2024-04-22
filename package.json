@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -21,7 +21,7 @@
     "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
-    "test:md": "node --experimental-vm-modules ./scripts/test-markdown.js",
+    "test:md": "node --experimental-vm-modules --no-warnings ./scripts/test-markdown.js",
     "dist": "rollup -c && dts-buddy"
   },
   "engines": {

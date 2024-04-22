@@ -970,9 +970,15 @@ export function parseDuration(isoDuration) {
 
 /**
  * Parse ISO 8601 date
- * @param {string} isoDateSource ISO 8601 date
+ * @param {string | Date | number} isoDateSource ISO 8601 date
  */
 export function getDate(isoDateSource) {
+  if (isoDateSource instanceof Date) return new Date(isoDateSource);
+  else if (typeof isoDateSource === 'number') return new Date(isoDateSource);
+  else if (!isoDateSource || typeof isoDateSource !== 'string') {
+    throw new TypeError('ISO 8601 date source and must be a string');
+  }
+
   return new ISODate(isoDateSource).toDate();
 }
 

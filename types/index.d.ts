@@ -245,7 +245,7 @@ declare module '@0dep/piso' {
 	 * Parse ISO 8601 date
 	 * @param isoDateSource ISO 8601 date
 	 */
-	export function getDate(isoDateSource: string): Date;
+	export function getDate(isoDateSource: string | Date | number): Date;
 	/**
 	 * Interval expire at date
 	 * @param isoInterval ISO 8601 interval

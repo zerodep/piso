@@ -17,6 +17,24 @@ Parse interval from an ISO 8601 interval string.
 
 Returns [ISOInterval](#new-isointervalsource).
 
+```javascript
+import { parseInterval } from '@0dep/piso';
+
+const viableIntervals = [
+  '2007-03-01/2007-04-01',
+  'P2Y/2007-03-01T13:00:00Z',
+  '2007-03-01T13:00:00Z/P2Y',
+  'R5/P1Y/2025-05-01T13:00:00Z',
+  'R-1/2009-07-01T00:00Z/P1M',
+  'R-1/1972-07-01T00:02Z/PT1H3M',
+  'R-1/P1M/2024-07-27T00:00Z',
+];
+
+for (const i of viableIntervals) {
+  console.log({ [i]: parseInterval(i).getExpireAt() });
+}
+```
+
 ## `parseDuration(iso8601Duration)`
 
 Parse duration from an ISO 8601 duration string.
@@ -25,11 +43,47 @@ Parse duration from an ISO 8601 duration string.
 
 Returns [ISODuration](#new-isodurationsource-offset).
 
+```javascript
+import { parseDuration } from '@0dep/piso';
+
+const viableDurations = [
+  'PT1M5S',
+  'PT1M0.5S',
+  'PT0.5S',
+  'PT0.01S',
+  'PT0.001S',
+  'PT0.0001S',
+  'PT0.5M',
+  'PT0.5H',
+  'PT1.5H',
+  'P0.5D',
+  'P1W',
+  'P0.5W',
+  'P0.5M',
+  'P0.5D',
+  'P1Y',
+  'P1Y2M3W4DT5H6M7S',
+  'PT0S',
+  'P0D',
+];
+
+for (const d of viableDurations) {
+  console.log({ [d]: parseDuration(d).getExpireAt() });
+}
+
+try {
+  // fractions are only allowed on the smallest unit
+  parseDuration('P0.5YT3S');
+} catch (err) {
+  console.log({ err });
+}
+```
+
 ## `getDate(iso8601Date)`
 
 Get Date from an ISO 8601 date time string.
 
-- `iso8601Date`: string with ISO 8601 date source
+- `iso8601Date`: string with ISO 8601 date source, date and number are also accepted
 
 Returns date.
 
@@ -70,6 +124,9 @@ const viableDates = [
   '20240127T1200',
   '20240127T120001',
   '20240127T120001,001',
+  new Date(2024, 3, 22),
+  0,
+  Date.UTC(2024, 3, 22),
 ];
 
 for (const d of viableDates) {
@@ -83,6 +140,7 @@ try {
 }
 
 try {
+  // unbalanced separators
   getDate('2023-02-28T1200');
 } catch (err) {
   console.log({ err });
