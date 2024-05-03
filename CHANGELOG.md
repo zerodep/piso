@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 # [Unreleased]
 
+# [0.1.4] - 2024-05-03
+
+- Informative RangeError messages, especially interval messages that only informed about an unexpected character, period (.).
+
 # [0.1.3] - 2024-04-22
 
 - `getDate(arg)` now checks if the argument is a date or a number, if so it will put it into a `new Date(arg)`

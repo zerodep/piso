@@ -257,6 +257,8 @@ ISO date instance.
 
 ### `date.parsePartialDate(Y, M, D)`
 
+Parse partial date as compared to passed date part arguments.
+
 - `Y`: required full year
 - `M`: required javascript month
 - `D`: required date

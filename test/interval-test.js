@@ -1001,7 +1001,7 @@ describe('ISO 8601 interval', () => {
       it(`duration and partial end ${interval} interval is not allowed`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /unexpected/i);
+        }).to.throw(RangeError, /unexpected ISO 8601/i);
       });
     });
 
@@ -1025,7 +1025,7 @@ describe('ISO 8601 interval', () => {
       it(`unexpected end date "${interval}" char throws`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /unexpected/i);
+        }).to.throw(RangeError, /unexpected ISO 8601/i);
       });
     });
 
@@ -1041,7 +1041,7 @@ describe('ISO 8601 interval', () => {
       it(`end relative invalid timezone offset ${interval} interval throws`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /unexpected/i);
+        }).to.throw(RangeError, /unexpected ISO 8601/i);
       });
     });
   });

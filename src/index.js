@@ -193,7 +193,7 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   let c = this.read();
   if (c === '-') {
     c = this.read();
-    if (c !== '1') throw new RangeError(`Unexpected character "${this.parsed}[${c}]" at ${this.idx}`);
+    if (c !== '1') throw new RangeError(`Unexpected ISO 8601 interval character "${this.parsed}[${c}]" at ${this.idx}`);
     this.repeat = -1;
     return this.read();
   }
@@ -204,7 +204,7 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
     c = this.read();
   }
   if (value) this.repeat = Number(value);
-  if (c !== '/') throw new RangeError(`Unexpected character "${this.parsed}[${c}]" at ${this.idx}`);
+  if (c !== '/') throw new RangeError(`Unexpected ISO 8601 interval characted "${this.parsed}[${c}]" at ${this.idx}`);
 };
 
 ISOInterval.prototype.consumeStartDate = function consumeStartDate() {
@@ -371,13 +371,13 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
     this.consume();
     const day = (this.result.D = Number(value));
 
-    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}[${this.c}]"`);
+    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
     return this;
   } else if (next === ISODATE_TIMEINSTRUCTION) {
     const day = (this.result.D = Number(value));
 
-    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}[${this.c}]"`);
+    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
     this.consume();
 
@@ -394,7 +394,7 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
     const month = (this.result.M = Number(value) - 1);
     const day = (this.result.D = Number(this.consumeChar('0123') + this.consumeChar()));
 
-    if (!validateDate(Y, month, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}[${this.c}]"`);
+    if (!validateDate(Y, month, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
     const c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
     if (c) {
