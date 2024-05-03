@@ -928,14 +928,14 @@ describe('ISO 8601 interval', () => {
 
     it('negative repeat above 1 throws range error', () => {
       expect(() => {
-        parseInterval('R-2/P2Y/2008-03-01T13:00:00Z');
-      }).to.throw(RangeError);
+        parseInterval('R-3/P2Y/2008-03-01T13:00:00Z');
+      }).to.throw(RangeError, /R-\[3\]/);
     });
 
     it('empty negative repeat throws range error', () => {
       expect(() => {
         parseInterval('R-/P2Y/2008-03-01T13:00:00Z');
-      }).to.throw(RangeError);
+      }).to.throw(RangeError, /R-\[\/\]/);
     });
   });
 
