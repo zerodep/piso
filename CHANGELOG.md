@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 # [Unreleased]
 
+- run through markdown examples with [texample](https://www.npmjs.com/package/texample)
+
 # [0.1.4] - 2024-05-03
 
 - Informative RangeError messages, especially interval messages that only informed about an unexpected character, period (.).

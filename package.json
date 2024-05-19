@@ -16,12 +16,12 @@
   },
   "scripts": {
     "test": "mocha",
-    "posttest": "npm run lint && npm run dist",
+    "posttest": "npm run lint && npm run dist && npm run test:md",
     "lint": "eslint . --cache && prettier . --check --cache",
     "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
-    "test:md": "node --experimental-vm-modules --no-warnings ./scripts/test-markdown.js",
+    "test:md": "texample",
     "dist": "rollup -c && dts-buddy"
   },
   "engines": {
@@ -60,6 +60,7 @@
     "mocha": "^10.2.0",
     "prettier": "^3.2.4",
     "rollup": "^4.10.0",
+    "texample": "^0.0.5",
     "ts-node": "^10.9.1"
   },
   "files": [
