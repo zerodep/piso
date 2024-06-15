@@ -8,6 +8,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TZ: Europe/Stockholm
     strategy:
       matrix:
         node-version: [18, 20, latest]
