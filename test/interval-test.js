@@ -854,6 +854,34 @@ describe('ISO 8601 interval', () => {
         });
       },
     );
+
+    it('partial end date without timezone offset shares timezone offset with start date', () => {
+      let iso = parseInterval('2007-11-13T14:00+04/16:00');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date('2007-11-13T14:00Z'));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+
+      iso = parseInterval('2007-11-13T14:00Z/16:00');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date('2007-11-13T14:00Z'));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+
+      iso = parseInterval('2007-11-13T14:00+014530/16:00');
+
+      expect(iso.end.result).to.include({
+        Z: '+',
+        OH: 1,
+        Om: 45,
+        OS: 30,
+      });
+    });
+
+    it('honors partial end date with timezone offset', () => {
+      const iso = parseInterval('2007-11-13T14:00/16:00Z');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13, 14, 0));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+    });
   });
 
   describe('interval duration and end date', () => {

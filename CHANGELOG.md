@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 # [Unreleased]
 
+# [1.0.0] - 2024-06-15
+
+Production ready.
+
+- fix partial end date not sharing timezone offset with start date
+- stop shipping types/interfaces.d.ts since all is included in types/index.d.ts
 - run through markdown examples with [texample](https://www.npmjs.com/package/texample)
 
 # [0.1.4] - 2024-05-03

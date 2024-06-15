@@ -7,6 +7,13 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
 > In Spain, piso refers to the whole apartment, whereas in Mexico, it refers only to the floor of your departamento.
 > But the above has nothing to do with this project.
 
+# Contents
+
+- [Api](#api)
+  - [`parseInterval(iso8601Interval)`](#parseintervaliso8601interval)
+  - [`parseDuration(iso8601Duration)`](#parsedurationiso8601duration)
+  - [`getDate(iso8601Date)`](#getdateiso8601date)
+
 # Api
 
 ## `parseInterval(iso8601Interval)`
@@ -146,6 +153,8 @@ try {
   console.log({ err });
 }
 ```
+
+> NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time".
 
 ## `new ISOInterval(source)`
 
@@ -338,4 +347,4 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 # Benchmarking
 
-Seems to run 3 times more efficient than RegExp implementations. But, date parsing is, off course, slower, compared to `new Date('2024-03-26')`.
+Seems to run 3 times more efficient than RegExp implementations. But date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO it should be a local date.

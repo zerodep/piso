@@ -196,6 +196,10 @@ describe('ISO date', () => {
     const isodate = new ISODate('25');
     expect(isodate.parsePartialDate(2024, 3, 24).toDate()).to.deep.equal(isodate.parsePartialDate(2024, 3, 24).toDate());
   });
+
+  it('new Date("2024-03-26") returns UTC', () => {
+    expect(new Date('2024-03-26')).to.not.deep.equal(getDate('2024-03-26'));
+  });
 });
 
 function getDateFromParts(parts) {

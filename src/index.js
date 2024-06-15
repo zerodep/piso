@@ -230,7 +230,14 @@ ISOInterval.prototype.consumeDuration = function consumeDuration() {
  */
 ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(start) {
   const isoDate = new ISODate(this.source, this.idx, undefined, start.enforceSeparators);
-  this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D);
+  const end = (this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D));
+  if (start.result.Z && !end.result.Z) {
+    end.result.Z = start.result.Z;
+    end.result.OH = start.result.OH;
+    end.result.Om = start.result.Om;
+    end.result.OS = start.result.OS;
+  }
+
   this.idx = isoDate.idx;
   this.c = isoDate.c;
 
