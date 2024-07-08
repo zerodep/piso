@@ -858,8 +858,8 @@ describe('ISO 8601 interval', () => {
     it('partial end date without timezone offset shares timezone offset with start date', () => {
       let iso = parseInterval('2007-11-13T14:00+04/16:00');
 
-      expect(iso.startDate, 'start date').to.deep.equal(new Date('2007-11-13T14:00Z'));
-      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+      expect(iso.startDate, 'start date').to.deep.equal(new Date('2007-11-13T10:00Z'));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T12:00Z'));
 
       iso = parseInterval('2007-11-13T14:00Z/16:00');
 

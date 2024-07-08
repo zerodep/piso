@@ -1,6 +1,14 @@
 import { ISODate, getDate } from '../src/index.js';
 
 describe('ISO date', () => {
+  it('parses date with timezone offset', () => {
+    let dateString = '2007-04-05T12:30-02:00';
+    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T14:30Z'));
+
+    dateString = '2007-04-05T12:30+02:00';
+    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:30Z'));
+  });
+
   [
     ['2024-01-27', { Y: 2024, M: 0, D: 27 }],
     ['2024-02-28', { Y: 2024, M: 1, D: 28 }],
@@ -20,6 +28,7 @@ describe('ISO date', () => {
     ['2024-02-03T08:06:30.5+02:00', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, F: 500, Z: '+', OH: 2, Om: 0 }],
     ['20240203T080630+0200', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '+', OH: 2, Om: 0 }],
     ['2024-02-03T08:06:30-02:30', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2, Om: 30 }],
+    ['2024-02-03T08:06:30-0230', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2, Om: 30 }],
     ['2024-02-03T08:06:30-02', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2 }],
     ['2025-01-01T12:00:42.01-02:00', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '-', OH: 2, Om: 0 }],
     ['2025-01-01T12:00:42.01+02:30', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '+', OH: 2, Om: 30 }],
@@ -88,7 +97,7 @@ describe('ISO date', () => {
   it('hour 24 returns expected date', () => {
     expect(getDate('2025-01-01T24:00:00.000')).to.deep.equal(new Date(2025, 0, 2));
     expect(getDate('2025-01-01T24:00:00.000Z')).to.deep.equal(new Date(Date.UTC(2025, 0, 2)));
-    expect(getDate('2024-02-28T24:00:00.000+02')).to.deep.equal(new Date(Date.UTC(2024, 1, 29)));
+    expect(getDate('2024-02-28T24:00:00.000+02')).to.deep.equal(new Date(Date.UTC(2024, 1, 28, 22, 0)));
   });
 
   it('enforce separators forces separators to be used', () => {
@@ -112,9 +121,9 @@ describe('ISO date', () => {
     ['08:06:30', new Date(2024, 0, 1, 8, 6, 30)],
     ['28T08:06:30', new Date(2024, 0, 28, 8, 6, 30)],
     ['28T08:06:30Z', new Date(Date.UTC(2024, 0, 28, 8, 6, 30))],
-    ['28T08:06:30+01', new Date(Date.UTC(2024, 0, 28, 8, 6, 30))],
-    ['02-28T08:06:30-01', new Date(Date.UTC(2024, 1, 28, 8, 6, 30))],
-    ['2025-02-28T08:06:30-01', new Date(Date.UTC(2025, 1, 28, 8, 6, 30))],
+    ['28T08:06:30+01', new Date(Date.UTC(2024, 0, 28, 7, 6, 30))],
+    ['02-28T08:06:30-01', new Date(Date.UTC(2024, 1, 28, 9, 6, 30))],
+    ['2025-02-28T08:06:30-01', new Date(Date.UTC(2025, 1, 28, 9, 6, 30))],
   ].forEach(([dt, expected]) => {
     it(`parse partial "${dt}" returns expected date`, () => {
       expect(new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
@@ -200,11 +209,32 @@ describe('ISO date', () => {
   it('new Date("2024-03-26") returns UTC', () => {
     expect(new Date('2024-03-26')).to.not.deep.equal(getDate('2024-03-26'));
   });
+
+  it('date time with minute designator and offset second designator is ok', () => {
+    let dateString = '2007-04-05T12:30-02:00:30';
+    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T14:30:30Z'));
+
+    dateString = '2007-04-05T12:30+02:00:30';
+    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:29:30Z'));
+  });
 });
 
+/**
+ * @param {import('../types/interfaces.js').ISODateParts} parts
+ */
 function getDateFromParts(parts) {
   const args = [parts.Y, parts.M, parts.D, parts.H, parts.m, parts.S, parts.F].filter((p) => p !== undefined);
-  if (parts.Z) {
+  if (parts.Z === 'Z') {
+    return new Date(Date.UTC(...args));
+  } else if (parts.Z === '-') {
+    args[3] += parts.OH ?? 0;
+    args[4] += parts.Om ?? 0;
+    args[5] = (args[5] ?? 0) + (parts.OS ?? 0);
+    return new Date(Date.UTC(...args));
+  } else if (parts.Z === '+') {
+    args[3] -= parts.OH ?? 0;
+    args[4] -= parts.Om ?? 0;
+    args[5] = (args[5] ?? 0) - (parts.OS ?? 0);
     return new Date(Date.UTC(...args));
   }
   return new Date(...args);

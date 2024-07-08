@@ -313,7 +313,19 @@ ISODate.prototype.toDate = function toDate() {
   if ('S' in result) args.push(result.S);
   if ('F' in result) args.push(Math.round(result.F));
 
-  if (result.Z) {
+  if (result.Z === 'Z') {
+    /** @ts-ignore */
+    return new Date(Date.UTC(...args));
+  } else if (result.Z === '-') {
+    if (result.OH) args[3] += result.OH;
+    if (result.Om) args[4] += result.Om;
+    if (result.OS) args[5] = (args[5] ?? 0) + result.OS;
+    /** @ts-ignore */
+    return new Date(Date.UTC(...args));
+  } else if (result.Z === '+') {
+    if (result.OH) args[3] -= result.OH;
+    if (result.Om) args[4] -= result.Om;
+    if (result.OS) args[5] = (args[5] ?? 0) - result.OS;
     /** @ts-ignore */
     return new Date(Date.UTC(...args));
   }

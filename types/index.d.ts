@@ -305,6 +305,8 @@ declare module '@0dep/piso' {
 	DurationAndEndDate = 12,
 	RepeatDurationAndEndDate = 13,
   }
+
+	export {};
 }
 
 //# sourceMappingURL=index.d.ts.map
