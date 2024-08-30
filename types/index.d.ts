@@ -129,7 +129,7 @@ declare module '@0dep/piso' {
 		 * @param source ISO 8601 duration
 		 * @param offset source column offset
 		 */
-		function parse(source: string, offset?: number): Partial<ISODateParts>;
+		function parse(source: string, offset?: number | null): Partial<ISODateParts>;
 	}
 
 	export function ISODuration(source: string, offset?: number): void;

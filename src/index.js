@@ -1030,15 +1030,24 @@ export function getStartAt(isoInterval, compareDate, endDate) {
  */
 function validateDate(Y, M, D) {
   if (!D) return false;
-  if (M < 0) return false;
 
-  if (M > 11) {
-    return false;
-  } else if (M === 1 && D - (Y % 4 ? 0 : 1) > 28) {
-    return false;
-  } else if (D - ((M + 1) % 2) > 30) {
-    return false;
+  switch (M) {
+    case 1:
+      return D - (Y % 4 ? 0 : 1) < 29;
+    case 0:
+    case 2:
+    case 4:
+    case 6:
+    case 7:
+    case 9:
+    case 11:
+      return D < 32;
+    case 3:
+    case 5:
+    case 8:
+    case 10:
+      return D < 31;
+    default:
+      return false;
   }
-
-  return true;
 }
