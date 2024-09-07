@@ -1,4 +1,5 @@
 import { ISODate, getDate } from '../src/index.js';
+import { getDateFromParts } from './helpers.js';
 
 describe('ISO date', () => {
   it('parses date with timezone offset', () => {
@@ -210,7 +211,7 @@ describe('ISO date', () => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
         ISODate.parse(dt);
-      }).to.throw(RangeError);
+      }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 date/i);
     });
   });
 
@@ -241,24 +242,3 @@ describe('ISO date', () => {
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:29:30Z'));
   });
 });
-
-/**
- * @param {import('../types/interfaces.js').ISODateParts} parts
- */
-function getDateFromParts(parts) {
-  const args = [parts.Y, parts.M, parts.D, parts.H, parts.m, parts.S, parts.F].filter((p) => p !== undefined);
-  if (parts.Z === 'Z') {
-    return new Date(Date.UTC(...args));
-  } else if (parts.Z === '-') {
-    args[3] += parts.OH ?? 0;
-    args[4] += parts.Om ?? 0;
-    args[5] = (args[5] ?? 0) + (parts.OS ?? 0);
-    return new Date(Date.UTC(...args));
-  } else if (parts.Z === '+') {
-    args[3] -= parts.OH ?? 0;
-    args[4] -= parts.Om ?? 0;
-    args[5] = (args[5] ?? 0) - (parts.OS ?? 0);
-    return new Date(Date.UTC(...args));
-  }
-  return new Date(...args);
-}

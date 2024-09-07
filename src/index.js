@@ -203,7 +203,7 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
     value += c;
     c = this.read();
   }
-  if (value) this.repeat = Number(value);
+  this.repeat = value ? Number(value) : -1;
   if (c !== '/') throw new RangeError(`Unexpected ISO 8601 interval characted "${this.parsed}[${c}]" at ${this.idx}`);
 };
 

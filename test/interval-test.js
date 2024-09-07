@@ -910,6 +910,7 @@ describe('ISO 8601 interval', () => {
       ['R5/2008-03-01T13:00:00Z', 5],
       ['R20/2008-03-01T13:00:00Z', 20],
       ['R-1/2008-03-01T13:00:00Z', -1],
+      ['R/2008-03-01T13:00:00Z', -1],
     ].forEach(([interval, expectedRepeat]) => {
       it(`parsed ${interval} has the expected repeat and start date`, () => {
         const iso = parseInterval(interval);
@@ -942,9 +943,12 @@ describe('ISO 8601 interval', () => {
       });
     });
 
-    it('"R-1/P2Y" has repeat type', () => {
-      const iso = parseInterval('R-1/P2Y');
-      expect((iso.type & 1) === 1).to.be.true;
+    ['R/P2Y', 'R-1/P2Y'].forEach((interval) => {
+      it(`"${interval}" means an unbounded number of repetitions`, () => {
+        const iso = parseInterval(interval);
+        expect(iso.repeat).to.equal(-1);
+        expect((iso.type & 1) === 1).to.be.true;
+      });
     });
 
     ['R3/2007-03-01T13:00:00Z/15:00', 'R1/P2Y', 'R0/P2Y'].forEach((interval) => {
