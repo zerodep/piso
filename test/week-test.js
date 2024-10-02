@@ -1,0 +1,182 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear } from '../src/index.js';
+import { getDateFromParts } from './helpers.js';
+
+const years = createRequire(fileURLToPath(import.meta.url))('./years.json');
+const mappedYears = new Map(Object.entries(years));
+
+describe('ISO week', () => {
+  [...mappedYears.entries()].forEach(([year, { w }]) => {
+    const wdLast = `${year}-W${w}-1`;
+    const wdFirst = `${year}-W01-1`;
+    it(`anno ${year} allows week ${w}`, () => {
+      expect(ISODate.parse(wdLast)).to.deep.equal({ Y: Number(year), W: w, D: 1 });
+    });
+
+    it(`parses "${wdLast}" to date monday`, () => {
+      const dt = getDate(wdLast);
+      expect(dt.getDay(), dt.toISOString()).to.equal(1);
+    });
+
+    it(`parses "${wdFirst}" to date monday`, () => {
+      const dt = getDate(wdFirst);
+      expect(dt.getDay(), dt.toISOString()).to.equal(1);
+    });
+
+    it(`#getLastWeekOfYear "${wdFirst}" returns expected last week ${w}`, () => {
+      const parsed = ISODate.parse(wdFirst);
+      const week = getUTCLastWeekOfYear(parsed.Y);
+      expect(week).to.equal(w);
+    });
+
+    if (w === 52) {
+      it(`anno ${year} throws if week is ${w + 1}`, () => {
+        expect(() => {
+          ISODate.parse(`${year}-W${w + 1}-1`);
+        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 week date/i);
+      });
+    }
+  });
+
+  ['2008-W53-1', '2008-W53', '2008W53', '2009-W54-1', '2020-W59-1', '2020-W53-8', '2020-W53-0'].forEach((wd) => {
+    it(`parse "${wd}" throws RangeError`, () => {
+      expect(() => {
+        ISODate.parse(wd);
+      }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601/i);
+    });
+  });
+
+  [
+    ['2009-W01', { Y: 2009, W: 1, D: 1 }],
+    ['2009W01', { Y: 2009, W: 1, D: 1 }],
+    ['2009-W52', { Y: 2009, W: 52, D: 1 }],
+    ['2009-W01-1', { Y: 2009, W: 1, D: 1 }],
+    ['2009W011', { Y: 2009, W: 1, D: 1 }],
+    ['2010-W01-1', { Y: 2010, W: 1, D: 1 }],
+    ['2011-W01-1', { Y: 2011, W: 1, D: 1 }],
+    ['2012-W01-1', { Y: 2012, W: 1, D: 1 }],
+    ['2013-W01-1', { Y: 2013, W: 1, D: 1 }],
+    ['2014-W01-1', { Y: 2014, W: 1, D: 1 }],
+    ['2015-W01-1', { Y: 2015, W: 1, D: 1 }],
+    ['2016-W01-1', { Y: 2016, W: 1, D: 1 }],
+    ['2017-W01-1', { Y: 2017, W: 1, D: 1 }],
+    ['2018-W01-1', { Y: 2018, W: 1, D: 1 }],
+    ['2019-W01-1', { Y: 2019, W: 1, D: 1 }],
+    ['2020-W01-1', { Y: 2020, W: 1, D: 1 }],
+    ['2021-W01-1', { Y: 2021, W: 1, D: 1 }],
+    ['2022-W01-1', { Y: 2022, W: 1, D: 1 }],
+    ['2023-W01-1', { Y: 2023, W: 1, D: 1 }],
+    ['2024-W40-5', { Y: 2024, W: 40, D: 5 }],
+    ['2020-W53-2', { Y: 2020, W: 53, D: 2 }],
+    ['2009-W53-7', { Y: 2009, W: 53, D: 7 }],
+    ['2009-W01-1T08:06:30', { Y: 2009, W: 1, D: 1, H: 8, m: 6, S: 30 }],
+    ['2009-W53-7T08:06:30.001', { Y: 2009, W: 53, D: 7, H: 8, m: 6, S: 30, F: 1 }],
+  ].forEach(([dt, expected]) => {
+    it(`parse "${dt}" is parsed as expected`, () => {
+      expect(ISODate.parse(dt)).to.deep.equal(expected);
+    });
+  });
+
+  [
+    ['1942-W01-1', { Y: 1941, M: 11, D: 29 }],
+    ['1942-W02-1', { Y: 1942, M: 0, D: 5 }],
+    ['1942-W52-1', { Y: 1942, M: 11, D: 21 }],
+    ['1942-W53-2', { Y: 1942, M: 11, D: 29 }],
+    ['1942-W53-7', { Y: 1943, M: 0, D: 3 }],
+    ['1943-W01-1', { Y: 1943, M: 0, D: 4 }],
+    ['1943-W02-1', { Y: 1943, M: 0, D: 11 }],
+    ['1943-W52-1', { Y: 1943, M: 11, D: 27 }],
+    ['1943-W52-7', { Y: 1944, M: 0, D: 2 }],
+    ['1976-W53-6', { Y: 1977, M: 0, D: 1 }],
+    ['1976-W53-7', { Y: 1977, M: 0, D: 2 }],
+    ['1977-W52-6', { Y: 1977, M: 11, D: 31 }],
+    ['1977-W52-7', { Y: 1978, M: 0, D: 1 }],
+    ['1978-W01-1', { Y: 1978, M: 0, D: 2 }],
+    ['1978-W52-7', { Y: 1978, M: 11, D: 31 }],
+    ['1979-W01-1', { Y: 1979, M: 0, D: 1 }],
+    ['1979-W52-7', { Y: 1979, M: 11, D: 30 }],
+    ['1980-W01-1', { Y: 1979, M: 11, D: 31 }],
+    ['1980-W01-2', { Y: 1980, M: 0, D: 1 }],
+    ['1980-W52-7', { Y: 1980, M: 11, D: 28 }],
+    ['1981-W01-1', { Y: 1980, M: 11, D: 29 }],
+    ['1981-W01-2', { Y: 1980, M: 11, D: 30 }],
+    ['1981-W01-3', { Y: 1980, M: 11, D: 31 }],
+    ['1981-W01-4', { Y: 1981, M: 0, D: 1 }],
+    ['1981-W53-4', { Y: 1981, M: 11, D: 31 }],
+    ['1981-W53-5', { Y: 1982, M: 0, D: 1 }],
+    ['1981-W53-6', { Y: 1982, M: 0, D: 2 }],
+    ['1981-W53-7', { Y: 1982, M: 0, D: 3 }],
+    ['2009-W01-1', { Y: 2008, M: 11, D: 29 }],
+    ['2009-W01-2', { Y: 2008, M: 11, D: 30 }],
+    ['2009-W01-3', { Y: 2008, M: 11, D: 31 }],
+    ['2009-W01-4', { Y: 2009, M: 0, D: 1 }],
+    ['2009-W01-5', { Y: 2009, M: 0, D: 2 }],
+    ['2009-W01-6', { Y: 2009, M: 0, D: 3 }],
+    ['2009-W01-7', { Y: 2009, M: 0, D: 4 }],
+    ['2009-W44-1', { Y: 2009, M: 9, D: 26 }],
+    ['2009-W53-7', { Y: 2010, M: 0, D: 3 }],
+    ['2024-W40-4', { Y: 2024, M: 9, D: 3 }],
+    ['2024-W40-1T08:06:30Z', { Y: 2024, M: 8, D: 30, H: 8, m: 6, S: 30, Z: 'Z' }],
+    ['2024-W40-7T08:06:00+02', { Y: 2024, M: 9, D: 6, H: 8, m: 6, Z: '+', OH: 2 }],
+  ].forEach(([wd, expected]) => {
+    it(`parses "${wd}" to expected date Date(${[expected.Y, expected.M, expected.D]})`, () => {
+      expect(getDate(wd), wd).to.deep.equal(getDateFromParts(expected));
+    });
+  });
+
+  describe('interval start and duration', () => {
+    [
+      ['2007-W09-7/P1Y2M10DT2H30M', { Y: 1, M: 2, D: 10, H: 2, m: 30 }],
+      ['2007-W09-7/PT2H30M1.5S', { H: 2, m: 30, S: 1.5 }],
+    ].forEach(([interval, expected]) => {
+      it(`"${interval}" has the expected parsed start date and duration parts`, () => {
+        const iso = parseInterval(interval);
+        expect(iso.start.result).to.include({ Y: 2007, W: 9, D: 7 });
+        expect(iso.duration.result).to.include(expected);
+      });
+    });
+  });
+
+  describe('interval start week and end week', () => {
+    [
+      ['2007-W01/W03-2', { Y: 2007, M: 0, D: 16 }],
+      ['2007-W01-1/2', { Y: 2007, M: 0, D: 2 }],
+      ['2007-W01/2', { Y: 2007, M: 0, D: 2 }],
+      ['2007-W01/W03-2T12:00', { Y: 2007, M: 0, D: 16, H: 12, m: 0 }],
+      ['2007-W01/2T12:00', { Y: 2007, M: 0, D: 2, H: 12, m: 0 }],
+      ['2007-W01/2008-12-31', { Y: 2008, M: 11, D: 31 }],
+      ['2007-W01/12-31', { Y: 2007, M: 11, D: 31 }],
+      ['2007-W50-5T13:30/15:30', { Y: 2007, M: 11, D: 14, H: 15, m: 30 }],
+      ['2007-W01/2007-W03-1', { Y: 2007, M: 0, D: 15 }],
+      ['2009-W01/2009-W53-7', { Y: 2010, M: 0, D: 3 }],
+    ].forEach(([interval, expected]) => {
+      it(`"${interval}" returns expected end date`, () => {
+        const iso = parseInterval(interval);
+
+        const expectedEnd = getDateFromParts(expected);
+
+        expect(iso.endDate, 'endDate').to.deep.equal(expectedEnd);
+      });
+    });
+
+    ['2007-W03-1/W53', '2007W031/W53', '2007-W03-1/W00'].forEach((interval) => {
+      it(`invalid partial week "${interval}" throws week RangeError`, () => {
+        expect(() => parseInterval(interval)).to.throw(RangeError, /Invalid ISO 8601 week date/i);
+      });
+    });
+
+    ['2007-W03-1/10', '2007W031/10'].forEach((interval) => {
+      it(`invalid partial end date "${interval}" throws invalid partial RangeError`, () => {
+        expect(() => parseInterval(interval)).to.throw(RangeError, /partial date/i);
+      });
+    });
+
+    ['2007-W03-1/0', '2007-W03-1/8'].forEach((interval) => {
+      it(`partial end date with invalid weekday throws unexpected RangeError`, () => {
+        expect(() => parseInterval(interval)).to.throw(RangeError, /unexpected/i);
+      });
+    });
+  });
+});

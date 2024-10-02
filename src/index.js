@@ -2,6 +2,7 @@ const FRACTIONS = ',.';
 const ISO_ZULU = 'Z';
 const ISODATE_SEPARATOR = '-';
 const ISODATE_TIMEINSTRUCTION = 'T';
+const ISODATE_WEEKINSTRUCTION = 'W';
 const ISODURATION_DATE_DESIGNATORS = 'YMWD';
 const ISODURATION_TIME_DESIGNATORS = 'HMS';
 const ISOINTERVAL_DURATION = 'P';
@@ -11,8 +12,10 @@ const ISOTIME_OFFSET = '+-' + ISO_ZULU;
 const ISOTIME_SEPARATOR = ':';
 const ISOTIME_STARTHOUR = '012';
 const ISOTIME_STARTPART = '012345';
+const ISODATE_WEEKDAYS = '1234567';
 const NUMBERS = '0123456789';
 const MILLISECONDS_PER_HOUR = 3600000;
+const MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
 const NONLEAPYEAR = new Date(Date.UTC(1971, 0, 1));
 
@@ -230,7 +233,7 @@ ISOInterval.prototype.consumeDuration = function consumeDuration() {
  */
 ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(start) {
   const isoDate = new ISODate(this.source, this.idx, undefined, start.enforceSeparators);
-  const end = (this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D));
+  const end = (this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D, start.result.W));
   if (start.result.Z && !end.result.Z) {
     end.result.Z = start.result.Z;
     end.result.OH = start.result.OH;
@@ -308,6 +311,13 @@ ISODate.prototype.toDate = function toDate() {
   const result = this.result;
   const args = [result.Y, result.M, result.D];
 
+  if (result.W) {
+    const wdate = this.getMonthAndDayFromWeek();
+    args[0] = wdate.Y;
+    args[1] = wdate.M;
+    args[2] = wdate.D;
+  }
+
   if ('H' in result) args.push(result.H, 0);
   if ('m' in result) args[4] = result.m;
   if ('S' in result) args.push(result.S);
@@ -370,21 +380,48 @@ ISODate.parse = function parseISODate(source, offset) {
  * Parse partial relative date
  * @param {number} Y Year if year is not defined
  * @param {number} M JavaScript month if month is not defined
- * @param {number} [D] JavaScript date if date is not defined
+ * @param {number} [D] Date if date is not defined
+ * @param {number} [W] Weeknumber
  * @returns {ISODate}
  */
-ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
+ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
   if (this[kIsParsed]) return this;
   this[kIsParsed] = true;
 
   this.result.Y = Y;
+
+  let c = this.consumeChar(NUMBERS + ISODATE_WEEKINSTRUCTION);
+  let next = this.peek();
+
+  if (c === ISODATE_WEEKINSTRUCTION) {
+    const week = (this.result.W = Number(this.consumeChar('012345') + this.consumeChar()));
+    if (!this.continueWeekdayPrecision(Y, week, this.enforceSeparators)) {
+      return this;
+    }
+
+    c = this.consume();
+
+    if (c === ISODATE_TIMEINSTRUCTION) {
+      const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
+      return this.continueTimePrecision(hours, this.enforceSeparators);
+    }
+  } else if (W && (!next || next === ISODATE_TIMEINSTRUCTION) && ISODATE_WEEKDAYS.indexOf(c) > -1) {
+    this.result.W = W;
+    this.result.D = Number(c);
+
+    if (!next) return this;
+
+    this.consume();
+    const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
+    return this.continueTimePrecision(hours, this.enforceSeparators);
+  }
+
   this.result.M = M;
   this.result.D = D;
 
-  const value = this.consumeChar() + this.consumeChar();
+  const value = c + this.consumeChar();
 
-  const next = this.peek();
-  /** @type {string | undefined} */
+  next = this.peek();
 
   if (!next) {
     this.consume();
@@ -404,6 +441,8 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
     return this.continueTimePrecision(hours, this.enforceSeparators);
   } else if (next === ISOTIME_SEPARATOR) {
     const hours = (this.result.H = Number(value));
+    if (!M) this.result.W = W;
+
     return this.continueTimePrecision(hours, this.enforceSeparators);
   } else if (NUMBERS.indexOf(next) > -1) {
     const Y = (this.result.Y = Number(value + this.consumeChar() + this.consumeChar()));
@@ -434,39 +473,81 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D) {
  */
 ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   let dateSeparator = this.enforceSeparators ? ISODATE_SEPARATOR : '';
+  const initNext = ISODATE_WEEKINSTRUCTION + '01';
 
   /** @type {string | undefined} */
-  let c = this.consumeChar(dateSeparator + '01');
+  let c = this.consumeChar(dateSeparator + initNext);
   if (c === ISODATE_SEPARATOR) {
     dateSeparator = c;
-    c = this.consumeChar('01');
+    c = this.consumeChar(initNext);
   } else if (dateSeparator) {
     throw this.createUnexpectedError();
   }
 
-  const M = (this.result.M = Number(c + this.consumeChar()) - 1);
+  if (c === ISODATE_WEEKINSTRUCTION) {
+    c = this.consumeChar('012345');
+    const W = (this.result.W = Number(c + this.consumeChar()));
 
-  if (dateSeparator) {
-    c = this.consumeCharOrEnd(dateSeparator);
-    if (!c) {
-      if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
-      this.result.D = 1;
+    if (!this.continueWeekdayPrecision(Y, W, !!dateSeparator)) {
       return this;
     }
+  } else {
+    const M = (this.result.M = Number(c + this.consumeChar()) - 1);
+
+    if (dateSeparator) {
+      c = this.consumeCharOrEnd(dateSeparator);
+      if (!c) {
+        if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
+        this.result.D = 1;
+        return this;
+      }
+    }
+
+    c = this.consumeChar();
+
+    const D = (this.result.D = Number(c + this.consumeChar()));
+
+    if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
   }
 
-  c = this.consumeChar();
-
-  const D = (this.result.D = Number(c + this.consumeChar()));
-
-  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
-
   c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
+
   if (!c) return this;
 
   const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
 
   return this.continueTimePrecision(hours, !!dateSeparator);
+};
+
+/**
+ * Consume weekday
+ * @param {number} Y from year
+ * @param {number} W from week
+ * @param {boolean} useSeparator time separator
+ * @returns {boolean} Continue
+ */
+ISODate.prototype.continueWeekdayPrecision = function continueWeekdayPrecision(Y, W, useSeparator) {
+  let c;
+  if (useSeparator) {
+    c = this.consumeCharOrEnd(ISODATE_SEPARATOR);
+    if (!c) {
+      if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
+      this.result.D = 1;
+      return false;
+    }
+  }
+
+  c = this.consumeCharOrEnd(ISODATE_WEEKDAYS);
+
+  if (!c) {
+    this.result.D = 1;
+  } else {
+    this.result.D = Number(c);
+  }
+
+  if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
+
+  return !!this.peek();
 };
 
 /**
@@ -564,6 +645,28 @@ ISODate.prototype.continueTimeZonePrecision = function continueTimeZonePrecision
   this.result.OS = Number(c + this.consumeChar());
 
   return this.end();
+};
+
+/**
+ * Parse passed source as ISO 8601 date time
+ * @returns {{Y?: number, M: number, D: number}}
+ */
+ISODate.prototype.getMonthAndDayFromWeek = function getMonthAndDayFromWeek() {
+  const { Y, W, D } = this.result;
+
+  const jan4 = new Date(Date.UTC(Y, 0, 4));
+  const jan4weekday = jan4.getDay();
+
+  let sunBeforeW1;
+  if (jan4weekday === 0) {
+    sunBeforeW1 = new Date(jan4.getTime() - 7 * MILLISECONDS_PER_DAY);
+  } else {
+    sunBeforeW1 = new Date(jan4.getTime() - jan4weekday * MILLISECONDS_PER_DAY);
+  }
+
+  const weekDate = new Date(sunBeforeW1.getTime() + ((W - 1) * 7 + D) * MILLISECONDS_PER_DAY);
+
+  return { Y: weekDate.getFullYear(), M: weekDate.getMonth(), D: weekDate.getDate() };
 };
 
 ISODate.prototype.consume = function consume() {
@@ -1033,7 +1136,7 @@ function validateDate(Y, M, D) {
 
   switch (M) {
     case 1:
-      return D - (Y % 4 ? 0 : 1) < 29;
+      return D - (isLeapYear(Y) ? 1 : 0) < 29;
     case 0:
     case 2:
     case 4:
@@ -1050,4 +1153,50 @@ function validateDate(Y, M, D) {
     default:
       return false;
   }
+}
+
+/**
+ * Validate week parts
+ * @param {number} Y UTC full year
+ * @param {number} W week
+ */
+function validateWeek(Y, W) {
+  if (!W || W > 53) return false;
+  if (W < 53) return true;
+
+  return getUTCLastWeekOfYear(Y) === 53;
+}
+
+/**
+ * Get last week of UTC year
+ * @param {number} Y UTC full year
+ */
+export function getUTCLastWeekOfYear(Y) {
+  const dec31 = new Date(Date.UTC(Y, 11, 31));
+  const weekdayDec31 = getUTCWeekday(dec31);
+
+  if (weekdayDec31 < 4) {
+    return 52;
+  }
+
+  const jan4 = new Date(Date.UTC(Y, 0, 4));
+  return 53 * 7 + weekdayDec31 - getUTCWeekday(jan4) + 3 > 372 ? 52 : 53;
+}
+
+/**
+ * Get weekday ordinal day
+ * @param {Date} date
+ */
+function getUTCWeekday(date) {
+  const weekday = date.getUTCDay();
+  return !weekday ? 7 : weekday;
+}
+
+/**
+ * Is leap year
+ * @param {number} year
+ */
+function isLeapYear(year) {
+  if (year % 4) return false;
+  return year % 100 === 0 ? year % 400 === 0 : true;
 }
