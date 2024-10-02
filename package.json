@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -32,6 +32,7 @@
     "interval",
     "duration",
     "date",
+    "week",
     "to milliseconds",
     "iso",
     "8601",
@@ -47,9 +48,9 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-commonjs": "^28.0.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
-    "@types/chai": "^4.3.9",
+    "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.3",
     "@types/node": "^18.19.7",
     "c8": "^10.0.0",

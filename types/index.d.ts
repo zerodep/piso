@@ -92,14 +92,23 @@ declare module '@0dep/piso' {
 		 * Parse partial relative date
 		 * @param Y Year if year is not defined
 		 * @param M JavaScript month if month is not defined
-		 * @param D JavaScript date if date is not defined
+		 * @param D Date if date is not defined
+		 * @param W Weeknumber
 		 * */
-		parsePartialDate(Y: number, M: number, D?: number): ISODate;
+		parsePartialDate(Y: number, M: number, D?: number, W?: number): ISODate;
 		/**
 		 * Consume as ISO date
 		 * @param Y year
 		 * */
 		continueDatePrecision(Y: number): ISODate;
+		/**
+		 * Consume weekday
+		 * @param Y from year
+		 * @param W from week
+		 * @param useSeparator time separator
+		 * @returns Continue
+		 */
+		continueWeekdayPrecision(Y: number, W: number, useSeparator: boolean): boolean;
 		/**
 		 * Consume minutes and seconds and so forth
 		 * @param H from hour
@@ -111,6 +120,14 @@ declare module '@0dep/piso' {
 		 * @param instruction timezone offset instruction
 		 * */
 		continueTimeZonePrecision(instruction: string): ISODate;
+		/**
+		 * Parse passed source as ISO 8601 date time
+		 * */
+		getMonthAndDayFromWeek(): {
+			Y?: number;
+			M: number;
+			D: number;
+		};
 		consume(): string;
 		consumeChar(valid?: string): string;
 		peek(): string;
@@ -260,6 +277,11 @@ declare module '@0dep/piso' {
 	 * @param endDate optional end date for use when only duration is present
 	 */
 	export function getStartAt(isoInterval: string, compareDate?: Date, endDate?: Date): Date;
+	/**
+	 * Get last week of UTC year
+	 * @param Y UTC full year
+	 */
+	export function getUTCLastWeekOfYear(Y: number): 53 | 52;
 	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */

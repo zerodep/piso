@@ -207,6 +207,8 @@ describe('ISO date', () => {
     '2024-11-31',
     '2024-12-32',
     '2024-13-01',
+    '2401-02-29',
+    '2100-02-29',
   ].forEach((dt) => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
@@ -240,5 +242,21 @@ describe('ISO date', () => {
 
     dateString = '2007-04-05T12:30+02:00:30';
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:29:30Z'));
+  });
+
+  describe('leap years', () => {
+    ['1600-02-29', '2000-02-29', '2400-02-29'].forEach((dt) => {
+      it(`parse "${dt}" is ok`, () => {
+        ISODate.parse(dt);
+      });
+    });
+
+    ['1700-02-29', '2401-02-29', '2100-02-29'].forEach((dt) => {
+      it(`parse "${dt}" throws RangeError`, () => {
+        expect(() => {
+          ISODate.parse(dt);
+        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 date/i);
+      });
+    });
   });
 });

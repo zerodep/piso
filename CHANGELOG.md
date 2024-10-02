@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0] - 2024-10-09
+
+- support week in date and interval, e.g. `2024-W41-3T06:40+02/W42-7`
+- fix jump leap year every 400 years, heard about it but lacked personal experience
+
 ## [2.0.2] - 2024-09-08
 
 - repeat interval without `[n]` means an unbounded number of repetitions, e.g. `R/PT1S`

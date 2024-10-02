@@ -94,6 +94,14 @@ Get Date from an ISO 8601 date time string.
 
 Returns date.
 
+## `getLastWeekOfYear(Y)`
+
+Get last week of year
+
+- `iso8601Date`: string with ISO 8601 date source, date and number are also accepted
+
+Returns date.
+
 ```javascript
 import { getDate } from '@0dep/piso';
 
@@ -103,6 +111,7 @@ const viableDates = [
   '2024-02-29',
   '2020-02-29',
   '2016-02-29',
+  '2024-W03-2',
   '2024-01',
   '2024-12',
   '20240127',
