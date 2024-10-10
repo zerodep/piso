@@ -207,8 +207,8 @@ describe('ISO date', () => {
     '2024-11-31',
     '2024-12-32',
     '2024-13-01',
-    '2401-02-29',
     '2100-02-29',
+    '2401-02-29',
   ].forEach((dt) => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
@@ -251,7 +251,7 @@ describe('ISO date', () => {
       });
     });
 
-    ['1700-02-29', '2401-02-29', '2100-02-29'].forEach((dt) => {
+    ['1700-02-29', '2300-02-29', '2100-02-29'].forEach((dt) => {
       it(`parse "${dt}" throws RangeError`, () => {
         expect(() => {
           ISODate.parse(dt);

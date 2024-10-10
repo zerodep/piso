@@ -120,14 +120,6 @@ declare module '@0dep/piso' {
 		 * @param instruction timezone offset instruction
 		 * */
 		continueTimeZonePrecision(instruction: string): ISODate;
-		/**
-		 * Parse passed source as ISO 8601 date time
-		 * */
-		getMonthAndDayFromWeek(): {
-			Y?: number;
-			M: number;
-			D: number;
-		};
 		consume(): string;
 		consumeChar(valid?: string): string;
 		peek(): string;
@@ -282,6 +274,11 @@ declare module '@0dep/piso' {
 	 * @param Y UTC full year
 	 */
 	export function getUTCLastWeekOfYear(Y: number): 53 | 52;
+	/**
+	 * Get Monday week one date
+	 * @param Y UTC full year
+	 */
+	export function getUTCWeekOneDate(Y: number): Date;
 	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */

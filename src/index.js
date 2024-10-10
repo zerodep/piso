@@ -312,10 +312,10 @@ ISODate.prototype.toDate = function toDate() {
   const args = [result.Y, result.M, result.D];
 
   if (result.W) {
-    const wdate = this.getMonthAndDayFromWeek();
-    args[0] = wdate.Y;
-    args[1] = wdate.M;
-    args[2] = wdate.D;
+    const wdate = getUTCDateFromWeek(result.Y, result.W, result.D);
+    args[0] = wdate.getUTCFullYear();
+    args[1] = wdate.getUTCMonth();
+    args[2] = wdate.getUTCDate();
   }
 
   if ('H' in result) args.push(result.H, 0);
@@ -341,8 +341,7 @@ ISODate.prototype.toDate = function toDate() {
   }
 
   /** @ts-ignore */
-  const dt = new Date(...args);
-  return dt;
+  return new Date(...args);
 };
 
 /**
@@ -645,28 +644,6 @@ ISODate.prototype.continueTimeZonePrecision = function continueTimeZonePrecision
   this.result.OS = Number(c + this.consumeChar());
 
   return this.end();
-};
-
-/**
- * Parse passed source as ISO 8601 date time
- * @returns {{Y?: number, M: number, D: number}}
- */
-ISODate.prototype.getMonthAndDayFromWeek = function getMonthAndDayFromWeek() {
-  const { Y, W, D } = this.result;
-
-  const jan4 = new Date(Date.UTC(Y, 0, 4));
-  const jan4weekday = jan4.getDay();
-
-  let sunBeforeW1;
-  if (jan4weekday === 0) {
-    sunBeforeW1 = new Date(jan4.getTime() - 7 * MILLISECONDS_PER_DAY);
-  } else {
-    sunBeforeW1 = new Date(jan4.getTime() - jan4weekday * MILLISECONDS_PER_DAY);
-  }
-
-  const weekDate = new Date(sunBeforeW1.getTime() + ((W - 1) * 7 + D) * MILLISECONDS_PER_DAY);
-
-  return { Y: weekDate.getFullYear(), M: weekDate.getMonth(), D: weekDate.getDate() };
 };
 
 ISODate.prototype.consume = function consume() {
@@ -1184,7 +1161,18 @@ export function getUTCLastWeekOfYear(Y) {
 }
 
 /**
- * Get weekday ordinal day
+ * Get Monday week one date
+ * @param {number} Y UTC full year
+ */
+export function getUTCWeekOneDate(Y) {
+  const jan4 = new Date(Date.UTC(Y, 0, 4));
+  const weekdayJan4 = getUTCWeekday(jan4);
+  return new Date(jan4.getTime() - (weekdayJan4 - 1) * MILLISECONDS_PER_DAY);
+}
+
+/**
+ * Get ISO weekday from date
+ * 1 = Monday, 7 = Sunday
  * @param {Date} date
  */
 function getUTCWeekday(date) {
@@ -1199,4 +1187,15 @@ function getUTCWeekday(date) {
 function isLeapYear(year) {
   if (year % 4) return false;
   return year % 100 === 0 ? year % 400 === 0 : true;
+}
+
+/**
+ * Get UTC date from week and weekday
+ * @param {number} Y year
+ * @param {number} W week number
+ * @param {number} D weekday
+ */
+function getUTCDateFromWeek(Y, W, D) {
+  const daysToAdd = (W - 1) * 7 + (D - 1);
+  return new Date(getUTCWeekOneDate(Y).getTime() + daysToAdd * MILLISECONDS_PER_DAY);
 }
