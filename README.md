@@ -94,14 +94,6 @@ Get Date from an ISO 8601 date time string.
 
 Returns date.
 
-## `getLastWeekOfYear(Y)`
-
-Get last week of year
-
-- `iso8601Date`: string with ISO 8601 date source, date and number are also accepted
-
-Returns date.
-
 ```javascript
 import { getDate } from '@0dep/piso';
 
@@ -156,6 +148,13 @@ try {
 }
 
 try {
+  // not this year
+  getDate('2023-W53-1T12:00');
+} catch (err) {
+  console.log({ err });
+}
+
+try {
   // unbalanced separators
   getDate('2023-02-28T1200');
 } catch (err) {
@@ -164,6 +163,34 @@ try {
 ```
 
 > NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time".
+
+## `getUTCLastWeekOfYear(Y)`
+
+Get last week of year
+
+- `Y`: full year
+
+Returns 52 or 53.
+
+```javascript
+import { getUTCLastWeekOfYear } from '@0dep/piso';
+
+console.log('last week number', getUTCLastWeekOfYear(2024));
+```
+
+## `getUTCWeekOneDate(Y)`
+
+Get Monday week one date
+
+- `Y`: full year
+
+Returns date Monday week one
+
+```javascript
+import { getUTCWeekOneDate } from '@0dep/piso';
+
+console.log('Monday week one', getUTCWeekOneDate(2021));
+```
 
 ## `new ISOInterval(source)`
 

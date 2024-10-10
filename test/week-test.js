@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear } from '../src/index.js';
+import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear, getUTCWeekOneDate } from '../src/index.js';
 import { getDateFromParts } from './helpers.js';
 
 const years = createRequire(fileURLToPath(import.meta.url))('./years.json');
@@ -9,25 +9,71 @@ const mappedYears = new Map(Object.entries(years));
 
 describe('ISO week', () => {
   [...mappedYears.entries()].forEach(([year, { w }]) => {
+    const Y = Number(year);
     const wdLast = `${year}-W${w}-1`;
     const wdFirst = `${year}-W01-1`;
+    const wdW01MidnightInTz = `${year}-W01-1T00:00:00+02`;
+    const wdW01MidnightLocal = `${year}-W01-1T00:00:00`;
+    const wdW01UTC = `${year}-W01-1T11:00:00.1Z`;
+
     it(`anno ${year} allows week ${w}`, () => {
-      expect(ISODate.parse(wdLast)).to.deep.equal({ Y: Number(year), W: w, D: 1 });
+      expect(ISODate.parse(wdLast)).to.deep.equal({ Y, W: w, D: 1 });
     });
 
-    it(`parses "${wdLast}" to date monday`, () => {
+    it(`parses "${wdLast}" to date Monday`, () => {
       const dt = getDate(wdLast);
       expect(dt.getDay(), dt.toISOString()).to.equal(1);
+      expect(dt.getHours(), dt.toISOString()).to.equal(0);
+      expect(dt.getMinutes(), dt.toISOString()).to.equal(0);
+      expect(dt.getSeconds(), dt.toISOString()).to.equal(0);
     });
 
-    it(`parses "${wdFirst}" to date monday`, () => {
+    it(`parses "${wdFirst}" to date Monday`, () => {
       const dt = getDate(wdFirst);
       expect(dt.getDay(), dt.toISOString()).to.equal(1);
     });
 
-    it(`#getLastWeekOfYear "${wdFirst}" returns expected last week ${w}`, () => {
-      const parsed = ISODate.parse(wdFirst);
-      const week = getUTCLastWeekOfYear(parsed.Y);
+    it(`parses "${wdW01MidnightInTz}" with timezone to timestamp`, () => {
+      const dt = getDate(wdW01MidnightInTz);
+      const monWeekOne = getUTCWeekOneDate(year);
+
+      expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() - 2 * 3600 * 1000));
+    });
+
+    it(`parses "${wdW01UTC}" to UTC timestamp`, () => {
+      const dt = getDate(wdW01UTC);
+      const monWeekOne = getUTCWeekOneDate(year);
+
+      expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + 11 * 3600 * 1000 + 100));
+    });
+
+    /** In 17th century Sweden the timezone offset is 53 and some (?) */
+    if (Y > 1899) {
+      it(`parses "${wdW01MidnightLocal}" to local timestamp`, () => {
+        const dt = getDate(wdW01MidnightLocal);
+
+        expect(dt.getDay(), 'Monday').to.equal(1);
+        expect(dt.getHours(), 'hours').to.equal(0);
+        expect(dt.getMinutes(), 'minutes').to.equal(0);
+        expect(dt.getSeconds(), 'seconds').to.equal(0);
+
+        const monWeekOne = getUTCWeekOneDate(year);
+        expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + dt.getTimezoneOffset() * 60000));
+      });
+    }
+
+    it(`#getUTCWeekOneDate(${Y}) returns Monday week one date`, () => {
+      const monWeekOne = getUTCWeekOneDate(Y);
+      const weekdayDt = monWeekOne.getUTCDay();
+      expect(weekdayDt, 'weekday').to.equal(1);
+
+      const thuWeekOne = new Date(monWeekOne.getTime() + 3 * 24 * 3600 * 1000);
+
+      expect(thuWeekOne.getUTCFullYear(), thuWeekOne.toISOString()).to.equal(Y);
+    });
+
+    it(`#getUTCLastWeekOfYear(${Y}) returns expected last week ${w}`, () => {
+      const week = getUTCLastWeekOfYear(Y);
       expect(week).to.equal(w);
     });
 
@@ -118,6 +164,9 @@ describe('ISO week', () => {
     ['2009-W44-1', { Y: 2009, M: 9, D: 26 }],
     ['2009-W53-7', { Y: 2010, M: 0, D: 3 }],
     ['2024-W40-4', { Y: 2024, M: 9, D: 3 }],
+    ['2024-W40-4T00:00Z', { Y: 2024, M: 9, D: 3, Z: 'Z' }],
+    ['2024-W14-2T08:06:00', { Y: 2024, M: 3, D: 2, H: 8, m: 6 }],
+    ['2024-W14-2T08:06:00+02', { Y: 2024, M: 3, D: 2, H: 8, m: 6, Z: '+', OH: 2 }],
     ['2024-W40-1T08:06:30Z', { Y: 2024, M: 8, D: 30, H: 8, m: 6, S: 30, Z: 'Z' }],
     ['2024-W40-7T08:06:00+02', { Y: 2024, M: 9, D: 6, H: 8, m: 6, Z: '+', OH: 2 }],
   ].forEach(([wd, expected]) => {
