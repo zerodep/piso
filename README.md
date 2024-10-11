@@ -192,6 +192,18 @@ import { getUTCWeekOneDate } from '@0dep/piso';
 console.log('Monday week one', getUTCWeekOneDate(2021));
 ```
 
+## `getISOWeekString([date])`
+
+Get date represented as ISO week date string.
+
+- `date`: optional date, defaults to now
+
+```javascript
+import { getISOWeekString } from '@0dep/piso';
+
+console.log(getISOWeekString(new Date(2021, 11, 28)));
+```
+
 ## `new ISOInterval(source)`
 
 Interval instance.

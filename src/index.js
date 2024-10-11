@@ -1171,6 +1171,34 @@ export function getUTCWeekOneDate(Y) {
 }
 
 /**
+ * Get date expressed as ISO week string
+ * @param {Date|number|string|undefined} [date] date, defaults to now
+ */
+export function getISOWeekString(date) {
+  const dt = new Date(date ?? Date.now());
+  const iso = dt.toISOString();
+
+  let Y = dt.getUTCFullYear();
+  const M = dt.getUTCMonth();
+  const D = dt.getUTCDate();
+  const weekday = getUTCWeekday(dt);
+
+  const doy = getOrdinalDayOfYear(Y, M, D);
+
+  let calcW = ~~((10 + doy - weekday) / 7);
+  if (calcW < 1) {
+    --Y;
+    calcW = getUTCLastWeekOfYear(Y);
+  } else if (calcW === 53 && getUTCLastWeekOfYear(Y) === 52) {
+    ++Y;
+    calcW = 1;
+  }
+
+  const paddedW = calcW < 10 ? `0${calcW}` : calcW;
+  return `${Y}-W${paddedW}-${weekday}T${iso.split('T').pop()}`;
+}
+
+/**
  * Get ISO weekday from date
  * 1 = Monday, 7 = Sunday
  * @param {Date} date
@@ -1198,4 +1226,45 @@ function isLeapYear(year) {
 function getUTCDateFromWeek(Y, W, D) {
   const daysToAdd = (W - 1) * 7 + (D - 1);
   return new Date(getUTCWeekOneDate(Y).getTime() + daysToAdd * MILLISECONDS_PER_DAY);
+}
+
+/**
+ * Get ordinal day of year (doy)
+ * @param {number} Y year
+ * @param {number} M month
+ * @param {number} D date
+ */
+function getOrdinalDayOfYear(Y, M, D) {
+  let doy = D;
+
+  switch (M - 1) {
+    case 10:
+      doy += 30;
+    case 9:
+      doy += 31;
+    case 8:
+      doy += 30;
+    case 7:
+      doy += 31;
+    case 6:
+      doy += 31;
+    case 5:
+      doy += 30;
+    case 4:
+      doy += 31;
+    case 3:
+      doy += 30;
+    case 2:
+      doy += 31;
+    case 1: {
+      doy += 28;
+      if (isLeapYear(Y)) {
+        doy += 1;
+      }
+    }
+    case 0:
+      doy += 31;
+  }
+
+  return doy;
 }

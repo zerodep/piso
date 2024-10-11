@@ -1,89 +1,114 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear, getUTCWeekOneDate } from '../src/index.js';
+import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear, getUTCWeekOneDate, getISOWeekString } from '../src/index.js';
 import { getDateFromParts } from './helpers.js';
 
 const years = createRequire(fileURLToPath(import.meta.url))('./years.json');
 const mappedYears = new Map(Object.entries(years));
+
+const TZ = process.env.TZ;
 
 describe('ISO week', () => {
   [...mappedYears.entries()].forEach(([year, { w }]) => {
     const Y = Number(year);
     const wdLast = `${year}-W${w}-1`;
     const wdFirst = `${year}-W01-1`;
-    const wdW01MidnightInTz = `${year}-W01-1T00:00:00+02`;
+    const wdW01MidnightInTz = `${year}-W01-1T00:00:00.005+02`;
     const wdW01MidnightLocal = `${year}-W01-1T00:00:00`;
     const wdW01UTC = `${year}-W01-1T11:00:00.1Z`;
 
-    it(`anno ${year} allows week ${w}`, () => {
-      expect(ISODate.parse(wdLast)).to.deep.equal({ Y, W: w, D: 1 });
-    });
+    ['Europe/Stockholm', 'America/Los_Angeles', 'Asia/Shanghai'].forEach((tz) => {
+      describe(`anno ${year} in ${tz}`, () => {
+        before(() => (process.env.TZ = tz));
+        after(() => (process.env.TZ = TZ));
 
-    it(`parses "${wdLast}" to date Monday`, () => {
-      const dt = getDate(wdLast);
-      expect(dt.getDay(), dt.toISOString()).to.equal(1);
-      expect(dt.getHours(), dt.toISOString()).to.equal(0);
-      expect(dt.getMinutes(), dt.toISOString()).to.equal(0);
-      expect(dt.getSeconds(), dt.toISOString()).to.equal(0);
-    });
+        it(`anno ${year} allows week ${w}`, () => {
+          expect(ISODate.parse(wdLast)).to.deep.equal({ Y, W: w, D: 1 });
+        });
 
-    it(`parses "${wdFirst}" to date Monday`, () => {
-      const dt = getDate(wdFirst);
-      expect(dt.getDay(), dt.toISOString()).to.equal(1);
-    });
+        it(`parses "${wdLast}" to date Monday`, () => {
+          const dt = getDate(wdLast);
+          expect(dt.getDay(), dt.toISOString()).to.equal(1);
+          expect(dt.getHours(), dt.toISOString()).to.equal(0);
+          expect(dt.getMinutes(), dt.toISOString()).to.equal(0);
+          expect(dt.getSeconds(), dt.toISOString()).to.equal(0);
+        });
 
-    it(`parses "${wdW01MidnightInTz}" with timezone to timestamp`, () => {
-      const dt = getDate(wdW01MidnightInTz);
-      const monWeekOne = getUTCWeekOneDate(year);
+        it(`parses "${wdFirst}" to date Monday`, () => {
+          const dt = getDate(wdFirst);
+          expect(dt.getDay(), dt.toISOString()).to.equal(1);
+        });
 
-      expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() - 2 * 3600 * 1000));
-    });
+        it(`parses "${wdW01MidnightInTz}" with timezone to timestamp`, () => {
+          const dt = getDate(wdW01MidnightInTz);
+          const monWeekOne = getUTCWeekOneDate(year);
 
-    it(`parses "${wdW01UTC}" to UTC timestamp`, () => {
-      const dt = getDate(wdW01UTC);
-      const monWeekOne = getUTCWeekOneDate(year);
+          expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() - 2 * 3600 * 1000 + 5));
+        });
 
-      expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + 11 * 3600 * 1000 + 100));
-    });
+        it(`parses "${wdW01UTC}" to UTC timestamp`, () => {
+          const dt = getDate(wdW01UTC);
+          const monWeekOne = getUTCWeekOneDate(year);
 
-    /** In 17th century Sweden the timezone offset is 53 and some (?) */
-    if (Y > 1899) {
-      it(`parses "${wdW01MidnightLocal}" to local timestamp`, () => {
-        const dt = getDate(wdW01MidnightLocal);
+          expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + 11 * 3600 * 1000 + 100));
+        });
 
-        expect(dt.getDay(), 'Monday').to.equal(1);
-        expect(dt.getHours(), 'hours').to.equal(0);
-        expect(dt.getMinutes(), 'minutes').to.equal(0);
-        expect(dt.getSeconds(), 'seconds').to.equal(0);
+        /** In 17th century Sweden the timezone offset is 53 minutes and some (?) */
+        /** In 18th century China the timezone offset off as well (?) */
+        if (Y > 1999) {
+          it(`parses "${wdW01MidnightLocal}" to local timestamp`, () => {
+            const dt = getDate(wdW01MidnightLocal);
 
-        const monWeekOne = getUTCWeekOneDate(year);
-        expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + dt.getTimezoneOffset() * 60000));
+            expect(dt.getDay(), 'Monday').to.equal(1);
+            expect(dt.getHours(), 'hours').to.equal(0);
+            expect(dt.getMinutes(), 'minutes').to.equal(0);
+            expect(dt.getSeconds(), 'seconds').to.equal(0);
+
+            const monWeekOne = getUTCWeekOneDate(year);
+            expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + dt.getTimezoneOffset() * 60000));
+          });
+        }
+
+        it(`#getUTCWeekOneDate(${Y}) returns Monday week one date`, () => {
+          const monWeekOne = getUTCWeekOneDate(Y);
+          const weekdayDt = monWeekOne.getUTCDay();
+          expect(weekdayDt, 'weekday').to.equal(1);
+
+          const thuWeekOne = new Date(monWeekOne.getTime() + 3 * 24 * 3600 * 1000);
+
+          expect(thuWeekOne.getUTCFullYear(), thuWeekOne.toISOString()).to.equal(Y);
+        });
+
+        it(`#getUTCLastWeekOfYear(${Y}) returns expected last week ${w}`, () => {
+          const week = getUTCLastWeekOfYear(Y);
+          expect(week).to.equal(w);
+        });
+
+        [`${year}-W14-2T12:01:30.005Z`, `${year}-W02-3`, `${year}-W04-1`, wdLast, wdFirst].forEach((wd) => {
+          it(`#getISOWeekDate returns date as ISO week date ~ ${wd}`, () => {
+            const isoDate = new ISODate(wd);
+            const dt = isoDate.toDate();
+            const isow = getISOWeekString(dt);
+            expect(isow).to.match(/^\d{4}-W\d+-\dT/);
+            expect(getDate(isow), isow).to.deep.equal(dt);
+          });
+        });
+
+        it(`#getISOWeekDate UTC 28th of December returns week ${w}`, () => {
+          const dt = new Date(`${year}-12-28T00:00:00Z`);
+          expect(getISOWeekString(dt)).to.include(`-W${w}-`);
+        });
+
+        if (w === 52) {
+          it(`anno ${year} throws if week is ${w + 1}`, () => {
+            expect(() => {
+              ISODate.parse(`${year}-W${w + 1}-1`);
+            }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 week date/i);
+          });
+        }
       });
-    }
-
-    it(`#getUTCWeekOneDate(${Y}) returns Monday week one date`, () => {
-      const monWeekOne = getUTCWeekOneDate(Y);
-      const weekdayDt = monWeekOne.getUTCDay();
-      expect(weekdayDt, 'weekday').to.equal(1);
-
-      const thuWeekOne = new Date(monWeekOne.getTime() + 3 * 24 * 3600 * 1000);
-
-      expect(thuWeekOne.getUTCFullYear(), thuWeekOne.toISOString()).to.equal(Y);
     });
-
-    it(`#getUTCLastWeekOfYear(${Y}) returns expected last week ${w}`, () => {
-      const week = getUTCLastWeekOfYear(Y);
-      expect(week).to.equal(w);
-    });
-
-    if (w === 52) {
-      it(`anno ${year} throws if week is ${w + 1}`, () => {
-        expect(() => {
-          ISODate.parse(`${year}-W${w + 1}-1`);
-        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 week date/i);
-      });
-    }
   });
 
   ['2008-W53-1', '2008-W53', '2008W53', '2009-W54-1', '2020-W59-1', '2020-W53-8', '2020-W53-0'].forEach((wd) => {
@@ -226,6 +251,20 @@ describe('ISO week', () => {
       it(`partial end date with invalid weekday throws unexpected RangeError`, () => {
         expect(() => parseInterval(interval)).to.throw(RangeError, /unexpected/i);
       });
+    });
+  });
+
+  describe('#getISOWeekString', () => {
+    it('returns week number of Saturday 5th November 2016 (leap year)', () => {
+      expect(getISOWeekString(new Date(Date.UTC(2016, 10, 5)))).to.equal('2016-W44-6T00:00:00.000Z');
+    });
+
+    it('returns previous year if local date is passed - 2016-01-01', () => {
+      expect(getISOWeekString(new Date(2016, 0, 1))).to.match(/^2015-W53-[45]/);
+    });
+
+    it('returns week now undefined is passed', () => {
+      expect(getISOWeekString()).to.match(/^\d+-W\d\d-\dT/);
     });
   });
 });

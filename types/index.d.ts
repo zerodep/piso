@@ -279,6 +279,11 @@ declare module '@0dep/piso' {
 	 * @param Y UTC full year
 	 */
 	export function getUTCWeekOneDate(Y: number): Date;
+	/**
+	 * Get date expressed as ISO week string
+	 * @param date date, defaults to now
+	 */
+	export function getISOWeekString(date?: Date | number | string | undefined): string;
 	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
