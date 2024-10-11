@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - fix jump leap year every 400 years, heard about it but lacked personal experience
 - expose function to get last week of year
 - expose function to get date for Monday week one
+- expose function to generate ISO week date string from date
 
 ## [2.0.2] - 2024-09-08
 
