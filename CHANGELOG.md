@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [2.1.0] - 2024-10-09
 
 - support week in date and interval, e.g. `2024-W41-3T06:40+02/W42-7`
-- fix jump leap year every 400 years, heard about it but lacked personal experience
+- fix jump century leap year except every 400 years
 - expose function to get last week of year
 - expose function to get date for Monday week one
 - expose function to generate ISO week date string from date
