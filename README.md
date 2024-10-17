@@ -198,7 +198,7 @@ console.log('Monday week one', getUTCWeekOneDate(2021));
 
 ## `getISOWeekString([date])`
 
-Get date represented as ISO week date string.
+Get ISO week date string from date.
 
 - `date`: optional date, defaults to now
 
@@ -210,7 +210,7 @@ console.log(getISOWeekString(new Date(2021, 11, 28)));
 
 ## `getUTCWeekNumber([date])`
 
-Get date represented as ISO week date string.
+Get weeknumber from date.
 
 - `date`: optional date, defaults to now
 
