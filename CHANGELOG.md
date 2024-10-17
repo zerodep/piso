@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.0] - 2024-10-17
+
+- expose function to get week number from date
+
 ## [2.1.0] - 2024-10-09
 
 - support week in date and interval, e.g. `2024-W41-3T06:40+02/W42-7`

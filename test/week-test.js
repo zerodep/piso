@@ -1,7 +1,15 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear, getUTCWeekOneDate, getISOWeekString } from '../src/index.js';
+import {
+  ISODate,
+  getDate,
+  parseInterval,
+  getUTCLastWeekOfYear,
+  getUTCWeekOneDate,
+  getISOWeekString,
+  getUTCWeekNumber,
+} from '../src/index.js';
 import { getDateFromParts } from './helpers.js';
 
 const years = createRequire(fileURLToPath(import.meta.url))('./years.json');
@@ -263,8 +271,38 @@ describe('ISO week', () => {
       expect(getISOWeekString(new Date(2016, 0, 1))).to.match(/^2015-W53-[45]/);
     });
 
-    it('returns week now undefined is passed', () => {
+    it('returns week of now if called without date arg', () => {
       expect(getISOWeekString()).to.match(/^\d+-W\d\d-\dT/);
+    });
+
+    it('returns Thursday first week 1970 if 0 is passed', () => {
+      expect(getISOWeekString(0)).to.equal('1970-W01-4T00:00:00.000Z');
+    });
+  });
+
+  describe('#getUTCWeekNumber', () => {
+    it('returns week number of Saturday 5th November 2016 (leap year)', () => {
+      expect(getUTCWeekNumber(new Date(Date.UTC(2016, 10, 5)))).to.deep.equal({ Y: 2016, W: 44, weekday: 6 });
+    });
+
+    it('returns previous year if local date is passed - 2016-01-01', () => {
+      const weekLocal = getUTCWeekNumber(new Date(2016, 0, 1));
+      expect(weekLocal).to.have.property('Y', 2015);
+      expect(weekLocal).to.have.property('W', 53);
+      expect(weekLocal).to.have.property('weekday').that.is.within(4, 5);
+    });
+
+    it('returns week number of now if called without date arg', () => {
+      const weekNow = getUTCWeekNumber();
+      expect(weekNow)
+        .to.have.property('Y')
+        .that.is.above(new Date().getUTCFullYear() - 1);
+      expect(weekNow).to.have.property('W').that.is.within(1, 53);
+      expect(weekNow).to.have.property('weekday').that.is.within(1, 7);
+    });
+
+    it('returns Thursday first week 1970 if 0 is passed', () => {
+      expect(getUTCWeekNumber(0)).to.deep.equal({ Y: 1970, W: 1, weekday: 4 });
     });
   });
 });

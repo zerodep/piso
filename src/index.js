@@ -1171,30 +1171,43 @@ export function getUTCWeekOneDate(Y) {
 }
 
 /**
- * Get date expressed as ISO week string
- * @param {Date|number|string|undefined} [date] date, defaults to now
+ * Get UTC week from date
+ * @param {Date|number|string} [date]
+ * @returns {import('types').ISOWeekParts}
  */
-export function getISOWeekString(date) {
+export function getUTCWeekNumber(date) {
   const dt = new Date(date ?? Date.now());
-  const iso = dt.toISOString();
 
   let Y = dt.getUTCFullYear();
   const M = dt.getUTCMonth();
   const D = dt.getUTCDate();
+
   const weekday = getUTCWeekday(dt);
 
   const doy = getOrdinalDayOfYear(Y, M, D);
 
-  let calcW = ~~((10 + doy - weekday) / 7);
-  if (calcW < 1) {
+  let W = ~~((10 + doy - weekday) / 7);
+  if (W < 1) {
     --Y;
-    calcW = getUTCLastWeekOfYear(Y);
-  } else if (calcW === 53 && getUTCLastWeekOfYear(Y) === 52) {
+    W = getUTCLastWeekOfYear(Y);
+  } else if (W === 53 && getUTCLastWeekOfYear(Y) === 52) {
     ++Y;
-    calcW = 1;
+    W = 1;
   }
 
-  const paddedW = calcW < 10 ? `0${calcW}` : calcW;
+  return { Y, W, weekday };
+}
+
+/**
+ * Get date expressed as ISO week string
+ * @param {Date|number|string} [date]
+ */
+export function getISOWeekString(date) {
+  const dt = new Date(date ?? Date.now());
+  const { Y, W, weekday } = getUTCWeekNumber(dt);
+  const iso = dt.toISOString();
+
+  const paddedW = W < 10 ? `0${W}` : W;
   return `${Y}-W${paddedW}-${weekday}T${iso.split('T').pop()}`;
 }
 
@@ -1202,6 +1215,7 @@ export function getISOWeekString(date) {
  * Get ISO weekday from date
  * 1 = Monday, 7 = Sunday
  * @param {Date} date
+ * @returns {import('types').ISOWeekday}
  */
 function getUTCWeekday(date) {
   const weekday = date.getUTCDay();
@@ -1229,10 +1243,10 @@ function getUTCDateFromWeek(Y, W, D) {
 }
 
 /**
- * Get ordinal day of year (doy)
+ * Get ordinal days, count number of days until date
  * @param {number} Y year
- * @param {number} M month
- * @param {number} D date
+ * @param {number} M javascript month, 0 = January
+ * @param {number} D day of month
  */
 function getOrdinalDayOfYear(Y, M, D) {
   let doy = D;

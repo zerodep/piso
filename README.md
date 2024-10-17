@@ -13,6 +13,10 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
   - [`parseInterval(iso8601Interval)`](#parseintervaliso8601interval)
   - [`parseDuration(iso8601Duration)`](#parsedurationiso8601duration)
   - [`getDate(iso8601Date)`](#getdateiso8601date)
+  - [`getISOWeekString([date])`](#getisoweekstringdate)
+  - [`getUTCWeekNumber([date])`](#getutcweeknumberdate)
+  - [`getUTCLastWeekOfYear(Y)`](#getutclastweekofyeary)
+  - [`getUTCWeekOneDate(Y)`](#getutcweekonedatey)
 
 # Api
 
@@ -202,6 +206,24 @@ Get date represented as ISO week date string.
 import { getISOWeekString } from '@0dep/piso';
 
 console.log(getISOWeekString(new Date(2021, 11, 28)));
+```
+
+## `getUTCWeekNumber([date])`
+
+Get date represented as ISO week date string.
+
+- `date`: optional date, defaults to now
+
+Returns:
+
+- `Y`: full year representation of week date
+- `W`: week number
+- `weekday`: weekday, 1 = Monday .. 7 = Sunday
+
+```javascript
+import { getUTCWeekNumber } from '@0dep/piso';
+
+console.log(getUTCWeekNumber(new Date(2016, 0, 1)));
 ```
 
 ## `new ISOInterval(source)`

@@ -280,10 +280,14 @@ declare module '@0dep/piso' {
 	 */
 	export function getUTCWeekOneDate(Y: number): Date;
 	/**
+	 * Get UTC week from date
+	 * */
+	export function getUTCWeekNumber(date?: Date | number | string): ISOWeekParts;
+	/**
 	 * Get date expressed as ISO week string
-	 * @param date date, defaults to now
+	 * 
 	 */
-	export function getISOWeekString(date?: Date | number | string | undefined): string;
+	export function getISOWeekString(date?: Date | number | string): string;
 	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Year designator that follows the value for the number of calendar years. */
@@ -292,7 +296,7 @@ declare module '@0dep/piso' {
 	M: number;
 	/** Week designator that follows the value for the number of weeks */
 	W: number;
-	/** Day designator that follows the value for the number of calendar days */
+	/** Day designator that follows the value for the number of calendar days, or weekday if week designator is used */
 	D: number;
 	/** Hour designator that follows the value for the number of hours */
 	H: number;
@@ -313,6 +317,25 @@ declare module '@0dep/piso' {
 	Om?: number;
 	/** Seconds offset as of ISO 8601-2:2019 */
 	OS?: number;
+  }
+
+  enum ISOWeekday {
+	Monday = 1,
+	Tuesday = 2,
+	Wednesday = 3,
+	Thursday = 4,
+	Friday = 5,
+	Saturday = 6,
+	Sunday = 7,
+  }
+
+  interface ISOWeekParts {
+	/** Year */
+	Y: number;
+	/** Weeknumber */
+	W: number;
+	/** ISO weekday */
+	weekday: ISOWeekday;
   }
 
   enum ISOIntervalType {
