@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.1] - 2024-11-03
+
+- support unicode minus (−, u2212) as offset specification, hyphen is the exception if you read the spec
+
 ## [2.2.0] - 2024-10-17
 
 - expose function to get week number from date

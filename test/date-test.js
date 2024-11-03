@@ -42,6 +42,7 @@ describe('ISO date', () => {
     ['2024-02-03T08:06:30-02:30', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2, Om: 30 }],
     ['2024-02-03T08:06:30-0230', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2, Om: 30 }],
     ['2024-02-03T08:06:30-02', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '-', OH: 2 }],
+    ['2024-02-03T08:06:30−02', { Y: 2024, M: 1, D: 3, H: 8, m: 6, S: 30, Z: '\u2212', OH: 2 }],
     ['2025-01-01T12:00:42.01-02:00', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '-', OH: 2, Om: 0 }],
     ['2025-01-01T12:00:42.01+02:30', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '+', OH: 2, Om: 30 }],
     ['2025-01-01T12:00:42.01+02:30:30', { Y: 2025, M: 0, D: 1, H: 12, m: 0, S: 42, F: 10, Z: '+', OH: 2, Om: 30, OS: 30 }],
@@ -60,7 +61,6 @@ describe('ISO date', () => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal(expected);
     });
-
     it(`getDate("${dt}") is parsed as expected`, () => {
       expect(getDate(dt).getFullYear()).to.equal(expected.Y);
     });
@@ -92,7 +92,7 @@ describe('ISO date', () => {
     expect(getDate(ms)).to.deep.equal(new Date(ms));
   });
 
-  it('getDate(number) returns cloned date', () => {
+  it('getDate(new Date()) returns cloned date', () => {
     const dt = new Date(0);
 
     expect(getDate(dt)).to.deep.equal(new Date(0));

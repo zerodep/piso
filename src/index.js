@@ -8,7 +8,8 @@ const ISODURATION_TIME_DESIGNATORS = 'HMS';
 const ISOINTERVAL_DURATION = 'P';
 const ISOINTERVAL_REPEAT = 'R';
 const ISOINTERVAL_SEPARATOR = '/';
-const ISOTIME_OFFSET = '+-' + ISO_ZULU;
+const UNICODE_MINUS = '\u2212';
+const ISOTIME_OFFSET = '+-' + UNICODE_MINUS + ISO_ZULU;
 const ISOTIME_SEPARATOR = ':';
 const ISOTIME_STARTHOUR = '012';
 const ISOTIME_STARTPART = '012345';
@@ -323,25 +324,29 @@ ISODate.prototype.toDate = function toDate() {
   if ('S' in result) args.push(result.S);
   if ('F' in result) args.push(Math.round(result.F));
 
-  if (result.Z === 'Z') {
-    /** @ts-ignore */
-    return new Date(Date.UTC(...args));
-  } else if (result.Z === '-') {
-    if (result.OH) args[3] += result.OH;
-    if (result.Om) args[4] += result.Om;
-    if (result.OS) args[5] = (args[5] ?? 0) + result.OS;
-    /** @ts-ignore */
-    return new Date(Date.UTC(...args));
-  } else if (result.Z === '+') {
-    if (result.OH) args[3] -= result.OH;
-    if (result.Om) args[4] -= result.Om;
-    if (result.OS) args[5] = (args[5] ?? 0) - result.OS;
-    /** @ts-ignore */
-    return new Date(Date.UTC(...args));
+  switch (result.Z) {
+    case ISO_ZULU:
+      /** @ts-ignore */
+      return new Date(Date.UTC(...args));
+    case '-':
+    case UNICODE_MINUS: {
+      if (result.OH) args[3] += result.OH;
+      if (result.Om) args[4] += result.Om;
+      if (result.OS) args[5] = (args[5] ?? 0) + result.OS;
+      /** @ts-ignore */
+      return new Date(Date.UTC(...args));
+    }
+    case '+': {
+      if (result.OH) args[3] -= result.OH;
+      if (result.Om) args[4] -= result.Om;
+      if (result.OS) args[5] = (args[5] ?? 0) - result.OS;
+      /** @ts-ignore */
+      return new Date(Date.UTC(...args));
+    }
+    default:
+      /** @ts-ignore */
+      return new Date(...args);
   }
-
-  /** @ts-ignore */
-  return new Date(...args);
 };
 
 /**
@@ -956,6 +961,7 @@ ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, r
 
 /**
  * Get date designator getter and setter;
+ * @internal
  * @param {string} designator
  * @param {boolean} useUtc
  */

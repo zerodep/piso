@@ -327,7 +327,7 @@ ISO date instance.
   - `m`: minutes
   - `S`: seconds
   - `F`: milliseconds
-  - `Z`: Z, +, or -
+  - `Z`: Z, +, −, or -
   - `OH`: offset hours
   - `Om`: offset minutes
   - `OS`: offset seconds
