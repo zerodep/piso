@@ -1223,4 +1223,11 @@ describe('ISO 8601 interval', () => {
       expect(new ISOInterval('P1Y2M10DT2H30M/2007-03-01T13:00:00').endDate).to.be.null;
     });
   });
+
+  [['2007-03-01T13:00:00Z/P1Y2M10DT2H30M', '2007-03-01T13:00:00Z/P1Y2M10DT2H30M']].forEach(([interval, iso]) => {
+    it(interval + 'toJSON and toISOString returns normalized interval string', () => {
+      expect(new ISOInterval(interval).toISOString(), interval).to.equal(iso);
+      expect(new ISOInterval(interval).toJSON(), interval).to.equal(iso);
+    });
+  });
 });

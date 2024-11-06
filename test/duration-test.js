@@ -62,7 +62,7 @@ describe('duration', () => {
     });
   });
 
-  describe('parse', () => {
+  describe('ISODuration.parse', () => {
     [
       ['P1Y', { Y: 1 }],
       ['PT0S', { S: 0 }],
@@ -75,10 +75,19 @@ describe('duration', () => {
     });
   });
 
+  describe('constructor', () => {
+    it('throws type error if duration is not a string', () => {
+      expect(() => new ISODuration()).to.throw(TypeError, /must be a string/i);
+      expect(() => new ISODuration(1)).to.throw(TypeError, /must be a string/i);
+      expect(() => new ISODuration(null)).to.throw(TypeError, /must be a string/i);
+      expect(() => new ISODuration({})).to.throw(TypeError, /must be a string/i);
+    });
+  });
+
   describe('write(c)', () => {
     it('ends parsing when falsy character appear', () => {
       const dur = 'PT0.1S';
-      const writer = new ISODuration();
+      const writer = new ISODuration(dur);
       for (let i = 0; i <= dur.length; i++) {
         writer.write(dur[i], i);
       }
@@ -271,6 +280,23 @@ describe('duration', () => {
         expect(() => {
           ISODuration.parse(dur);
         }, dur).to.throw(expected);
+      });
+    });
+
+    describe.skip('designator fractions', () => {
+      [
+        'P1.1234567812345678Y',
+        'P1.1234567812345678M',
+        'P1.1234567812345678D',
+        'PT1.1234567812345678H',
+        'PT1.1234567812345678M',
+        'PT1.1234567812345678S',
+      ].forEach((dur) => {
+        it(`invalid length fractions "${dur}" throws`, () => {
+          expect(() => {
+            ISODuration.parse(dur);
+          }, dur).to.throw(RangeError, /unexpected/i);
+        });
       });
     });
   });

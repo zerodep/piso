@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [2.2.1] - 2024-11-03
+## [2.2.1] - 2024-11-04
 
 - support unicode minus (−, u2212) as offset specification, hyphen is the exception if you read the spec
+- add ISODate toJSON function
+- disallow more than 17 fractions of a second
 
 ## [2.2.0] - 2024-10-17
 

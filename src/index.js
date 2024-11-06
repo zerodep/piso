@@ -372,6 +372,26 @@ ISODate.prototype.parse = function parseISODate() {
 };
 
 /**
+ * Get ISO date as string
+ * @returns date as JSON string
+ */
+ISODate.prototype.toISOString = function isoDateToISOString() {
+  return this.toDate().toISOString();
+};
+
+/**
+ * Get ISO date as JSON
+ * @returns {string|null} date as JSON string
+ */
+ISODate.prototype.toJSON = function isoDateToJSON() {
+  try {
+    return this.toDate().toJSON();
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Parse ISO 8601 date string
  * @param {string} source ISO 8601 duration
  * @param {number?} [offset] source column offset
@@ -604,6 +624,7 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useS
       if (!c || NUMBERS.indexOf(c) === -1) break;
       if (value.length === 3) value += '.';
       value += c;
+      if (value.length > 18) throw this.createUnexpectedError();
     }
     if (value.length < 3) value = (value + '000').slice(0, 3);
     this.result.F = Number(value);
@@ -693,11 +714,14 @@ ISODate.prototype.createUnexpectedError = function createUnexpectedError() {
 };
 
 /**
- *
+ * ISO 8601 duration parser
  * @param {string} source
  * @param {number} [offset]
  */
 export function ISODuration(source, offset = 0) {
+  if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
+  if (source[offset] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(source[offset], offset);
+
   this.source = source;
   this.idx = offset;
   this.c = '';
@@ -727,7 +751,6 @@ ISODuration.parse = function parseDuration(source, offset = 0) {
 };
 
 ISODuration.prototype.parse = function parseDuration() {
-  if (this.source[this.idx] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(this.source[0], 0);
   for (const c of this.source.slice(this.idx)) {
     if (c === '/') break;
     this.c = c;

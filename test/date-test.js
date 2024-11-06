@@ -70,6 +70,23 @@ describe('ISO date', () => {
 
       expect(parser.toDate()).to.deep.equal(getDateFromParts(expected));
     });
+
+    it(`new ISODate("${dt}").toJSON() returns parsed date to JSON`, () => {
+      expect(new ISODate(dt).toJSON()).to.equal(getDateFromParts(expected).toJSON());
+    });
+  });
+
+  it('toJSON() only parses once before returning JSON string', () => {
+    const parser = new ISODate('2025-01-01T24:00:00+01').parse();
+    expect(parser.toJSON()).to.equal('2025-01-01T23:00:00.000Z');
+  });
+
+  it('toJSON() returns null if invalid', () => {
+    expect(new ISODate('a').toJSON()).to.equal(null);
+  });
+
+  it('toISOString() throws if invalid', () => {
+    expect(() => new ISODate('a').toISOString()).to.throw(RangeError);
   });
 
   it('getDate(new Date()) returns cloned date', () => {
@@ -242,6 +259,17 @@ describe('ISO date', () => {
 
     dateString = '2007-04-05T12:30+02:00:30';
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:29:30Z'));
+  });
+
+  it('allows 17 fractions before throwing', () => {
+    let dateString = '2007-04-05T12:30:01.12345678901234567+01';
+    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T11:30:01.123Z'));
+
+    dateString = '2007-04-05T12:30:30.123456789012345678-02';
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
+
+    dateString = '2007-04-05T12:30:02.1234' + Array(1000).fill(1).join('') + '+02';
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
   });
 
   describe('leap years', () => {
