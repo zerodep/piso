@@ -43,6 +43,8 @@ declare module '@0dep/piso' {
 		 * @param endDate optional end date, defaults to now
 		 */
 		getStartAt(compareDate?: Date, endDate?: Date): Date;
+		toJSON(): string;
+		toISOString(): string;
 		consumeRepeat(): string;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
@@ -89,6 +91,16 @@ declare module '@0dep/piso' {
 		 * */
 		parse(): ISODate;
 		/**
+		 * Get ISO date as string
+		 * @returns date as JSON string
+		 */
+		toISOString(): string;
+		/**
+		 * Get ISO date as JSON
+		 * @returns date as JSON string
+		 */
+		toJSON(): string | null;
+		/**
 		 * Parse partial relative date
 		 * @param Y Year if year is not defined
 		 * @param M JavaScript month if month is not defined
@@ -96,6 +108,14 @@ declare module '@0dep/piso' {
 		 * @param W Weeknumber
 		 * */
 		parsePartialDate(Y: number, M: number, D?: number, W?: number): ISODate;
+		/**
+		 * Parse relative date
+		 * @param Y Year if year is not defined
+		 * @param M JavaScript month if month is not defined
+		 * @param D Date if date is not defined
+		 * @param W Weeknumber
+		 * */
+		_parseRelativeDate(Y: number, M: number, D?: number, W?: number): ISODate;
 		/**
 		 * Consume as ISO date
 		 * @param Y year
@@ -140,10 +160,16 @@ declare module '@0dep/piso' {
 		 */
 		function parse(source: string, offset?: number | null): Partial<ISODateParts>;
 	}
-
+	/**
+	 * ISO 8601 duration parser
+	 * 
+	 */
 	export function ISODuration(source: string, offset?: number): void;
 	export class ISODuration {
-		
+		/**
+		 * ISO 8601 duration parser
+		 * 
+		 */
 		constructor(source: string, offset?: number);
 		source: string;
 		idx: number;
@@ -161,6 +187,8 @@ declare module '@0dep/piso' {
 		result: Partial<ISOParts>;
 		isDateIndifferent: boolean;
 		parse(): this;
+		toISOString(): string;
+		toJSON(): string;
 		/**
 		 * Write
 		 * @param c ISO 8601 character
@@ -231,6 +259,8 @@ declare module '@0dep/piso' {
 		 * Get date designator getter and setter;
 		 * */
 		_getDateFns(designator: string, useUtc: boolean): any;
+		
+		[kIsParsed]: boolean;
 	}
 	export namespace ISODuration {
 		/**
@@ -290,6 +320,7 @@ declare module '@0dep/piso' {
 	export function getISOWeekString(date?: Date | number | string): string;
 	const kIsParsed: unique symbol;
   interface ISOParts {
+	isValid?: boolean;
 	/** Year designator that follows the value for the number of calendar years. */
 	Y: number;
 	/** Month designator that follows the value for the number of calendar months */

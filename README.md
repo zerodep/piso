@@ -29,7 +29,7 @@ Parse interval from an ISO 8601 interval string.
 Returns [ISOInterval](#new-isointervalsource).
 
 ```javascript
-import { parseInterval } from '@0dep/piso';
+import { parseInterval, ISOInterval } from '@0dep/piso';
 
 const viableIntervals = [
   '2007-03-01/2007-04-01',
@@ -42,7 +42,7 @@ const viableIntervals = [
 ];
 
 for (const i of viableIntervals) {
-  console.log({ [i]: parseInterval(i).getExpireAt() });
+  console.log({ [i]: parseInterval(i).getExpireAt(), asJson: new ISOInterval(i).toJSON() });
 }
 ```
 
@@ -99,7 +99,7 @@ Get Date from an ISO 8601 date time string.
 Returns date.
 
 ```javascript
-import { getDate } from '@0dep/piso';
+import { getDate, ISODate } from '@0dep/piso';
 
 const viableDates = [
   '2024-01-27',
@@ -142,7 +142,7 @@ const viableDates = [
 ];
 
 for (const d of viableDates) {
-  console.log({ [d]: getDate(d) });
+  console.log({ [d]: getDate(d), asJson: new ISODate(d).toJSON() });
 }
 
 try {
@@ -417,4 +417,4 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 # Benchmarking
 
-Seems to run 3 times more efficient than RegExp implementations. But date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO it should be a local date.
+Seems to run 3 times more efficient than RegExp implementations. But date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.

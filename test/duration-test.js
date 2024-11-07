@@ -62,6 +62,13 @@ describe('duration', () => {
     });
   });
 
+  describe('parse', () => {
+    it('parse on parse returns equal resule', () => {
+      const dur = new ISODuration('PT1M').parse();
+      expect(dur.parse().result).to.equal(dur.result);
+    });
+  });
+
   describe('ISODuration.parse', () => {
     [
       ['P1Y', { Y: 1 }],
@@ -70,17 +77,15 @@ describe('duration', () => {
       ['P1Y2M3W4DT5H6M7S', { Y: 1, M: 2, W: 3, D: 4, H: 5, m: 6, S: 7 }],
     ].forEach(([dur, expected]) => {
       it(`"${dur}" is parsed as expected`, () => {
-        expect(ISODuration.parse(dur)).to.deep.equal(expected);
+        expect(ISODuration.parse(dur)).to.deep.equal({ ...expected, isValid: true });
       });
     });
-  });
 
-  describe('constructor', () => {
     it('throws type error if duration is not a string', () => {
-      expect(() => new ISODuration()).to.throw(TypeError, /must be a string/i);
-      expect(() => new ISODuration(1)).to.throw(TypeError, /must be a string/i);
-      expect(() => new ISODuration(null)).to.throw(TypeError, /must be a string/i);
-      expect(() => new ISODuration({})).to.throw(TypeError, /must be a string/i);
+      expect(() => ISODuration.parse()).to.throw(TypeError, /must be a string/i);
+      expect(() => ISODuration.parse(1)).to.throw(TypeError, /must be a string/i);
+      expect(() => ISODuration.parse(null)).to.throw(TypeError, /must be a string/i);
+      expect(() => ISODuration.parse({})).to.throw(TypeError, /must be a string/i);
     });
   });
 
@@ -276,10 +281,25 @@ describe('duration', () => {
       ['P', /EOL/i],
       ['R/', /unexpected/i],
     ].forEach(([dur, expected]) => {
-      it(`invalid "${dur}" throws`, () => {
+      it(`parse invalid "${dur}" throws`, () => {
         expect(() => {
           ISODuration.parse(dur);
         }, dur).to.throw(expected);
+      });
+
+      it(`toISOString of invalid "${dur}" throws`, () => {
+        expect(() => new ISODuration(dur).toISOString()).to.throw(RangeError);
+      });
+
+      it(`toJSON of invalid  returns null`, () => {
+        expect(new ISODuration(dur).toJSON()).to.be.null;
+      });
+
+      it(`doubling up invalid duration "${dur}" toJSON still returns null`, () => {
+        const duration = new ISODuration(dur);
+
+        expect(duration.toJSON()).to.be.null;
+        expect(duration.toJSON()).to.be.null;
       });
     });
 

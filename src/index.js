@@ -192,6 +192,43 @@ ISOInterval.prototype.getStartAt = function getStartAt(compareDate, endDate) {
   return duration.getStartAt(expireAt);
 };
 
+ISOInterval.prototype.toJSON = function intervalToJSON() {
+  try {
+    return this.toISOString();
+  } catch {
+    return null;
+  }
+};
+
+ISOInterval.prototype.toISOString = function intervalToISOString() {
+  if (!this[kIsParsed]) this.parse();
+
+  const type = this.type;
+  const repetitions = (type & 1) === 1;
+  const hasDuration = (type & 4) === 4;
+  const hasStartDate = (type & 2) === 2;
+  const hasEndDate = (type & 8) === 8;
+
+  const isoString = [];
+  if (repetitions) {
+    isoString.push('R' + this.repeat);
+  }
+
+  if (hasStartDate) {
+    isoString.push(this.start.toISOString());
+  }
+
+  if (hasDuration) {
+    isoString.push(this.duration.toISOString());
+  }
+
+  if (hasEndDate) {
+    isoString.push(this.end.toISOString());
+  }
+
+  return isoString.join('/');
+};
+
 ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   /** @type { string | undefined } */
   let c = this.read();
@@ -368,7 +405,11 @@ ISODate.prototype.parse = function parseISODate() {
     this.enforceSeparators = true;
   }
 
-  return this.continueDatePrecision(Y);
+  this.continueDatePrecision(Y);
+
+  this.result.isValid = true;
+
+  return this;
 };
 
 /**
@@ -409,6 +450,21 @@ ISODate.parse = function parseISODate(source, offset) {
  * @returns {ISODate}
  */
 ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
+  this._parseRelativeDate(Y, M, D, W);
+  this.result.isValid = true;
+  return this;
+};
+
+/**
+ * Parse relative date
+ * @internal
+ * @param {number} Y Year if year is not defined
+ * @param {number} M JavaScript month if month is not defined
+ * @param {number} [D] Date if date is not defined
+ * @param {number} [W] Weeknumber
+ * @returns {ISODate}
+ */
+ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
   if (this[kIsParsed]) return this;
   this[kIsParsed] = true;
 
@@ -719,9 +775,6 @@ ISODate.prototype.createUnexpectedError = function createUnexpectedError() {
  * @param {number} [offset]
  */
 export function ISODuration(source, offset = 0) {
-  if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
-  if (source[offset] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(source[offset], offset);
-
   this.source = source;
   this.idx = offset;
   this.c = '';
@@ -737,6 +790,8 @@ export function ISODuration(source, offset = 0) {
   /** @type {Partial<import('types').ISOParts>} */
   this.result = {};
   this.isDateIndifferent = true;
+  /** @internal */
+  this[kIsParsed] = false;
 }
 
 /**
@@ -751,13 +806,65 @@ ISODuration.parse = function parseDuration(source, offset = 0) {
 };
 
 ISODuration.prototype.parse = function parseDuration() {
-  for (const c of this.source.slice(this.idx)) {
+  if (this[kIsParsed]) return this;
+
+  const source = this.source;
+  const offset = this.idx;
+  if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
+  if (source[offset] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(source[offset], offset);
+
+  for (const c of source.slice(offset)) {
     if (c === '/') break;
     this.c = c;
     this.write(c, this.idx++);
   }
   this.end(this.idx);
+
+  this.result.isValid = true;
+  this[kIsParsed] = true;
+
   return this;
+};
+
+ISODuration.prototype.toISOString = function durationToISOString() {
+  if (!this[kIsParsed]) this.parse();
+
+  const result = this.result;
+
+  let isoString = 'P';
+  for (const designator of ISODURATION_DATE_DESIGNATORS) {
+    // @ts-ignore
+    const v = result[designator];
+    if (v) {
+      isoString += v.toString() + designator;
+    }
+  }
+
+  let time = 'T';
+  for (const designator of ISODURATION_TIME_DESIGNATORS) {
+    if (designator === 'M') {
+      // eslint-disable-next-line no-var
+      var v = result.m;
+    } else {
+      // @ts-ignore
+      v = result[designator];
+    }
+    if (v) {
+      time += v.toString() + designator;
+    }
+  }
+
+  if (time[1]) isoString += time;
+
+  return isoString;
+};
+
+ISODuration.prototype.toJSON = function durationToJSON() {
+  try {
+    return this.toISOString();
+  } catch {
+    return null;
+  }
 };
 
 /**

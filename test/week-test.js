@@ -32,7 +32,7 @@ describe('ISO week', () => {
         after(() => (process.env.TZ = TZ));
 
         it(`anno ${year} allows week ${w}`, () => {
-          expect(ISODate.parse(wdLast)).to.deep.equal({ Y, W: w, D: 1 });
+          expect(ISODate.parse(wdLast)).to.deep.equal({ Y, W: w, D: 1, isValid: true });
         });
 
         it(`parses "${wdLast}" to date Monday`, () => {
@@ -154,7 +154,7 @@ describe('ISO week', () => {
     ['2009-W53-7T08:06:30.001', { Y: 2009, W: 53, D: 7, H: 8, m: 6, S: 30, F: 1 }],
   ].forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
-      expect(ISODate.parse(dt)).to.deep.equal(expected);
+      expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
     });
   });
 

@@ -59,7 +59,7 @@ describe('ISO date', () => {
     ['20240127T120001,001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1, F: 1 }],
   ].forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
-      expect(ISODate.parse(dt)).to.deep.equal(expected);
+      expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
     });
     it(`getDate("${dt}") is parsed as expected`, () => {
       expect(getDate(dt).getFullYear()).to.equal(expected.Y);
@@ -130,8 +130,8 @@ describe('ISO date', () => {
   });
 
   it('enforce separators forces separators to be used', () => {
-    expect(new ISODate('20070101', undefined, undefined, false).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1 });
-    expect(new ISODate('2007-01-01', undefined, undefined, true).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1 });
+    expect(new ISODate('20070101', undefined, undefined, false).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
+    expect(new ISODate('2007-01-01', undefined, undefined, true).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
 
     expect(() => {
       new ISODate('20070101', undefined, undefined, true).parse();

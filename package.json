@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -37,7 +37,9 @@
     "to milliseconds",
     "iso",
     "8601",
-    "parse"
+    "parse",
+    "toJSON",
+    "toISOString"
   ],
   "author": {
     "name": "Zerodep AB",

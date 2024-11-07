@@ -1,4 +1,5 @@
 export interface ISOParts {
+  isValid?: boolean;
   /** Year designator that follows the value for the number of calendar years. */
   Y: number;
   /** Month designator that follows the value for the number of calendar months */

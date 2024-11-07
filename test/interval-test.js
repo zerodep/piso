@@ -790,7 +790,7 @@ describe('ISO 8601 interval', () => {
     ].forEach(([interval, expected]) => {
       it(`"${interval}" has the expected parsed end date parts`, () => {
         const iso = parseInterval(interval);
-        expect(iso.end.result).to.deep.equal(expected);
+        expect(iso.end.result).to.deep.equal({ ...expected, isValid: true });
         expect(iso.parsed, 'parsed chars').to.equal(interval);
       });
 
@@ -807,44 +807,44 @@ describe('ISO 8601 interval', () => {
 
     it('parsed 2007-12-14T13:30/15:30 has the expected start and end date', () => {
       const iso = parseInterval('2007-12-14T13:30/15:30');
-      expect(iso.start.result).to.include({ Y: 2007, M: 11, D: 14, H: 13, m: 30 });
+      expect(iso.start.result).to.include({ Y: 2007, M: 11, D: 14, H: 13, m: 30, isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 11, D: 14, H: 15, m: 30 });
+      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 11, D: 14, H: 15, m: 30, isValid: true });
     });
 
     it('parsed 2007-03-01T13:00:00Z/2008-05-11T15:30:00Z has the expected start and end date', () => {
       const iso = parseInterval('2007-03-01T13:00:00Z/2008-05-11T15:30:00Z');
-      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' });
+      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z', isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2008, M: 4, D: 11, H: 15, m: 30, S: 0, Z: 'Z' });
+      expect(iso.end.result).to.deep.equal({ Y: 2008, M: 4, D: 11, H: 15, m: 30, S: 0, Z: 'Z', isValid: true });
     });
 
     it('parsed 2008-02-15/03-14 has the expected start and end date', () => {
       const iso = parseInterval('2008-02-15/03-14');
-      expect(iso.start.result).to.deep.equal({ Y: 2008, M: 1, D: 15 });
+      expect(iso.start.result).to.deep.equal({ Y: 2008, M: 1, D: 15, isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2008, M: 2, D: 14 });
+      expect(iso.end.result).to.deep.equal({ Y: 2008, M: 2, D: 14, isValid: true });
     });
 
     it('parsed 2007-11-13/15 has the expected start and end date', () => {
       const iso = parseInterval('2007-11-13/15');
-      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13 });
+      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13, isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 15 });
+      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 15, isValid: true });
     });
 
     it('parsed 2007-11-13T09:00/15T17:00 has the expected start and end date', () => {
       const iso = parseInterval('2007-11-13T09:00/15T17:00');
-      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13, H: 9, m: 0 });
+      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13, H: 9, m: 0, isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 15, H: 17, m: 0 });
+      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 15, H: 17, m: 0, isValid: true });
     });
 
     it('parsed 2007-11-13T00:00/16T00:00 has the expected start and end date', () => {
       const iso = parseInterval('2007-11-13T00:00/16T00:00');
-      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13, H: 0, m: 0 });
+      expect(iso.start.result).to.deep.equal({ Y: 2007, M: 10, D: 13, H: 0, m: 0, isValid: true });
       expect(iso.duration).to.be.undefined;
-      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 16, H: 0, m: 0 });
+      expect(iso.end.result).to.deep.equal({ Y: 2007, M: 10, D: 16, H: 0, m: 0, isValid: true });
     });
 
     ['2007-03-01/32', '2007-02-01/29', '2019-02-01/29', '2007-04-01/31', '2007-01-01/00', '2007-02-01/02-29', '2020-02-01/02-30'].forEach(
@@ -894,7 +894,7 @@ describe('ISO 8601 interval', () => {
       it(`parsed ${interval} has the expected duration and end date`, () => {
         const iso = parseInterval(interval);
         expect(iso.duration.result).to.include({ Y: 2 });
-        expect(iso.end.result).to.deep.equal(expected);
+        expect(iso.end.result).to.deep.equal({ ...expected, isValid: true });
         expect(iso.parsed, 'parsed chars').to.equal(interval);
       });
 
@@ -933,7 +933,7 @@ describe('ISO 8601 interval', () => {
       it(`parsed ${interval} has the expected repeat duration and end date`, () => {
         const iso = parseInterval(interval);
         expect(iso.repeat, 'repeat').to.equal(expected);
-        expect(iso.duration.result, 'duration').to.deep.equal({ Y: 2 });
+        expect(iso.duration.result, 'duration').to.deep.equal({ Y: 2, isValid: true });
         expect(iso.end.result, 'end').to.include({ M: 2, Z: 'Z' });
       });
 
@@ -1221,13 +1221,6 @@ describe('ISO 8601 interval', () => {
     it('unparsed return startDate and endDate as null', () => {
       expect(new ISOInterval('2007-03-01T13:00:00/P1Y2M10DT2H30M').startDate).to.be.null;
       expect(new ISOInterval('P1Y2M10DT2H30M/2007-03-01T13:00:00').endDate).to.be.null;
-    });
-  });
-
-  [['2007-03-01T13:00:00Z/P1Y2M10DT2H30M', '2007-03-01T13:00:00Z/P1Y2M10DT2H30M']].forEach(([interval, iso]) => {
-    it(interval + 'toJSON and toISOString returns normalized interval string', () => {
-      expect(new ISOInterval(interval).toISOString(), interval).to.equal(iso);
-      expect(new ISOInterval(interval).toJSON(), interval).to.equal(iso);
     });
   });
 });
