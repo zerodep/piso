@@ -303,6 +303,33 @@ describe('duration', () => {
       });
     });
 
+    it('really long duration throws when getting expire at', () => {
+      let dur = new ISODuration(`P${new Array(252).fill(1).join('')}Y`).parse();
+
+      expect(() => dur.getExpireAt(), 'Y expire at').to.throw(RangeError);
+
+      dur = new ISODuration(`PT${new Array(252).fill(1).join('')}H`).parse();
+
+      expect(() => dur.getExpireAt(), 'H expire at').to.throw(RangeError);
+    });
+
+    it('above 255 chars throws', () => {
+      let dur = `PT${new Array(253).fill(1).join('')}H`;
+
+      expect(() => {
+        ISODuration.parse(dur);
+      }, dur).to.throw(RangeError, /too long/i);
+
+      dur = `PT${new Array(1000)
+        .fill(0)
+        .map((_, idx) => idx)
+        .join('')}H`;
+
+      expect(() => {
+        ISODuration.parse(dur);
+      }, dur).to.throw(RangeError, /too long/i);
+    });
+
     describe.skip('designator fractions', () => {
       [
         'P1.1234567812345678Y',

@@ -847,6 +847,7 @@ ISODuration.prototype.parse = function parseDuration() {
   const source = this.source;
   const offset = this.idx;
   if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
+  if (source.length > 255) throw new RangeError('ISO 8601 duration string is too long');
   if (source[offset] !== ISOINTERVAL_DURATION) throw this.createUnexpectedError(source[offset], offset);
 
   for (const c of source.slice(offset)) {
@@ -1075,9 +1076,15 @@ ISODuration.prototype.applyDuration = function applyDuration(date, repetitions =
 
   const ms = date.getTime();
 
-  if (this.isDateIndifferent) return new Date(ms + indifferentMs);
+  let nextDt = new Date(ms + indifferentMs);
 
-  return this.applyDateDuration(new Date(ms + indifferentMs), repetitions, useUtc);
+  if (!this.isDateIndifferent) {
+    nextDt = this.applyDateDuration(nextDt, repetitions, useUtc);
+  }
+
+  if (isNaN(nextDt.getTime())) throw new RangeError(`ISO duration rendered an invalid date`);
+
+  return nextDt;
 };
 
 /**
@@ -1127,6 +1134,8 @@ ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, r
 
       endTime += factor * (fraction.getTime() - toDate.getTime()) * (value - fullValue);
     }
+
+    if (isNaN(endTime)) throw new RangeError(`ISO duration rendered an invalid date when applying ${designator}`);
   }
 
   return new Date(endTime);

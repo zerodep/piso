@@ -1250,5 +1250,21 @@ describe('ISO 8601 interval', () => {
       const int = new ISOInterval('2024-11-08/09').parse();
       expect(int.end.toString()).to.equal('09');
     });
+
+    it('duration too far in the future throws when getting expire at', () => {
+      expect(() => new ISOInterval('2024-11-08/P1111112111111111111111111111111111111Y').getExpireAt()).to.throw(RangeError);
+      expect(() => new ISOInterval('2024-11-08/P1000000Y').getExpireAt()).to.throw(RangeError);
+    });
+
+    it('duration before big bang throws when getting start at', () => {
+      const int = new ISOInterval('PT10000000000H/2024-11-08');
+      expect(() => int.getStartAt()).to.throw(RangeError);
+    });
+
+    it('interval string above 255 chars throws', () => {
+      expect(() => {
+        new ISOInterval(`2024-11-08/P${new Array(243).fill(1).join('')}Y`).parse();
+      }).to.throw(RangeError);
+    });
   });
 });
