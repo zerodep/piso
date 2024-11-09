@@ -16,7 +16,8 @@ declare module '@0dep/piso' {
 		c: string;
 		parsed: string;
 		idx: number;
-		repeat: number;
+		
+		repeat: number | undefined;
 		
 		start: ISODate | undefined;
 		
@@ -45,6 +46,7 @@ declare module '@0dep/piso' {
 		getStartAt(compareDate?: Date, endDate?: Date): Date;
 		toJSON(): string;
 		toISOString(): string;
+		toString(): string;
 		consumeRepeat(): string;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
@@ -80,6 +82,7 @@ declare module '@0dep/piso' {
 		
 		idx: number;
 		enforceSeparators: boolean;
+		offset: number;
 		c: string;
 		parsed: string;
 		endChars: string;
@@ -100,6 +103,7 @@ declare module '@0dep/piso' {
 		 * @returns date as JSON string
 		 */
 		toJSON(): string | null;
+		toString(): string;
 		/**
 		 * Parse partial relative date
 		 * @param Y Year if year is not defined
@@ -189,6 +193,7 @@ declare module '@0dep/piso' {
 		parse(): this;
 		toISOString(): string;
 		toJSON(): string;
+		toString(): string;
 		/**
 		 * Write
 		 * @param c ISO 8601 character

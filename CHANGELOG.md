@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [2.3.0] - 2024-11-07
+## [2.3.0] - 2024-11-08
 
-- add toISOString and toJSON functions to ISOInterval, ISODate, and ISODuration
+- add toISOString, toJSON, and toString functions to ISOInterval, ISODate, and ISODuration
 - disallow more than 17 fractions of a second in ISODate
 - support unicode minus (−, u2212) as offset specification, hyphen is the exception if you read the spec
 

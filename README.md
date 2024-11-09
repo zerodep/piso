@@ -42,7 +42,7 @@ const viableIntervals = [
 ];
 
 for (const i of viableIntervals) {
-  console.log({ [i]: parseInterval(i).getExpireAt(), asJson: new ISOInterval(i).toJSON() });
+  console.log({ [i]: parseInterval(i).getExpireAt() });
 }
 ```
 
@@ -142,7 +142,7 @@ const viableDates = [
 ];
 
 for (const d of viableDates) {
-  console.log({ [d]: getDate(d), asJson: new ISODate(d).toJSON() });
+  console.log({ [d]: getDate(d) });
 }
 
 try {
@@ -218,7 +218,7 @@ Returns:
 
 - `Y`: full year representation of week date
 - `W`: week number
-- `weekday`: weekday, 1 = Monday .. 7 = Sunday
+- `weekday`:
 
 ```javascript
 import { getUTCWeekNumber } from '@0dep/piso';
@@ -308,6 +308,16 @@ Returns [ISOInterval](#new-isointervalsource).
 
 Throws `RangeError` if something is off.
 
+### `interval.toJSON()`
+
+Get interval represented as JavaScript Object Notation.
+
+```javascript
+import { ISOInterval } from '@0dep/piso';
+
+console.log(JSON.stringify({ interval: new ISOInterval('R2/P1Y/2024-03-28') }, null, 2));
+```
+
 ## `new ISODate(source[, offset])`
 
 ISO date instance.
@@ -331,22 +341,28 @@ ISO date instance.
   - `OH`: offset hours
   - `Om`: offset minutes
   - `OS`: offset seconds
+  - `isValid`: boolean indicating if parse was successful
 
 ### `date.parse()`
 
-### `date.parsePartialDate(Y, M, D)`
+### `date.parsePartialDate(Y, M, D, W)`
 
 Parse partial date as compared to passed date part arguments.
 
 - `Y`: required full year
 - `M`: required javascript month
-- `D`: required date
+- `D`: required date or weekday (1 = Monday .. 7 = Sunday) if `W` is passed
+- `W`: optional week number, then `D` is the week day
 
 Returns [ISODate](#new-isodatesource-offset)
 
 ### `date.toDate()`
 
 Get Date represented by source.
+
+### `date.toJSON()`
+
+Get Date represented as JavaScript Object Notation.
 
 ## `new ISODuration(source[, offset])`
 

@@ -1222,5 +1222,33 @@ describe('ISO 8601 interval', () => {
       expect(new ISOInterval('2007-03-01T13:00:00/P1Y2M10DT2H30M').startDate).to.be.null;
       expect(new ISOInterval('P1Y2M10DT2H30M/2007-03-01T13:00:00').endDate).to.be.null;
     });
+
+    it('#toString returns source', () => {
+      expect(new ISOInterval('2007-03-01T13:00:00/P1Y2M10DT2H30M').toString()).to.equal('2007-03-01T13:00:00/P1Y2M10DT2H30M');
+    });
+
+    it('#toString with invalid interval returns Invalid ISOInterval', () => {
+      const int = new ISOInterval('Until Monday');
+      expect(int.toString()).to.equal('Invalid ISOInterval');
+      expect(int.toString()).to.equal('Invalid ISOInterval');
+    });
+
+    it('.start #toString returns parsed source', () => {
+      const int = new ISOInterval('R1/2024-11-08/09').parse();
+      expect(int.start.toString()).to.equal('2024-11-08');
+    });
+
+    it('.duration #toString returns duration parsed source', () => {
+      let int = new ISOInterval('2024-11-08/PT42M').parse();
+      expect(int.duration.toString(), int.toString()).to.equal('PT42M');
+
+      int = new ISOInterval('R3/PT42M/2024-11-08').parse();
+      expect(int.duration.toString(), int.toString()).to.equal('PT42M');
+    });
+
+    it('.end #toString returns parsed source', () => {
+      const int = new ISOInterval('2024-11-08/09').parse();
+      expect(int.end.toString()).to.equal('09');
+    });
   });
 });

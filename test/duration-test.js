@@ -320,4 +320,18 @@ describe('duration', () => {
       });
     });
   });
+
+  describe(ISODuration.name, () => {
+    it('#toString returns source', () => {
+      const dur = new ISODuration('P1Y2M10DT2H30M');
+      expect(dur.toString()).to.equal('P1Y2M10DT2H30M');
+      expect(dur.toString()).to.equal('P1Y2M10DT2H30M');
+    });
+
+    it('invalid interval #toString returns Invalid ISODuration', () => {
+      const dur = new ISODuration('Until Monday');
+      expect(dur.toString()).to.equal('Invalid ISODuration');
+      expect(dur.toString()).to.equal('Invalid ISODuration');
+    });
+  });
 });

@@ -287,4 +287,24 @@ describe('ISO date', () => {
       });
     });
   });
+
+  describe(ISODate.name, () => {
+    it('#toString returns source', () => {
+      const idt = new ISODate('2024-11-07').toString();
+      expect(idt.toString()).to.equal('2024-11-07');
+      expect(idt.toString()).to.equal('2024-11-07');
+    });
+
+    it('#toString for partial date returns parsed source', () => {
+      const idt = new ISODate('2024-11-07').toString();
+      expect(idt.toString()).to.equal('2024-11-07');
+      expect(idt.toString()).to.equal('2024-11-07');
+    });
+
+    it('invalid interval #toString returns Invalid ISODate', () => {
+      const idt = new ISODate('Today');
+      expect(idt.toString()).to.equal('Invalid ISODate');
+      expect(idt.toString()).to.equal('Invalid ISODate');
+    });
+  });
 });

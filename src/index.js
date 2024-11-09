@@ -42,10 +42,15 @@ const dateLocalFns = {
  */
 export function ISOInterval(source) {
   if (!source || typeof source !== 'string') throw new TypeError('ISO 8601 interval source is required and must be a string');
+  // @internal
   this.source = source;
+  // @internal
   this.c = '';
+  // @internal
   this.parsed = '';
+  // @internal
   this.idx = -1;
+  /** @type {number | undefined} */
   this.repeat = undefined;
   /** @type {ISODate | undefined} */
   this.start = undefined;
@@ -81,7 +86,6 @@ Object.defineProperty(ISOInterval.prototype, 'endDate', {
  */
 ISOInterval.prototype.parse = function parseInterval() {
   if (this[kIsParsed]) return this;
-  this[kIsParsed] = true;
 
   let c = this.peek();
   if (c === ISOINTERVAL_REPEAT) {
@@ -120,6 +124,8 @@ ISOInterval.prototype.parse = function parseInterval() {
   } else if (c) {
     throw new RangeError(`ISO 8601 interval "${this.source}" combination is not allowed`);
   }
+
+  this[kIsParsed] = true;
 
   return this;
 };
@@ -229,6 +235,15 @@ ISOInterval.prototype.toISOString = function intervalToISOString() {
   return isoString.join('/');
 };
 
+ISOInterval.prototype.toString = function intervalToString() {
+  try {
+    this.parse();
+    return this.source;
+  } catch {
+    return `Invalid ${this.constructor.name}`;
+  }
+};
+
 ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   /** @type { string | undefined } */
   let c = this.read();
@@ -333,6 +348,7 @@ export function ISODate(source, offset = -1, endChars = '', enforceSeparators = 
   // @ts-ignore
   this.idx = offset > -1 ? Number(offset) : -1;
   this.enforceSeparators = enforceSeparators;
+  this.offset = offset;
   this.c = '';
   // @ts-ignore
   this.parsed = offset > 0 ? source.substring(0, offset + 1) : '';
@@ -391,7 +407,10 @@ ISODate.prototype.toDate = function toDate() {
  * @returns {ISODate}
  */
 ISODate.prototype.parse = function parseISODate() {
-  if (this[kIsParsed]) return this;
+  if (this[kIsParsed]) {
+    if (!this.result?.isValid) throw new RangeError(`Invalid ${this.constructor.name}`);
+    return this;
+  }
   this[kIsParsed] = true;
 
   let value = this.consumeChar();
@@ -429,6 +448,19 @@ ISODate.prototype.toJSON = function isoDateToJSON() {
     return this.toDate().toJSON();
   } catch {
     return null;
+  }
+};
+
+ISODate.prototype.toString = function isoDateToString() {
+  try {
+    this.parse();
+    const offset = this.offset;
+    if (offset < 0) {
+      return this.parsed;
+    }
+    return this.parsed.substring(offset + 1);
+  } catch {
+    return `Invalid ${this.constructor.name}`;
   }
 };
 
@@ -806,7 +838,11 @@ ISODuration.parse = function parseDuration(source, offset = 0) {
 };
 
 ISODuration.prototype.parse = function parseDuration() {
-  if (this[kIsParsed]) return this;
+  if (this[kIsParsed]) {
+    if (!this.result?.isValid) throw new RangeError(`Invalid ${this.constructor.name}`);
+    return this;
+  }
+  this[kIsParsed] = true;
 
   const source = this.source;
   const offset = this.idx;
@@ -821,13 +857,12 @@ ISODuration.prototype.parse = function parseDuration() {
   this.end(this.idx);
 
   this.result.isValid = true;
-  this[kIsParsed] = true;
 
   return this;
 };
 
 ISODuration.prototype.toISOString = function durationToISOString() {
-  if (!this[kIsParsed]) this.parse();
+  this.parse();
 
   const result = this.result;
 
@@ -864,6 +899,14 @@ ISODuration.prototype.toJSON = function durationToJSON() {
     return this.toISOString();
   } catch {
     return null;
+  }
+};
+
+ISODuration.prototype.toString = function durationToString() {
+  try {
+    return this.toISOString();
+  } catch {
+    return `Invalid ${this.constructor.name}`;
   }
 };
 
