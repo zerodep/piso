@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [2.3.1] - 2024-11-08
 
 - a duration so far in the future or past that a date cannot be rendered throws RangeError when attempting to get expire or start date
-- duration of more than 255 chars throws error, cannot/should not read a string indefinately
+- duration of more than 255 chars throws error, cannot/should not read a string indefinitely
 
 ## [2.3.0] - 2024-11-08
 
