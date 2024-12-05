@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.4.0] - 2024-12-10
+
+- support ordinal date, e.g. `2024-343`
+
 ## [2.3.1] - 2024-11-08
 
 - a duration so far in the future or past that a date cannot be rendered throws RangeError when attempting to get expire or start date

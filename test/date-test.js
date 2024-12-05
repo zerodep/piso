@@ -139,7 +139,7 @@ describe('ISO date', () => {
 
     expect(() => {
       new ISODate('2007-0101', undefined, undefined, true).parse();
-    }).to.throw(RangeError, /unexpected/i);
+    }).to.throw(RangeError, /unbalanced/i);
   });
 
   [
@@ -164,6 +164,18 @@ describe('ISO date', () => {
       parser.parsePartialDate(2024, 0, 1);
       expect(parser.toDate()).to.deep.equal(expected);
       expect(parser.toDate()).to.deep.equal(expected);
+    });
+  });
+
+  ['02-30', '2023-366', '367', '2025318'].forEach((dt) => {
+    it(`parse partial with enforce separators and invalid partial "${dt}" throws range error`, () => {
+      expect(() => new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
+    });
+  });
+
+  ['0230', '2023366', '367', '2025-318'].forEach((dt) => {
+    it(`parse partial without enforce separators and invalid partial "${dt}" throws range error`, () => {
+      expect(() => new ISODate(dt, -1, null, false).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
     });
   });
 
@@ -230,7 +242,7 @@ describe('ISO date', () => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
         ISODate.parse(dt);
-      }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 date/i);
+      }).to.throw(RangeError, /(Unexpected|Invalid|Unbalanced) ISO 8601 date/i);
     });
   });
 

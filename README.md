@@ -39,6 +39,8 @@ const viableIntervals = [
   'R-1/2009-07-01T00:00Z/P1M',
   'R-1/1972-07-01T00:02Z/PT1H3M',
   'R-1/P1M/2024-07-27T00:00Z',
+  '2007-318/2007-319',
+  '2007-318/319T24:00:00Z',
 ];
 
 for (const i of viableIntervals) {
@@ -111,6 +113,9 @@ const viableDates = [
   '2024-01',
   '2024-12',
   '20240127',
+  '2024-012',
+  '2024012',
+  '2024-012T08:06:30',
   '2024-02-27T08:06:30',
   '2024-02-27T08:06:30.001',
   '2024-02-27T08:06:30.0011',
@@ -332,7 +337,7 @@ ISO date instance.
 - `result`:
   - `Y`: full year
   - `M`: javascript month
-  - `D`: date
+  - `D`: date or ordinal day
   - `H`: hours
   - `m`: minutes
   - `S`: seconds
@@ -350,8 +355,8 @@ ISO date instance.
 Parse partial date as compared to passed date part arguments.
 
 - `Y`: required full year
-- `M`: required javascript month
-- `D`: required date or weekday (1 = Monday .. 7 = Sunday) if `W` is passed
+- `M`: optional javascript month, required is not ordinal day
+- `D`: required date, weekday (1 = Monday .. 7 = Sunday) if `W` is passed, or ordinal day
 - `W`: optional week number, then `D` is the week day
 
 Returns [ISODate](#new-isodatesource-offset)

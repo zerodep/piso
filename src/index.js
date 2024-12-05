@@ -370,6 +370,10 @@ ISODate.prototype.toDate = function toDate() {
     args[0] = wdate.getUTCFullYear();
     args[1] = wdate.getUTCMonth();
     args[2] = wdate.getUTCDate();
+  } else if (result.M === undefined) {
+    const odate = getUTCDateFromOrdinalDate(result.Y, result.D);
+    args[1] = odate.getUTCMonth();
+    args[2] = odate.getUTCDate();
   }
 
   if ('H' in result) args.push(result.H, 0);
@@ -396,10 +400,10 @@ ISODate.prototype.toDate = function toDate() {
       /** @ts-ignore */
       return new Date(Date.UTC(...args));
     }
-    default:
-      /** @ts-ignore */
-      return new Date(...args);
   }
+
+  /** @ts-ignore */
+  return new Date(...args);
 };
 
 /**
@@ -502,21 +506,11 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
 
   this.result.Y = Y;
 
-  let c = this.consumeChar(NUMBERS + ISODATE_WEEKINSTRUCTION);
+  const c = this.consumeChar(NUMBERS + ISODATE_WEEKINSTRUCTION);
   let next = this.peek();
 
   if (c === ISODATE_WEEKINSTRUCTION) {
-    const week = (this.result.W = Number(this.consumeChar('012345') + this.consumeChar()));
-    if (!this.continueWeekdayPrecision(Y, week, this.enforceSeparators)) {
-      return this;
-    }
-
-    c = this.consume();
-
-    if (c === ISODATE_TIMEINSTRUCTION) {
-      const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
-      return this.continueTimePrecision(hours, this.enforceSeparators);
-    }
+    return this.continueFromWeekInstruction(Y);
   } else if (W && (!next || next === ISODATE_TIMEINSTRUCTION) && ISODATE_WEEKDAYS.indexOf(c) > -1) {
     this.result.W = W;
     this.result.D = Number(c);
@@ -524,14 +518,13 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
     if (!next) return this;
 
     this.consume();
-    const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
-    return this.continueTimePrecision(hours, this.enforceSeparators);
+    return this.continueFromTimeInstruction();
   }
 
   this.result.M = M;
   this.result.D = D;
 
-  const value = c + this.consumeChar();
+  let value = c + this.consumeChar();
 
   next = this.peek();
 
@@ -549,16 +542,23 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
 
     this.consume();
 
-    const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
-    return this.continueTimePrecision(hours, this.enforceSeparators);
+    return this.continueFromTimeInstruction();
   } else if (next === ISOTIME_SEPARATOR) {
     const hours = (this.result.H = Number(value));
     if (!M) this.result.W = W;
 
-    return this.continueTimePrecision(hours, this.enforceSeparators);
+    return this.continueTimePrecision(hours);
   } else if (NUMBERS.indexOf(next) > -1) {
-    const Y = (this.result.Y = Number(value + this.consumeChar() + this.consumeChar()));
-    return this.continueDatePrecision(Y);
+    this.result = {};
+    value += this.consumeChar();
+    next = this.peek();
+
+    if (!next || next === ISODATE_TIMEINSTRUCTION) {
+      return this.continueOrdinalDatePrecision(Y, Number(value), next && this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION));
+    }
+
+    const year = (this.result.Y = Number(value + this.consumeChar()));
+    return this.continueDatePrecision(year);
   } else if (next === ISODATE_SEPARATOR) {
     this.consume();
     const month = (this.result.M = Number(value) - 1);
@@ -568,8 +568,7 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
 
     const c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
     if (c) {
-      const hours = (this.result.H = Number(this.consumeChar('012') + this.consumeChar()));
-      return this.continueTimePrecision(hours, this.enforceSeparators);
+      return this.continueFromTimeInstruction();
     }
 
     return this;
@@ -585,11 +584,11 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
  */
 ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   let dateSeparator = this.enforceSeparators ? ISODATE_SEPARATOR : '';
-  const initNext = ISODATE_WEEKINSTRUCTION + '01';
+  const initNext = ISODATE_WEEKINSTRUCTION + '0123';
 
   /** @type {string | undefined} */
   let c = this.consumeChar(dateSeparator + initNext);
-  if (c === ISODATE_SEPARATOR) {
+  if (c === dateSeparator) {
     dateSeparator = c;
     c = this.consumeChar(initNext);
   } else if (dateSeparator) {
@@ -597,55 +596,85 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   }
 
   if (c === ISODATE_WEEKINSTRUCTION) {
-    c = this.consumeChar('012345');
-    const W = (this.result.W = Number(c + this.consumeChar()));
-
-    if (!this.continueWeekdayPrecision(Y, W, !!dateSeparator)) {
-      return this;
-    }
-  } else {
-    const M = (this.result.M = Number(c + this.consumeChar()) - 1);
-
-    if (dateSeparator) {
-      c = this.consumeCharOrEnd(dateSeparator);
-      if (!c) {
-        if (!validateDate(Y, M, 1)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
-        this.result.D = 1;
-        return this;
-      }
-    }
-
-    c = this.consumeChar();
-
-    const D = (this.result.D = Number(c + this.consumeChar()));
-
-    if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
+    return this.continueFromWeekInstruction(Y);
   }
 
-  c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
+  const instructions = ISODATE_TIMEINSTRUCTION + NUMBERS + dateSeparator;
+
+  let numbers = c + this.consumeChar();
+  let separator = -1;
+  for (let i = 0; i < 4; i++) {
+    c = this.consumeCharOrEnd(instructions);
+
+    if (!c || c === ISODATE_TIMEINSTRUCTION) break;
+    if (c === dateSeparator) {
+      if (i > 0) throw this.createUnexpectedError();
+      separator = i;
+      continue;
+    }
+
+    numbers += c;
+  }
+
+  if (numbers.length === 3) {
+    return this.continueOrdinalDatePrecision(Y, Number(numbers), c);
+  }
+
+  if (numbers.length === 4 && dateSeparator && separator !== 0) {
+    throw new RangeError('Unbalanced ISO 8601 date separator');
+  } else if (numbers.length === 2 && (!dateSeparator || separator === 0)) {
+    throw new RangeError('Unbalanced ISO 8601 date separator');
+  }
+
+  const M = (this.result.M = Number(numbers.substring(0, 2)) - 1);
+  const D = (this.result.D = Number(numbers.substring(2) || 1));
+
+  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
 
   if (!c) return this;
 
-  const hours = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
+  return this.continueFromTimeInstruction();
+};
 
-  return this.continueTimePrecision(hours, !!dateSeparator);
+/**
+ * Continue ordinal date precision
+ * @param {number} Y year
+ * @param {number} D ordinal day
+ * @param {string} [next] next char if any
+ */
+ISODate.prototype.continueOrdinalDatePrecision = function continueOrdinalDatePrecision(Y, D, next) {
+  if (!validateOrdinalDate(Y, D)) throw new RangeError(`Invalid ISO 8601 ordinal date "${this.source}"`);
+
+  this.result.Y = Y;
+  this.result.D = D;
+
+  if (!next) return this;
+
+  return this.continueFromTimeInstruction();
+};
+
+/**
+ * Continue from week instruciton
+ * @param {number} Y year
+ */
+ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruction(Y) {
+  const W = (this.result.W = Number(this.consumeChar('012345') + this.consumeChar()));
+  return this.continueWeekdayPrecision(Y, W);
 };
 
 /**
  * Consume weekday
  * @param {number} Y from year
  * @param {number} W from week
- * @param {boolean} useSeparator time separator
- * @returns {boolean} Continue
  */
-ISODate.prototype.continueWeekdayPrecision = function continueWeekdayPrecision(Y, W, useSeparator) {
+ISODate.prototype.continueWeekdayPrecision = function continueWeekdayPrecision(Y, W) {
   let c;
-  if (useSeparator) {
+  if (this.enforceSeparators) {
     c = this.consumeCharOrEnd(ISODATE_SEPARATOR);
     if (!c) {
       if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
       this.result.D = 1;
-      return false;
+      return this;
     }
   }
 
@@ -659,28 +688,39 @@ ISODate.prototype.continueWeekdayPrecision = function continueWeekdayPrecision(Y
 
   if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
 
-  return !!this.peek();
+  c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
+  if (!c) return this;
+
+  return this.continueFromTimeInstruction();
+};
+
+/**
+ * Continue from time instruction
+ */
+ISODate.prototype.continueFromTimeInstruction = function continueFromTimeInstruction() {
+  const H = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
+  return this.continueTimePrecision(H);
 };
 
 /**
  * Consume minutes and seconds and so forth
  * @param {number} H from hour
- * @param {boolean} useSeparator time separator
  * @returns {ISODate}
  */
-ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useSeparator) {
+ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
   if (H > 24) throw new RangeError(`Invalid ISO 8601 hours "${this.parsed}[${this.c}]"`);
 
+  const useSeparators = this.enforceSeparators;
   const midnight = H === 24;
   const firstChars = midnight ? '0' : ISOTIME_STARTPART;
   const numberChars = midnight ? '0' : NUMBERS;
-  const timeSeparator = useSeparator ? ISOTIME_SEPARATOR : '';
+  const timeSeparator = useSeparators ? ISOTIME_SEPARATOR : '';
 
   /** @type {string | undefined} */
   let c = this.consumeChar(timeSeparator + firstChars);
   if (c === timeSeparator) {
     c = this.consumeChar(firstChars);
-  } else if (useSeparator) {
+  } else if (useSeparators) {
     throw this.createUnexpectedError();
   }
 
@@ -694,7 +734,7 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H, useS
     c = this.consumeChar(ISOTIME_STARTPART);
   } else if (ISOTIME_OFFSET.indexOf(c) > -1) {
     return this.continueTimeZonePrecision(c);
-  } else if (useSeparator) {
+  } else if (useSeparators) {
     throw this.createUnexpectedError();
   }
 
@@ -766,6 +806,10 @@ ISODate.prototype.consume = function consume() {
   return c;
 };
 
+/**
+ * Consume next char
+ * @param {string} [valid] defaults to number char
+ */
 ISODate.prototype.consumeChar = function consumeChar(valid = NUMBERS) {
   const c = this.consume();
   if (valid.indexOf(c) === -1) throw this.createUnexpectedError();
@@ -1315,9 +1359,21 @@ function validateDate(Y, M, D) {
     case 8:
     case 10:
       return D < 31;
-    default:
-      return false;
   }
+
+  return false;
+}
+
+/**
+ * Validate date parts
+ * @param {number} Y year
+ * @param {number} D day of month
+ * @returns {boolean}
+ */
+function validateOrdinalDate(Y, D) {
+  if (!D || D > 366) return false;
+  if (D < 366) return true;
+  return D === getOrdinalDayOfYear(Y, 11, 31);
 }
 
 /**
@@ -1428,6 +1484,15 @@ function isLeapYear(year) {
 function getUTCDateFromWeek(Y, W, D) {
   const daysToAdd = (W - 1) * 7 + (D - 1);
   return new Date(getUTCWeekOneDate(Y).getTime() + daysToAdd * MILLISECONDS_PER_DAY);
+}
+
+/**
+ * Get UTC date from week and weekday
+ * @param {number} Y year
+ * @param {number} D days from january first
+ */
+function getUTCDateFromOrdinalDate(Y, D) {
+  return new Date(Date.UTC(Y, 0, D));
 }
 
 /**

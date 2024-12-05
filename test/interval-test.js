@@ -882,6 +882,34 @@ describe('ISO 8601 interval', () => {
       expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13, 14, 0));
       expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
     });
+
+    it('ordinal start date, end time, works', () => {
+      const iso = parseInterval('2007-317T14:00/16:00Z');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13, 14, 0));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+    });
+
+    it('start date, ordinal end date with year, works', () => {
+      const iso = parseInterval('2007-11-13T14:00/2007-318');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13, 14, 0));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T23:00Z'));
+    });
+
+    it('ordinal start date, ordinal end days, works', () => {
+      const iso = parseInterval('2007-317/318');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T23:00Z'));
+    });
+
+    it('ordinal start date, ordinal end days with time precision, works', () => {
+      const iso = parseInterval('2007-317/318T14:55Z');
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-14T14:55Z'));
+    });
   });
 
   describe('interval duration and end date', () => {
@@ -994,7 +1022,7 @@ describe('ISO 8601 interval', () => {
       it(`unbalanced separators in start date "${interval}" throws range error`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /unexpected/i);
+        }).to.throw(RangeError, /unexpected|unbalanced/i);
       });
     });
 
@@ -1009,7 +1037,7 @@ describe('ISO 8601 interval', () => {
       it(`unbalanced end date and time separator in "${interval}" throws range error`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /unexpected/i);
+        }).to.throw(RangeError, /unexpected|unbalanced/i);
       });
     });
 

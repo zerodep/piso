@@ -126,25 +126,42 @@ declare module '@0dep/piso' {
 		 * */
 		continueDatePrecision(Y: number): ISODate;
 		/**
+		 * Continue ordinal date precision
+		 * @param Y year
+		 * @param D ordinal day
+		 * @param next next char if any
+		 */
+		continueOrdinalDatePrecision(Y: number, D: number, next?: string): ISODate;
+		/**
+		 * Continue from week instruciton
+		 * @param Y year
+		 */
+		continueFromWeekInstruction(Y: number): ISODate;
+		/**
 		 * Consume weekday
 		 * @param Y from year
 		 * @param W from week
-		 * @param useSeparator time separator
-		 * @returns Continue
 		 */
-		continueWeekdayPrecision(Y: number, W: number, useSeparator: boolean): boolean;
+		continueWeekdayPrecision(Y: number, W: number): ISODate;
+		/**
+		 * Continue from time instruction
+		 */
+		continueFromTimeInstruction(): ISODate;
 		/**
 		 * Consume minutes and seconds and so forth
 		 * @param H from hour
-		 * @param useSeparator time separator
 		 * */
-		continueTimePrecision(H: number, useSeparator: boolean): ISODate;
+		continueTimePrecision(H: number): ISODate;
 		/**
 		 * Continue timezone offset parsing
 		 * @param instruction timezone offset instruction
 		 * */
 		continueTimeZonePrecision(instruction: string): ISODate;
 		consume(): string;
+		/**
+		 * Consume next char
+		 * @param valid defaults to number char
+		 */
 		consumeChar(valid?: string): string;
 		peek(): string;
 		end(): this;
