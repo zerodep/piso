@@ -39,11 +39,11 @@ All notable changes to this project will be documented in this file.
 
 - fix embarrassing bug where `2024-08-31` is deemed invalid, dates are hard but this bug was just stupid
 
-## [2.0.0] - 2024-07-08
+## ~~[2.0.0] - 2024-07-08~~
 
 - forgot to apply time zone offset before returning date, actually more of a misconception regarding the purpose of the offset declaration
 
-## [1.0.0] - 2024-06-15
+## ~~[1.0.0] - 2024-06-15~~
 
 Production ready.
 
