@@ -1291,8 +1291,8 @@ export function parseInterval(isoInterval) {
 }
 
 /**
- * Parse ISO 8601 duration
- * @param {string} isoDuration ISO 8601 interval and/or duration
+ * Parse ISO 8601 duration or interval to get duration
+ * @param {string} isoDuration ISO 8601 duration or interval
  * @returns {ISODuration | undefined}
  */
 export function parseDuration(isoDuration) {

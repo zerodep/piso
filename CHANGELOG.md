@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- adjust function description
+- update all dev dependencies
+
 ## [2.4.0] - 2024-12-10
 
 - support ordinal date, e.g. `2024-343`
@@ -11,7 +14,7 @@ All notable changes to this project will be documented in this file.
 ## [2.3.1] - 2024-11-08
 
 - a duration so far in the future or past that a date cannot be rendered throws RangeError when attempting to get expire or start date
-- duration of more than 255 chars throws error, cannot/should not read a string indefinitely
+- duration of more than 255 chars throws error, cannot/shouldn't read a string indefinitely
 
 ## [2.3.0] - 2024-11-08
 

@@ -25,6 +25,9 @@ describe('duration', () => {
 
       dur = new ISODuration('P1M').parse();
       expect(dur.getExpireAt(undefined, 51), '51 monthly').to.deep.equal(new Date(Date.UTC(2024, 2 + 51, 29)));
+
+      dur = new ISODuration('P01M').parse();
+      expect(dur.getExpireAt(undefined, 51), '51 monthly').to.deep.equal(new Date(Date.UTC(2024, 2 + 51, 29)));
     });
   });
 

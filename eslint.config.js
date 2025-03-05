@@ -88,9 +88,6 @@ export default [
   {
     files: ['test/**/*.js'],
     languageOptions: {
-      parserOptions: {
-        ecmaVersion: 2020,
-      },
       globals: {
         ...globals.node,
         ...globals.mocha,
