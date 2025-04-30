@@ -298,7 +298,7 @@ declare module '@0dep/piso' {
 	 * */
 	export function parseInterval(isoInterval: string): ISOInterval;
 	/**
-	 * Parse ISO 8601 duration or interval
+	 * Parse ISO 8601 duration or interval to get duration
 	 * @param isoDuration ISO 8601 duration or interval
 	 * */
 	export function parseDuration(isoDuration: string): ISODuration | undefined;
