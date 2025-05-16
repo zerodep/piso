@@ -31,6 +31,8 @@ describe('ISO date', () => {
     ['2024-12', { Y: 2024, M: 11, D: 1 }],
     ['20240127', { Y: 2024, M: 0, D: 27 }],
     ['2024-02-27T08:06:30', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30 }],
+    ['2024-02-27T08:06:30.1', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30, F: 100 }],
+    ['2024-02-27T08:06:30.01', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30, F: 10 }],
     ['2024-02-27T08:06:30.001', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30, F: 1 }],
     ['2024-02-27T08:06:30.0011', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30, F: 1.1 }],
     ['2024-02-27T08:06:30.0', { Y: 2024, M: 1, D: 27, H: 8, m: 6, S: 30, F: 0 }],
@@ -61,6 +63,7 @@ describe('ISO date', () => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
     });
+
     it(`getDate("${dt}") is parsed as expected`, () => {
       expect(getDate(dt).getFullYear()).to.equal(expected.Y);
     });
@@ -278,6 +281,9 @@ describe('ISO date', () => {
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T11:30:01.123Z'));
 
     dateString = '2007-04-05T12:30:30.123456789012345678-02';
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
+
+    dateString = '2007-04-05T12:30:30.1234567890123456789-02';
     expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
 
     dateString = '2007-04-05T12:30:02.1234' + Array(1000).fill(1).join('') + '+02';

@@ -2,6 +2,7 @@ import * as ck from 'chronokinesis';
 
 import { parseInterval, parseDuration, ISOInterval, getExpireAt, getStartAt } from '../src/index.js';
 import { getDateFromParts } from './helpers.js';
+import { expect } from 'chai';
 
 describe('ISO 8601 interval', () => {
   after(ck.reset);
@@ -1225,7 +1226,7 @@ describe('ISO 8601 interval', () => {
     ['P1Y1D1M', 'PT1H1S1M'].forEach((interval) => {
       it(`duration ${interval} with flipped duration parts throws`, () => {
         expect(() => {
-          parseDuration('P1Y1D1M');
+          parseDuration(interval);
         }).to.throw(RangeError);
       });
     });
@@ -1293,6 +1294,46 @@ describe('ISO 8601 interval', () => {
       expect(() => {
         new ISOInterval(`2024-11-08/P${new Array(243).fill(1).join('')}Y`).parse();
       }).to.throw(RangeError);
+    });
+  });
+
+  describe('error messages', () => {
+    it('indicates repeat error position', () => {
+      expect(() => parseInterval('RA/2025-05-15')).to.throw(RangeError, 'Unexpected ISO 8601 interval characted "R[A]" at 1');
+    });
+
+    it('indicates start date error position', () => {
+      expect(() => parseInterval('R1/2025+05-15')).to.throw(RangeError, 'Unexpected ISO 8601 date character "R1/2025[+]" at 7');
+    });
+
+    it('invalid start date throws before reaching duration', () => {
+      expect(() => parseInterval('R1/2025-13-15/PT12H')).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2025-13-15');
+    });
+
+    it('invalid start date hours throws', () => {
+      expect(() => parseInterval('R1/2025-12-15T25:00:00/PT12H')).to.throw(RangeError, 'Invalid ISO 8601 hours "R1/2025-12-15T2[5]" at 15');
+    });
+
+    it('indicates end date error position', () => {
+      expect(() => parseInterval('R1/P1D/2025+05-15')).to.throw(RangeError, 'Unexpected ISO 8601 date character "R1/P1D/2025[+]" at 11');
+    });
+
+    it('invalid end date throws', () => {
+      expect(() => parseInterval('R1/2025-01-15/2025-02-29')).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2025-01-15/2025-02-29"');
+    });
+
+    it('indicated invalid duration error position', () => {
+      expect(() => parseInterval('R1/2025-05-15/PU12H')).to.throw(
+        RangeError,
+        'Unexpected ISO 8601 duration character "R1/2025-05-15/P[U]" at 15',
+      );
+    });
+
+    it('invalid partial end date hours throws', () => {
+      expect(() => parseInterval('R1/2025-12-15T22:00:00/25:00:00')).to.throw(
+        RangeError,
+        'Invalid ISO 8601 hours "R1/2025-12-15T22:00:00/2[5]" at 24',
+      );
     });
   });
 });

@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.5.0] - 2025-05-18
+
+Performance hunting.
+
+- remove c prop from duration
 - adjust function description
-- update all dev dependencies
 
 ## [2.4.0] - 2024-12-10
 

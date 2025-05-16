@@ -50,7 +50,9 @@ declare module '@0dep/piso' {
 		consumeRepeat(): string;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
-		
+		/**
+		 * Consume partial end date
+		 * */
 		consumePartialEndDate(start: ISODate): ISODate;
 		/**
 		 * Consume date
@@ -194,7 +196,6 @@ declare module '@0dep/piso' {
 		constructor(source: string, offset?: number);
 		source: string;
 		idx: number;
-		c: string;
 		type: string;
 		parsed: string;
 		
