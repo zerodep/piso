@@ -12,9 +12,13 @@ declare module '@0dep/piso' {
 		 * @param source interval source string
 		 */
 		constructor(source: string);
+		/** @internal Interval source string */
 		source: string;
+		
 		c: string;
+		
 		parsed: string;
+		
 		idx: number;
 		
 		repeat: number | undefined;
@@ -30,8 +34,8 @@ declare module '@0dep/piso' {
 		get endDate(): Date;
 		/**
 		 * ISO 8601 interval parser
-		 * */
-		parse(): ISOInterval;
+		 */
+		parse(): this;
 		/**
 		 * Get expire at
 		 * @param compareDate optional compare date, defaults to now
@@ -56,11 +60,13 @@ declare module '@0dep/piso' {
 		consumePartialEndDate(start: ISODate): ISODate;
 		/**
 		 * Consume date
-		 * */
+		 * 
+		 */
 		consumeDate(enforceSeparators?: boolean, endChars?: string): ISODate;
 		read(): string;
 		current(): string;
 		peek(): string;
+		
 		[kIsParsed]: boolean;
 	}
 	/**
@@ -93,8 +99,8 @@ declare module '@0dep/piso' {
 		toDate(): Date;
 		/**
 		 * Parse passed source as ISO 8601 date time
-		 * */
-		parse(): ISODate;
+		 */
+		parse(): this;
 		/**
 		 * Get ISO date as string
 		 * @returns date as JSON string
@@ -112,53 +118,53 @@ declare module '@0dep/piso' {
 		 * @param M JavaScript month if month is not defined
 		 * @param D Date if date is not defined
 		 * @param W Weeknumber
-		 * */
-		parsePartialDate(Y: number, M: number, D?: number, W?: number): ISODate;
+		 */
+		parsePartialDate(Y: number, M: number, D?: number, W?: number): this;
 		/**
-		 * Parse relative date
+		 * @internal Parse relative date
 		 * @param Y Year if year is not defined
 		 * @param M JavaScript month if month is not defined
 		 * @param D Date if date is not defined
 		 * @param W Weeknumber
-		 * */
-		_parseRelativeDate(Y: number, M: number, D?: number, W?: number): ISODate;
+		 */
+		_parseRelativeDate(Y: number, M: number, D?: number, W?: number): this;
 		/**
 		 * Consume as ISO date
 		 * @param Y year
-		 * */
-		continueDatePrecision(Y: number): ISODate;
+		 */
+		continueDatePrecision(Y: number): this;
 		/**
 		 * Continue ordinal date precision
 		 * @param Y year
 		 * @param D ordinal day
 		 * @param next next char if any
 		 */
-		continueOrdinalDatePrecision(Y: number, D: number, next?: string): ISODate;
+		continueOrdinalDatePrecision(Y: number, D: number, next?: string): this;
 		/**
 		 * Continue from week instruciton
 		 * @param Y year
 		 */
-		continueFromWeekInstruction(Y: number): ISODate;
+		continueFromWeekInstruction(Y: number): this;
 		/**
 		 * Consume weekday
 		 * @param Y from year
 		 * @param W from week
 		 */
-		continueWeekdayPrecision(Y: number, W: number): ISODate;
+		continueWeekdayPrecision(Y: number, W: number): this;
 		/**
 		 * Continue from time instruction
 		 */
-		continueFromTimeInstruction(): ISODate;
+		continueFromTimeInstruction(): this;
 		/**
 		 * Consume minutes and seconds and so forth
 		 * @param H from hour
-		 * */
-		continueTimePrecision(H: number): ISODate;
+		 */
+		continueTimePrecision(H: number): this;
 		/**
 		 * Continue timezone offset parsing
 		 * @param instruction timezone offset instruction
-		 * */
-		continueTimeZonePrecision(instruction: string): ISODate;
+		 */
+		continueTimeZonePrecision(instruction: string): this;
 		consume(): string;
 		/**
 		 * Consume next char
@@ -296,13 +302,13 @@ declare module '@0dep/piso' {
 	/**
 	 * Parse ISO 8601 interval
 	 * @param isoInterval ISO 8601 interval
-	 * */
+	 */
 	export function parseInterval(isoInterval: string): ISOInterval;
 	/**
 	 * Parse ISO 8601 duration or interval to get duration
 	 * @param isoDuration ISO 8601 duration or interval
-	 * */
-	export function parseDuration(isoDuration: string): ISODuration | undefined;
+	 */
+	export function parseDuration(isoDuration: string): ISODuration;
 	/**
 	 * Parse ISO 8601 date
 	 * @param isoDateSource ISO 8601 date

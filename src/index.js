@@ -42,13 +42,13 @@ const dateLocalFns = {
  */
 export function ISOInterval(source) {
   if (!source || typeof source !== 'string') throw new TypeError('ISO 8601 interval source is required and must be a string');
-  // @internal
+  /** @internal Interval source string */
   this.source = source;
-  // @internal
+  /** @internal */
   this.c = '';
-  // @internal
+  /** @internal */
   this.parsed = '';
-  // @internal
+  /** @internal */
   this.idx = -1;
   /** @type {number | undefined} */
   this.repeat = undefined;
@@ -60,7 +60,7 @@ export function ISOInterval(source) {
   this.end = undefined;
   /** @type {import('types').ISOIntervalType} */
   this.type = 0;
-  // @internal
+  /** @internal */
   this[kIsParsed] = false;
 }
 
@@ -82,7 +82,6 @@ Object.defineProperty(ISOInterval.prototype, 'endDate', {
 
 /**
  * ISO 8601 interval parser
- * @returns {ISOInterval}
  */
 ISOInterval.prototype.parse = function parseInterval() {
   if (this[kIsParsed]) return this;
@@ -309,7 +308,6 @@ ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(sta
  * Consume date
  * @param {boolean} [enforceSeparators]
  * @param {string} [endChars]
- * @returns
  */
 ISOInterval.prototype.consumeDate = function consumeDate(enforceSeparators, endChars) {
   const isoDate = new ISODate(this.source, this.idx, endChars, enforceSeparators).parse();
@@ -405,7 +403,6 @@ ISODate.prototype.toDate = function toDate() {
 
 /**
  * Parse passed source as ISO 8601 date time
- * @returns {ISODate}
  */
 ISODate.prototype.parse = function parseISODate() {
   if (this[kIsParsed]) {
@@ -480,7 +477,6 @@ ISODate.parse = function parseISODate(source, offset) {
  * @param {number} M JavaScript month if month is not defined
  * @param {number} [D] Date if date is not defined
  * @param {number} [W] Weeknumber
- * @returns {ISODate}
  */
 ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
   this._parseRelativeDate(Y, M, D, W);
@@ -489,13 +485,11 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
 };
 
 /**
- * Parse relative date
- * @internal
+ * @internal Parse relative date
  * @param {number} Y Year if year is not defined
  * @param {number} M JavaScript month if month is not defined
  * @param {number} [D] Date if date is not defined
  * @param {number} [W] Weeknumber
- * @returns {ISODate}
  */
 ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
   if (this[kIsParsed]) return this;
@@ -577,7 +571,6 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
 /**
  * Consume as ISO date
  * @param {number} Y year
- * @returns {ISODate}
  */
 ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   let dateSeparator = this.enforceSeparators ? ISODATE_SEPARATOR : '';
@@ -702,7 +695,6 @@ ISODate.prototype.continueFromTimeInstruction = function continueFromTimeInstruc
 /**
  * Consume minutes and seconds and so forth
  * @param {number} H from hour
- * @returns {ISODate}
  */
 ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
   if (H > 24) throw new RangeError(`Invalid ISO 8601 hours "${this.parsed}[${this.c}]" at ${this.idx}`);
@@ -765,7 +757,6 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
 /**
  * Continue timezone offset parsing
  * @param {string} instruction timezone offset instruction
- * @returns {ISODate}
  */
 ISODate.prototype.continueTimeZonePrecision = function continueTimeZonePrecision(instruction) {
   const z = (this.result.Z = instruction);
@@ -1046,7 +1037,7 @@ ISODuration.prototype.getStartAt = function getStartAt(endDate, repetition = 1) 
  * Get duration in milliseconds from optional start date
  * @param {Date} [startDate] start date, defaults to 1971-01-01T00:00:00Z since it's not a leap year
  * @param {number} [repetition] repetition
- * @returns {number} duration in milliseconds from start date
+ * @returns duration in milliseconds from start date
  */
 ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate, repetition = 1) {
   startDate = startDate === undefined ? NONLEAPYEAR : startDate;
@@ -1058,7 +1049,7 @@ ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate, repeti
  * Get duration in milliseconds until optional end date
  * @param {Date} [endDate] end date, defaults to epoch start 1970-01-01T00:00:00Z
  * @param {number} [repetition] repetition
- * @returns {number} duration in milliseconds from end date
+ * @returns duration in milliseconds from end date
  */
 ISODuration.prototype.untilMilliseconds = function untilMilliseconds(endDate, repetition = 1) {
   endDate = endDate === undefined ? NONLEAPYEAR : endDate;
@@ -1068,7 +1059,7 @@ ISODuration.prototype.untilMilliseconds = function untilMilliseconds(endDate, re
 /**
  * Calculate date indifferent duration milliseconds
  * @param {number} [repetitions] repetitions
- * @returns {number} number of date indifferent milliseconds
+ * @returns number of date indifferent milliseconds
  */
 ISODuration.prototype.getDateIndifferentMilliseconds = function getDateIndifferentMilliseconds(repetitions = 1) {
   /** @type {any} */
@@ -1107,7 +1098,7 @@ ISODuration.prototype.createUnexpectedError = function createUnexpectedError(c, 
  * @param {Date} [date]
  * @param {number} [repetitions]
  * @param {boolean} [useUtc] UTC
- * @returns {Date} new date with applied duration
+ * @returns new date with applied duration
  */
 ISODuration.prototype.applyDuration = function applyDuration(date, repetitions = 1, useUtc = false) {
   date = date === undefined ? new Date() : date;
@@ -1132,7 +1123,7 @@ ISODuration.prototype.applyDuration = function applyDuration(date, repetitions =
  * @param {Date} fromDate apply to date
  * @param {number} [repetitions] repetitions
  * @param {boolean} [useUtc] UTC
- * @returns {Date} new date with applied duration
+ * @returns new date with applied duration
  */
 ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, repetitions = 1, useUtc = false) {
   const startTime = fromDate.getTime();
@@ -1271,7 +1262,7 @@ ISODateDurationFunctions.prototype.reduceDuration = function reduceDuration(repe
  *
  * @param {Date} [date]
  * @param {number} [repetitions]
- * @returns {Date} new date with applied duration
+ * @returns new date with applied duration
  */
 ISODateDurationFunctions.prototype.applyDuration = function applyDuration(date, repetitions = 1) {
   return this.duration.applyDuration(date, repetitions, !!this.UTC);
@@ -1280,7 +1271,6 @@ ISODateDurationFunctions.prototype.applyDuration = function applyDuration(date, 
 /**
  * Parse ISO 8601 interval
  * @param {string} isoInterval ISO 8601 interval
- * @returns {ISOInterval}
  */
 export function parseInterval(isoInterval) {
   return new ISOInterval(isoInterval).parse();
@@ -1289,7 +1279,6 @@ export function parseInterval(isoInterval) {
 /**
  * Parse ISO 8601 duration or interval to get duration
  * @param {string} isoDuration ISO 8601 duration or interval
- * @returns {ISODuration | undefined}
  */
 export function parseDuration(isoDuration) {
   return new ISOInterval(isoDuration).parse().duration;
@@ -1334,7 +1323,6 @@ export function getStartAt(isoInterval, compareDate, endDate) {
  * @param {number} Y year
  * @param {number} M javascript month
  * @param {number} D day of month
- * @returns {boolean}
  */
 function validateDate(Y, M, D) {
   if (!D) return false;
@@ -1364,7 +1352,6 @@ function validateDate(Y, M, D) {
  * Validate date parts
  * @param {number} Y year
  * @param {number} D day of month
- * @returns {boolean}
  */
 function validateOrdinalDate(Y, D) {
   if (!D || D > 366) return false;
