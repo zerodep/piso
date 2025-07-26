@@ -68,7 +68,7 @@ export function ISOInterval(source) {
 Object.defineProperty(ISOInterval.prototype, 'startDate', {
   /** @returns {Date | null} */
   get() {
-    return this.start === undefined ? null : this.start.toDate();
+    return this.start?.toDate() ?? null;
   },
 });
 
@@ -76,7 +76,7 @@ Object.defineProperty(ISOInterval.prototype, 'startDate', {
 Object.defineProperty(ISOInterval.prototype, 'endDate', {
   /** @returns {Date | null} */
   get() {
-    return this.end === undefined ? null : this.end.toDate();
+    return this.end?.toDate() ?? null;
   },
 });
 
@@ -145,7 +145,7 @@ ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate)
 
   const hasStartDate = (type & 2) === 2;
 
-  compareDate = compareDate === undefined ? new Date() : compareDate;
+  compareDate = compareDate ?? new Date();
 
   if (hasStartDate && duration) {
     const dateFns = new ISODateDurationFunctions(this.start.toDate(), duration, compareDate, this.start.result.Z);
@@ -155,7 +155,7 @@ ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate)
     return dateFns.reduceDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
   }
 
-  startDate = startDate === undefined ? new Date() : startDate;
+  startDate = startDate ?? new Date();
 
   const dateFns = new ISODateDurationFunctions(startDate, duration, compareDate, 'Z');
 
@@ -179,7 +179,7 @@ ISOInterval.prototype.getStartAt = function getStartAt(compareDate, endDate) {
 
   const hasEndDate = (type & 8) === 8;
 
-  compareDate = compareDate === undefined ? new Date() : compareDate;
+  compareDate = compareDate ?? new Date();
 
   if (hasStartDate && duration) {
     return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, !!this.start.result.Z);
@@ -1040,7 +1040,7 @@ ISODuration.prototype.getStartAt = function getStartAt(endDate, repetition = 1) 
  * @returns duration in milliseconds from start date
  */
 ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate, repetition = 1) {
-  startDate = startDate === undefined ? NONLEAPYEAR : startDate;
+  startDate = startDate ?? NONLEAPYEAR;
 
   return this.getExpireAt(startDate, repetition).getTime() - startDate.getTime();
 };
@@ -1052,7 +1052,7 @@ ISODuration.prototype.toMilliseconds = function toMilliseconds(startDate, repeti
  * @returns duration in milliseconds from end date
  */
 ISODuration.prototype.untilMilliseconds = function untilMilliseconds(endDate, repetition = 1) {
-  endDate = endDate === undefined ? NONLEAPYEAR : endDate;
+  endDate = endDate ?? NONLEAPYEAR;
   return this.getStartAt(endDate, repetition).getTime() - endDate.getTime();
 };
 
@@ -1101,7 +1101,7 @@ ISODuration.prototype.createUnexpectedError = function createUnexpectedError(c, 
  * @returns new date with applied duration
  */
 ISODuration.prototype.applyDuration = function applyDuration(date, repetitions = 1, useUtc = false) {
-  date = date === undefined ? new Date() : date;
+  date = date ?? new Date();
 
   const indifferentMs = this.getDateIndifferentMilliseconds(repetitions);
 
