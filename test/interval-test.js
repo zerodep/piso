@@ -19,6 +19,11 @@ describe('ISO 8601 interval', () => {
         const expireAt = getExpireAt(interval);
         expect(expireAt).to.deep.equal(getDateFromParts(expected));
       });
+
+      it(`getExpireAt("${interval}", null, null, enforceUTC) with end date returns end date`, () => {
+        const expireAt = getExpireAt(interval, null, null, true);
+        expect(expireAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
+      });
     });
 
     [
@@ -31,6 +36,11 @@ describe('ISO 8601 interval', () => {
       it(`getExpireAt("${interval}") with start date and duration returns start date with applied duration`, () => {
         const expireAt = getExpireAt(interval);
         expect(expireAt).to.deep.equal(getDateFromParts(expected));
+      });
+
+      it(`getExpireAt("${interval}", null, null, enforceUTC) with start date and duration returns start date with applied duration`, () => {
+        const expireAt = getExpireAt(interval, null, null, true);
+        expect(expireAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
       });
     });
 
@@ -448,6 +458,11 @@ describe('ISO 8601 interval', () => {
         const startAt = getStartAt(interval);
         expect(startAt).to.deep.equal(getDateFromParts(expected));
       });
+
+      it(`getStartAt("${interval}", null, null, enforceUTC) returns start date`, () => {
+        const startAt = getStartAt(interval, null, null, true);
+        expect(startAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
+      });
     });
 
     [
@@ -459,6 +474,11 @@ describe('ISO 8601 interval', () => {
       it(`getStartAt("${interval}") with end date returns end date with applied duration`, () => {
         const startAt = getStartAt(interval);
         expect(startAt).to.deep.equal(getDateFromParts(expected));
+      });
+
+      it(`getStartAt("${interval}", null, null, enforceUTC) returns start date`, () => {
+        const startAt = getStartAt(interval, null, null, true);
+        expect(startAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
       });
     });
 
@@ -804,6 +824,16 @@ describe('ISO 8601 interval', () => {
         expect(iso.startDate, 'startDate').to.deep.equal(expectedStart);
         expect(iso.endDate, 'endDate').to.deep.equal(expectedEnd);
       });
+
+      it(`enforce UTC "${interval}" returns expected start and end date`, () => {
+        const iso = parseInterval(interval, true);
+
+        const expectedStart = getDateFromParts({ Z: 'Z', ...iso.start.result });
+        const expectedEnd = getDateFromParts({ Z: 'Z', ...expected });
+
+        expect(iso.startDate, 'startDate').to.deep.equal(expectedStart);
+        expect(iso.endDate, 'endDate').to.deep.equal(expectedEnd);
+      });
     });
 
     it('parsed 2007-12-14T13:30/15:30 has the expected start and end date', () => {
@@ -881,6 +911,13 @@ describe('ISO 8601 interval', () => {
       const iso = parseInterval('2007-11-13T14:00/16:00Z');
 
       expect(iso.startDate, 'start date').to.deep.equal(new Date(2007, 10, 13, 14, 0));
+      expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
+    });
+
+    it('enforced UTC forces local start date but ignores partial end date with timezone offset', () => {
+      const iso = parseInterval('2007-11-13T14:00/16:00Z', true);
+
+      expect(iso.startDate, 'start date').to.deep.equal(new Date(Date.UTC(2007, 10, 13, 14, 0)));
       expect(iso.endDate, 'end date').to.deep.equal(new Date('2007-11-13T16:00Z'));
     });
 
@@ -1278,6 +1315,24 @@ describe('ISO 8601 interval', () => {
     it('.end #toString returns parsed source', () => {
       const int = new ISOInterval('2024-11-08/09').parse();
       expect(int.end.toString()).to.equal('09');
+    });
+
+    it('ISOInterval#getExpireAt with enforceUTC = true overrides constructor enforceUTC', () => {
+      const localInt = new ISOInterval('2024-11-08/09').parse();
+      expect(localInt.startDate, 'local startDate').to.deep.equal(new Date(2024, 10, 8));
+      expect(localInt.endDate, 'local endDate').to.deep.equal(new Date(2024, 10, 9));
+
+      expect(localInt.getStartAt(null, null, true), 'getStartAt UTC').to.deep.equal(new Date(Date.UTC(2024, 10, 8)));
+      expect(localInt.getExpireAt(null, null, true), 'getExpireAt UTC').to.deep.equal(new Date(Date.UTC(2024, 10, 9)));
+    });
+
+    it('ISOInterval#getExpireAt with enforceUTC = false overrides constructor enforceUTC', () => {
+      const localInt = new ISOInterval('2024-11-08/09', true).parse();
+      expect(localInt.startDate, 'UTC startDate').to.deep.equal(new Date(Date.UTC(2024, 10, 8)));
+      expect(localInt.endDate, 'UTC endDate').to.deep.equal(new Date(Date.UTC(2024, 10, 9)));
+
+      expect(localInt.getStartAt(null, null, false), 'getStartAt local').to.deep.equal(new Date(2024, 10, 8));
+      expect(localInt.getExpireAt(null, null, false), 'getExpireAt local').to.deep.equal(new Date(2024, 10, 9));
     });
 
     it('duration too far in the future throws when getting expire at', () => {

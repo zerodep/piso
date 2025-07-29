@@ -77,6 +77,20 @@ describe('ISO date', () => {
     it(`new ISODate("${dt}").toJSON() returns parsed date to JSON`, () => {
       expect(new ISODate(dt).toJSON()).to.equal(getDateFromParts(expected).toJSON());
     });
+
+    it(`enforce UTC with getDate("${dt}", true) returns UTC date if it lacks timezone`, () => {
+      expect(getDate(dt, true)).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
+    });
+
+    it(`pass enforce UTC to parser returns UTC date if it lacks timezone`, () => {
+      const parser = new ISODate(dt, undefined, undefined, undefined, true);
+
+      const expectedDt = getDateFromParts({ Z: 'Z', ...expected });
+
+      expect(parser.toDate(), 'toDate').to.deep.equal(expectedDt);
+      expect(parser.toJSON(), 'toJSON').to.equal(expectedDt.toJSON());
+      expect(parser.toISOString(), 'toISOString').to.equal(expectedDt.toISOString());
+    });
   });
 
   it('toJSON() only parses once before returning JSON string', () => {
@@ -119,7 +133,7 @@ describe('ISO date', () => {
     expect(getDate(dt)).to.not.equal(dt);
   });
 
-  it('getDate(null | undefined, {}) throws range error', () => {
+  it('getDate(null | undefined | {}) throws range error', () => {
     expect(() => getDate(null)).to.throw(TypeError);
     expect(() => getDate(undefined)).to.throw(TypeError);
     expect(() => getDate({})).to.throw(TypeError);

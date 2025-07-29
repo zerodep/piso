@@ -39,8 +39,9 @@ const dateLocalFns = {
 /**
  * ISO 8601 interval parser
  * @param {string} source interval source string
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function ISOInterval(source) {
+export function ISOInterval(source, enforceUTC = false) {
   if (!source || typeof source !== 'string') throw new TypeError('ISO 8601 interval source is required and must be a string');
   /** @internal Interval source string */
   this.source = source;
@@ -60,6 +61,7 @@ export function ISOInterval(source) {
   this.end = undefined;
   /** @type {import('types').ISOIntervalType} */
   this.type = 0;
+  this.enforceUTC = enforceUTC;
   /** @internal */
   this[kIsParsed] = false;
 }
@@ -132,32 +134,34 @@ ISOInterval.prototype.parse = function parseInterval() {
  * Get expire at
  * @param {Date} [compareDate] optional compare date, defaults to now
  * @param {Date} [startDate] optional start date, duration without start or end defaults to now
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate) {
+ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate, enforceUTC) {
   if (!this[kIsParsed]) this.parse();
 
   const type = this.type;
   const repetitions = (type & 1) === 1 ? this.repeat : 1;
   const duration = (type & 4) === 4 && this.duration;
   const hasEndDate = (type & 8) === 8;
+  const eUTC = enforceUTC ?? this.enforceUTC;
 
-  if (repetitions === 1 && hasEndDate) return this.end.toDate();
+  if (repetitions === 1 && hasEndDate) return this.end.toDate(eUTC);
 
   const hasStartDate = (type & 2) === 2;
 
   compareDate = compareDate ?? new Date();
 
   if (hasStartDate && duration) {
-    const dateFns = new ISODateDurationFunctions(this.start.toDate(), duration, compareDate, this.start.result.Z);
+    const dateFns = new ISODateDurationFunctions(this.start.toDate(eUTC), duration, compareDate, !!this.start.result.Z || eUTC);
     return dateFns.addDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
   } else if (hasEndDate && duration && repetitions) {
-    const dateFns = new ISODateDurationFunctions(this.end.toDate(), duration, compareDate, this.end.result.Z);
+    const dateFns = new ISODateDurationFunctions(this.end.toDate(eUTC), duration, compareDate, !!this.end.result.Z || eUTC);
     return dateFns.reduceDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
   }
 
   startDate = startDate ?? new Date();
 
-  const dateFns = new ISODateDurationFunctions(startDate, duration, compareDate, 'Z');
+  const dateFns = new ISODateDurationFunctions(startDate, duration, compareDate, true);
 
   return dateFns.addDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
 };
@@ -166,32 +170,34 @@ ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate)
  * Get start at date
  * @param {Date} [compareDate] optional compare date, defaults to now
  * @param {Date} [endDate] optional end date, defaults to now
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-ISOInterval.prototype.getStartAt = function getStartAt(compareDate, endDate) {
+ISOInterval.prototype.getStartAt = function getStartAt(compareDate, endDate, enforceUTC) {
   if (!this[kIsParsed]) this.parse();
 
   const type = this.type;
   const repetitions = (type & 1) === 1 ? this.repeat : 1;
   const duration = (type & 4) === 4 && this.duration;
   const hasStartDate = (type & 2) === 2;
+  const eUTC = enforceUTC ?? this.enforceUTC;
 
-  if (repetitions === 1 && hasStartDate) return this.start.toDate();
+  if (repetitions === 1 && hasStartDate) return this.start.toDate(eUTC);
 
   const hasEndDate = (type & 8) === 8;
 
   compareDate = compareDate ?? new Date();
 
   if (hasStartDate && duration) {
-    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, !!this.start.result.Z);
+    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, eUTC || !!this.start.result.Z);
   } else if (hasEndDate && duration) {
-    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, !!this.end.result.Z);
+    return duration.applyDuration(this.getExpireAt(undefined, compareDate), -1, eUTC || !!this.end.result.Z);
   } else if (endDate === undefined) {
     return duration.getStartAt(this.getExpireAt(undefined, compareDate));
   } else if (repetitions === 1) {
     return duration.getStartAt(endDate);
   }
 
-  const dateFns = new ISODateDurationFunctions(endDate, duration, compareDate, 'Z');
+  const dateFns = new ISODateDurationFunctions(endDate, duration, compareDate, true);
   const expireAt = dateFns.reduceDuration(repetitions === -1 ? Number.MAX_VALUE : repetitions);
   return duration.getStartAt(expireAt);
 };
@@ -281,7 +287,7 @@ ISOInterval.prototype.consumeDuration = function consumeDuration() {
  * @param {ISODate} start
  */
 ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(start) {
-  const isoDate = new ISODate(this.source, this.idx, undefined, start.enforceSeparators);
+  const isoDate = new ISODate(this.source, this.idx, undefined, start.enforceSeparators, this.enforceUTC);
   const end = (this.end = isoDate.parsePartialDate(start.result.Y, start.result.M, start.result.D, start.result.W));
   if (start.result.Z && !end.result.Z) {
     end.result.Z = start.result.Z;
@@ -310,7 +316,7 @@ ISOInterval.prototype.consumePartialEndDate = function consumePartialEndDate(sta
  * @param {string} [endChars]
  */
 ISOInterval.prototype.consumeDate = function consumeDate(enforceSeparators, endChars) {
-  const isoDate = new ISODate(this.source, this.idx, endChars, enforceSeparators).parse();
+  const isoDate = new ISODate(this.source, this.idx, endChars, enforceSeparators, this.enforceUTC).parse();
   this.idx = isoDate.idx;
   this.c = isoDate.c;
   this.parsed += isoDate.parsed;
@@ -336,13 +342,15 @@ ISOInterval.prototype.peek = function peek() {
  * @param {number?} [offset] Source column offset
  * @param {string?} [endChars] Optional end chars
  * @param {boolean} [enforceSeparators] Enforce separators between IS0 8601 parts
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function ISODate(source, offset = -1, endChars = '', enforceSeparators = false) {
+export function ISODate(source, offset = -1, endChars = '', enforceSeparators = false, enforceUTC = false) {
   this.source = source;
   /** @type {number} */
   // @ts-ignore
   this.idx = offset > -1 ? Number(offset) : -1;
   this.enforceSeparators = enforceSeparators;
+  this.enforceUTC = enforceUTC;
   this.offset = offset;
   this.c = '';
   // @ts-ignore
@@ -353,7 +361,11 @@ export function ISODate(source, offset = -1, endChars = '', enforceSeparators = 
   this[kIsParsed] = false;
 }
 
-ISODate.prototype.toDate = function toDate() {
+/**
+ * ISO Date to Date
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
+ */
+ISODate.prototype.toDate = function toDate(enforceUTC) {
   if (!this[kIsParsed]) this.parse();
 
   /** @type {any} */
@@ -376,7 +388,7 @@ ISODate.prototype.toDate = function toDate() {
   if ('S' in result) args.push(result.S);
   if ('F' in result) args.push(Math.round(result.F));
 
-  switch (result.Z) {
+  switch (result.Z ?? ((enforceUTC ?? this.enforceUTC) && 'Z')) {
     case ISO_ZULU:
       /** @ts-ignore */
       return new Date(Date.UTC(...args));
@@ -1189,13 +1201,13 @@ ISODuration.prototype._getDateFns = function getDateFns(designator, useUtc) {
  * @param {Date} date
  * @param {Date} compareTo
  * @param {ISODuration} duration
- * @param {string} [UTC]
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-function ISODateDurationFunctions(date, duration, compareTo, UTC) {
+function ISODateDurationFunctions(date, duration, compareTo, enforceUTC) {
   this.date = date;
   this.duration = duration;
   this.compareTo = compareTo;
-  this.UTC = UTC;
+  this.enforceUTC = enforceUTC;
 }
 
 /**
@@ -1265,15 +1277,16 @@ ISODateDurationFunctions.prototype.reduceDuration = function reduceDuration(repe
  * @returns new date with applied duration
  */
 ISODateDurationFunctions.prototype.applyDuration = function applyDuration(date, repetitions = 1) {
-  return this.duration.applyDuration(date, repetitions, !!this.UTC);
+  return this.duration.applyDuration(date, repetitions, this.enforceUTC);
 };
 
 /**
  * Parse ISO 8601 interval
  * @param {string} isoInterval ISO 8601 interval
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function parseInterval(isoInterval) {
-  return new ISOInterval(isoInterval).parse();
+export function parseInterval(isoInterval, enforceUTC) {
+  return new ISOInterval(isoInterval, enforceUTC).parse();
 }
 
 /**
@@ -1287,15 +1300,16 @@ export function parseDuration(isoDuration) {
 /**
  * Parse ISO 8601 date
  * @param {string | Date | number} isoDateSource ISO 8601 date
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function getDate(isoDateSource) {
+export function getDate(isoDateSource, enforceUTC) {
   if (isoDateSource instanceof Date) return new Date(isoDateSource);
   else if (typeof isoDateSource === 'number') return new Date(isoDateSource);
   else if (!isoDateSource || typeof isoDateSource !== 'string') {
     throw new TypeError('ISO 8601 date source and must be a string');
   }
 
-  return new ISODate(isoDateSource).toDate();
+  return new ISODate(isoDateSource, undefined, undefined, undefined, enforceUTC).toDate();
 }
 
 /**
@@ -1303,9 +1317,10 @@ export function getDate(isoDateSource) {
  * @param {string} isoInterval ISO 8601 interval
  * @param {Date} [compareDate] optional compare date, defaults to now
  * @param {Date} [startDate] optional start date for use when only duration is present
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function getExpireAt(isoInterval, compareDate, startDate) {
-  return new ISOInterval(isoInterval).getExpireAt(compareDate, startDate);
+export function getExpireAt(isoInterval, compareDate, startDate, enforceUTC) {
+  return new ISOInterval(isoInterval, enforceUTC).getExpireAt(compareDate, startDate);
 }
 
 /**
@@ -1313,9 +1328,10 @@ export function getExpireAt(isoInterval, compareDate, startDate) {
  * @param {string} isoInterval ISO 8601 interval
  * @param {Date} [compareDate] optional compare date, defaults to now
  * @param {Date} [endDate] optional end date for use when only duration is present
+ * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset
  */
-export function getStartAt(isoInterval, compareDate, endDate) {
-  return new ISOInterval(isoInterval).getStartAt(compareDate, endDate);
+export function getStartAt(isoInterval, compareDate, endDate, enforceUTC) {
+  return new ISOInterval(isoInterval, enforceUTC).getStartAt(compareDate, endDate);
 }
 
 /**

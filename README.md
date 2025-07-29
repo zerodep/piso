@@ -10,9 +10,9 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
 # Contents
 
 - [Api](#api)
-  - [`parseInterval(iso8601Interval)`](#parseintervaliso8601interval)
+  - [`parseInterval(iso8601Interval[, enforceUTC])`](#parseintervaliso8601interval-enforceutc)
   - [`parseDuration(iso8601Duration)`](#parsedurationiso8601duration)
-  - [`getDate(iso8601Date)`](#getdateiso8601date)
+  - [`getDate(iso8601Date[, enforceUTC])`](#getdateiso8601date-enforceutc)
   - [`getISOWeekString([date])`](#getisoweekstringdate)
   - [`getUTCWeekNumber([date])`](#getutcweeknumberdate)
   - [`getUTCLastWeekOfYear(Y)`](#getutclastweekofyeary)
@@ -20,11 +20,12 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
 
 # Api
 
-## `parseInterval(iso8601Interval)`
+## `parseInterval(iso8601Interval[, enforceUTC])`
 
 Parse interval from an ISO 8601 interval string.
 
 - `iso8601Interval`: string with ISO 8601 interval source
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
 Returns [ISOInterval](#new-isointervalsource).
 
@@ -44,7 +45,7 @@ const viableIntervals = [
 ];
 
 for (const i of viableIntervals) {
-  console.log({ [i]: parseInterval(i).getExpireAt() });
+  console.log({ [i]: parseInterval(i).getExpireAt(), utc: parseInterval(i, true).getExpireAt() });
 }
 ```
 
@@ -92,11 +93,12 @@ try {
 }
 ```
 
-## `getDate(iso8601Date)`
+## `getDate(iso8601Date[, enforceUTC])`
 
 Get Date from an ISO 8601 date time string.
 
 - `iso8601Date`: string with ISO 8601 date source, date and number are also accepted
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
 Returns date.
 
@@ -147,7 +149,7 @@ const viableDates = [
 ];
 
 for (const d of viableDates) {
-  console.log({ [d]: getDate(d) });
+  console.log({ [d]: getDate(d), utc: getDate(d, true) });
 }
 
 try {
@@ -171,7 +173,7 @@ try {
 }
 ```
 
-> NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time".
+> NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time". Unless, of cource, enforce UTC instruction is used.
 
 ## `getUTCLastWeekOfYear(Y)`
 
@@ -231,9 +233,14 @@ import { getUTCWeekNumber } from '@0dep/piso';
 console.log(getUTCWeekNumber(new Date(2016, 0, 1)));
 ```
 
-## `new ISOInterval(source)`
+## `new ISOInterval(source[, enforceUTC])`
 
 Interval instance.
+
+**Constructor:**
+
+- `source`: ISO8601 interval source
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
 **Properties:**
 
@@ -361,9 +368,11 @@ Parse partial date as compared to passed date part arguments.
 
 Returns [ISODate](#new-isodatesource-offset)
 
-### `date.toDate()`
+### `date.toDate([enforceUTC])`
 
 Get Date represented by source.
+
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
 ### `date.toJSON()`
 

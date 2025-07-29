@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.6.0] - 2025-07-28
+
+- implement enforce UTC instruction when parsing interval and date
+- use optional chaining (?) and nullish coalescing (??) where feasible
+
 ## [2.5.0] - 2025-05-18
 
 Performance hunting.
