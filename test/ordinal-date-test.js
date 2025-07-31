@@ -63,15 +63,19 @@ describe('ISO ordinal date', () => {
       });
 
       it(`partial 366 days in leap year ${leapYear} is ok`, () => {
-        expect(new ISODate('366', -1, null, true).parsePartialDate(leapYear, 0).toDate()).to.deep.equal(new Date(leapYear, 11, 31));
+        expect(new ISODate('366', { enforceSeparators: true }).parsePartialDate(leapYear, 0).toDate()).to.deep.equal(
+          new Date(leapYear, 11, 31),
+        );
       });
 
       it(`partial 365 days in non leap year ${nonLeapYear} is ok`, () => {
-        expect(new ISODate('365', -1, null, true).parsePartialDate(nonLeapYear, 0).toDate()).to.deep.equal(new Date(nonLeapYear, 11, 31));
+        expect(new ISODate('365', { enforceSeparators: true }).parsePartialDate(nonLeapYear, 0).toDate()).to.deep.equal(
+          new Date(nonLeapYear, 11, 31),
+        );
       });
 
       it(`partial 366 days in non leap year ${nonLeapYear} throws range error`, () => {
-        expect(() => new ISODate('366', -1, null, true).parsePartialDate(nonLeapYear, 0)).to.throw(RangeError);
+        expect(() => new ISODate('366', { enforceSeparators: true }).parsePartialDate(nonLeapYear, 0)).to.throw(RangeError);
       });
     });
   });
@@ -79,7 +83,7 @@ describe('ISO ordinal date', () => {
   describe('partial', () => {
     ['-001T12:00', '001-', '001T', '001Z', '100T0000', '1981001'].forEach((partialDateString) => {
       it(`parse partial ${partialDateString} with enforce separators throws range error`, () => {
-        expect(() => new ISODate(partialDateString, -1, null, true).parsePartialDate(1981, 0), partialDateString).to.throw(
+        expect(() => new ISODate(partialDateString, { enforceSeparators: true }).parsePartialDate(1981, 0), partialDateString).to.throw(
           RangeError,
           /unexpected/i,
         );
@@ -88,7 +92,7 @@ describe('ISO ordinal date', () => {
 
     ['001T12:00', '001-', '001T', '001Z', '100T12:00', '1981-001'].forEach((partialDateString) => {
       it(`parse partial ${partialDateString} without enforce separators throws range error`, () => {
-        expect(() => new ISODate(partialDateString, -1, null, false).parsePartialDate(1981, 0), partialDateString).to.throw(
+        expect(() => new ISODate(partialDateString, { enforceSeparators: false }).parsePartialDate(1981, 0), partialDateString).to.throw(
           RangeError,
           /unexpected/i,
         );

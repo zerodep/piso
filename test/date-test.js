@@ -83,7 +83,7 @@ describe('ISO date', () => {
     });
 
     it(`pass enforce UTC to parser returns UTC date if it lacks timezone`, () => {
-      const parser = new ISODate(dt, undefined, undefined, undefined, true);
+      const parser = new ISODate(dt, { enforceUTC: true });
 
       const expectedDt = getDateFromParts({ Z: 'Z', ...expected });
 
@@ -147,15 +147,15 @@ describe('ISO date', () => {
   });
 
   it('enforce separators forces separators to be used', () => {
-    expect(new ISODate('20070101', undefined, undefined, false).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
-    expect(new ISODate('2007-01-01', undefined, undefined, true).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
+    expect(new ISODate('20070101', { enforceSeparators: false }).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
+    expect(new ISODate('2007-01-01', { enforceSeparators: true }).parse().result).to.deep.equal({ Y: 2007, M: 0, D: 1, isValid: true });
 
     expect(() => {
-      new ISODate('20070101', undefined, undefined, true).parse();
+      new ISODate('20070101', { enforceSeparators: true }).parse();
     }).to.throw(RangeError, /unexpected/i);
 
     expect(() => {
-      new ISODate('2007-0101', undefined, undefined, true).parse();
+      new ISODate('2007-0101', { enforceSeparators: true }).parse();
     }).to.throw(RangeError, /unbalanced/i);
   });
 
@@ -172,11 +172,11 @@ describe('ISO date', () => {
     ['2025-02-28T08:06:30-01', new Date(Date.UTC(2025, 1, 28, 9, 6, 30))],
   ].forEach(([dt, expected]) => {
     it(`parse partial "${dt}" returns expected date`, () => {
-      expect(new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
+      expect(new ISODate(dt, { enforceSeparators: true }).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
     });
 
     it(`parse partial "${dt}" parses once and returns expected date`, () => {
-      const parser = new ISODate(dt, -1, null, true);
+      const parser = new ISODate(dt, { enforceSeparators: true });
       parser.parsePartialDate(2024, 0, 1);
       parser.parsePartialDate(2024, 0, 1);
       expect(parser.toDate()).to.deep.equal(expected);
@@ -186,13 +186,13 @@ describe('ISO date', () => {
 
   ['02-30', '2023-366', '367', '2025318'].forEach((dt) => {
     it(`parse partial with enforce separators and invalid partial "${dt}" throws range error`, () => {
-      expect(() => new ISODate(dt, -1, null, true).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
+      expect(() => new ISODate(dt, { enforceSeparators: true }).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
     });
   });
 
   ['0230', '2023366', '367', '2025-318'].forEach((dt) => {
     it(`parse partial without enforce separators and invalid partial "${dt}" throws range error`, () => {
-      expect(() => new ISODate(dt, -1, null, false).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
+      expect(() => new ISODate(dt, { enforceSeparators: false }).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
     });
   });
 

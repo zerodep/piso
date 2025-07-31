@@ -27,7 +27,7 @@ Parse interval from an ISO 8601 interval string.
 - `iso8601Interval`: string with ISO 8601 interval source
 - `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
-Returns [ISOInterval](#new-isointervalsource).
+Returns [ISOInterval](#new-isointervalsource-enforceutc).
 
 ```javascript
 import { parseInterval, ISOInterval } from '@0dep/piso';
@@ -103,7 +103,7 @@ Get Date from an ISO 8601 date time string.
 Returns date.
 
 ```javascript
-import { getDate, ISODate } from '@0dep/piso';
+import { getDate } from '@0dep/piso';
 
 const viableDates = [
   '2024-01-27',
@@ -212,7 +212,7 @@ Get ISO week date string from date.
 ```javascript
 import { getISOWeekString } from '@0dep/piso';
 
-console.log(getISOWeekString(new Date(2021, 11, 28)));
+console.log('date as week', getISOWeekString(new Date(2021, 11, 28)));
 ```
 
 ## `getUTCWeekNumber([date])`
@@ -245,9 +245,9 @@ Interval instance.
 **Properties:**
 
 - `repeat`: number of repeats
-- `start`: start date as [ISODate](#new-isodatesource-offset)
+- `start`: start date as [ISODate](#new-isodatesource-options)
 - `duration`: duration as [ISODuration](#new-isodurationsource-offset)
-- `end`: end date as [ISODate](#new-isodatesource-offset)
+- `end`: end date as [ISODate](#new-isodatesource-options)
 - `type`: [interval type](#intervaltype)
 - `get startDate`: start date as date, requires [parse()](#intervalparse) to be called
 - `get endDate`: end date as date, requires [parse()](#intervalparse) to be called
@@ -316,7 +316,7 @@ console.log((interval.type | 2) === interval.type ? 'Yes' : 'No');
 
 ### `interval.parse()`
 
-Returns [ISOInterval](#new-isointervalsource).
+Returns [ISOInterval](#new-isointervalsource-enforceutc).
 
 Throws `RangeError` if something is off.
 
@@ -330,14 +330,18 @@ import { ISOInterval } from '@0dep/piso';
 console.log(JSON.stringify({ interval: new ISOInterval('R2/P1Y/2024-03-28') }, null, 2));
 ```
 
-## `new ISODate(source[, offset])`
+## `new ISODate(source[, options])`
 
 ISO date instance.
 
 **Constructor**:
 
 - `source`: ISO 8601 date source string
-- `offset`: optional source string offset column number
+- `options`: optional parsing options
+  - `offset`: source string offset column number, -1 is default
+  - `endChars`: string with optional characters that mark the end of the ISO date, e.g. `/`
+  - `enforceSeparators`: boolean that will require time part separators such as `-` and `:`
+  - `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
 
 **Properties:**
 
@@ -366,7 +370,7 @@ Parse partial date as compared to passed date part arguments.
 - `D`: required date, weekday (1 = Monday .. 7 = Sunday) if `W` is passed, or ordinal day
 - `W`: optional week number, then `D` is the week day
 
-Returns [ISODate](#new-isodatesource-offset)
+Returns [ISODate](#new-isodatesource-options)
 
 ### `date.toDate([enforceUTC])`
 

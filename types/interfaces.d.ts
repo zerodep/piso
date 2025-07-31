@@ -68,3 +68,14 @@ export enum ISOIntervalType {
   DurationAndEndDate = 12,
   RepeatDurationAndEndDate = 13,
 }
+
+export interface ISODateOptions {
+  /** source string offset column number, -1 is default */
+  offset?: number;
+  /** string with optional characters that mark the end of the ISO date, e.g. `/` */
+  endChars?: string;
+  /** require time part separators such as `-` and `:` */
+  enforceSeparators?: boolean;
+  /** enforce UTC if source lacks time zone offset, defaults to false */
+  enforceUTC?: boolean;
+}

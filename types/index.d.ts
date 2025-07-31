@@ -3,7 +3,7 @@ declare module '@0dep/piso' {
 	/**
 	 * ISO 8601 interval parser
 	 * @param source interval source string
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param enforceUTC enforce UTC if source lacks timezone offset
 	 */
 	export function ISOInterval(source: string, enforceUTC?: boolean): void;
 	export class ISOInterval {
@@ -11,7 +11,7 @@ declare module '@0dep/piso' {
 		/**
 		 * ISO 8601 interval parser
 		 * @param source interval source string
-		 * @param enforceUTC enforce UTC if source lacks time zone offset
+		 * @param enforceUTC enforce UTC if source lacks timezone offset
 		 */
 		constructor(source: string, enforceUTC?: boolean);
 		/** @internal Interval source string */
@@ -43,14 +43,14 @@ declare module '@0dep/piso' {
 		 * Get expire at
 		 * @param compareDate optional compare date, defaults to now
 		 * @param startDate optional start date, duration without start or end defaults to now
-		 * @param enforceUTC enforce UTC if source lacks time zone offset
+		 * @param enforceUTC enforce UTC if source lacks timezone offset
 		 */
 		getExpireAt(compareDate?: Date, startDate?: Date, enforceUTC?: boolean): Date;
 		/**
 		 * Get start at date
 		 * @param compareDate optional compare date, defaults to now
 		 * @param endDate optional end date, defaults to now
-		 * @param enforceUTC enforce UTC if source lacks time zone offset
+		 * @param enforceUTC enforce UTC if source lacks timezone offset
 		 */
 		getStartAt(compareDate?: Date, endDate?: Date, enforceUTC?: boolean): Date;
 		toJSON(): string;
@@ -77,28 +77,22 @@ declare module '@0dep/piso' {
 	/**
 	 * ISO 8601 date parser
 	 * @param source ISO 8601 date time source
-	 * @param offset Source column offset
-	 * @param endChars Optional end chars
-	 * @param enforceSeparators Enforce separators between IS0 8601 parts
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param options parse options
 	 */
-	export function ISODate(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean, enforceUTC?: boolean): void;
+	export function ISODate(source: string, options?: ISODateOptions): void;
 	export class ISODate {
 		/**
 		 * ISO 8601 date parser
 		 * @param source ISO 8601 date time source
-		 * @param offset Source column offset
-		 * @param endChars Optional end chars
-		 * @param enforceSeparators Enforce separators between IS0 8601 parts
-		 * @param enforceUTC enforce UTC if source lacks time zone offset
+		 * @param options parse options
 		 */
-		constructor(source: string, offset?: number | null, endChars?: string | null, enforceSeparators?: boolean, enforceUTC?: boolean);
+		constructor(source: string, options?: ISODateOptions);
 		source: string;
 		
+		offset: number;
 		idx: number;
 		enforceSeparators: boolean;
 		enforceUTC: boolean;
-		offset: number;
 		c: string;
 		parsed: string;
 		endChars: string;
@@ -106,7 +100,7 @@ declare module '@0dep/piso' {
 		result: Partial<ISODateParts>;
 		/**
 		 * ISO Date to Date
-		 * @param enforceUTC enforce UTC if source lacks time zone offset
+		 * @param enforceUTC enforce UTC if source lacks timezone offset
 		 */
 		toDate(enforceUTC?: boolean): Date;
 		/**
@@ -314,7 +308,7 @@ declare module '@0dep/piso' {
 	/**
 	 * Parse ISO 8601 interval
 	 * @param isoInterval ISO 8601 interval
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param enforceUTC enforce UTC if source lacks timezone offset
 	 */
 	export function parseInterval(isoInterval: string, enforceUTC?: boolean): ISOInterval;
 	/**
@@ -325,7 +319,7 @@ declare module '@0dep/piso' {
 	/**
 	 * Parse ISO 8601 date
 	 * @param isoDateSource ISO 8601 date
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param enforceUTC enforce UTC if source lacks timezone offset
 	 */
 	export function getDate(isoDateSource: string | Date | number, enforceUTC?: boolean): Date;
 	/**
@@ -333,7 +327,7 @@ declare module '@0dep/piso' {
 	 * @param isoInterval ISO 8601 interval
 	 * @param compareDate optional compare date, defaults to now
 	 * @param startDate optional start date for use when only duration is present
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param enforceUTC enforce UTC if source lacks timezone offset
 	 */
 	export function getExpireAt(isoInterval: string, compareDate?: Date, startDate?: Date, enforceUTC?: boolean): Date;
 	/**
@@ -341,7 +335,7 @@ declare module '@0dep/piso' {
 	 * @param isoInterval ISO 8601 interval
 	 * @param compareDate optional compare date, defaults to now
 	 * @param endDate optional end date for use when only duration is present
-	 * @param enforceUTC enforce UTC if source lacks time zone offset
+	 * @param enforceUTC enforce UTC if source lacks timezone offset
 	 */
 	export function getStartAt(isoInterval: string, compareDate?: Date, endDate?: Date, enforceUTC?: boolean): Date;
 	/**
@@ -427,6 +421,17 @@ declare module '@0dep/piso' {
 	StartDateAndEndDate = 10,
 	DurationAndEndDate = 12,
 	RepeatDurationAndEndDate = 13,
+  }
+
+  interface ISODateOptions {
+	/** source string offset column number, -1 is default */
+	offset?: number;
+	/** string with optional characters that mark the end of the ISO date, e.g. `/` */
+	endChars?: string;
+	/** require time part separators such as `-` and `:` */
+	enforceSeparators?: boolean;
+	/** enforce UTC if source lacks time zone offset, defaults to false */
+	enforceUTC?: boolean;
   }
 
 	export {};

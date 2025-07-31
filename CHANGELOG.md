@@ -4,10 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [2.6.0] - 2025-07-28
+## [3.0.0] - 2025-07-31
 
-- implement enforce UTC instruction when parsing interval and date
+### Breaking
+
+- ISODate constructor arguments in has changed signature to `new ISODate(source[, options])` from `new ISODate(source[, offset, endChars, enforceSeparators])`. When introducing enforce UTC the number of constructor arguments grew too long. Gathered them in an optional options object
+
+### Other
+
+- implement enforce UTC instruction when parsing interval and date, hence `2025-07-31` with this instruction will be considered UTC, as if `new Date('2025-07-31')` was used
 - use optional chaining (?) and nullish coalescing (??) where feasible
+- hunt some performance to counteract the introduction of new functionality, using an instance property directly seems faster than assigning it to a scoped variable
 
 ## [2.5.0] - 2025-05-18
 
