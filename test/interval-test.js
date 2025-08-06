@@ -1,6 +1,6 @@
 import * as ck from 'chronokinesis';
 
-import { parseInterval, parseDuration, ISOInterval, getExpireAt, getStartAt } from '../src/index.js';
+import { parseInterval, parseDuration, ISOInterval, getExpireAt, getStartAt } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 import { expect } from 'chai';
 
@@ -14,6 +14,17 @@ describe('ISO 8601 interval', () => {
       ['P2Y/2007-03-01T13:00Z', { Y: 2007, M: 2, D: 1, H: 13, m: 0, Z: 'Z' }],
       ['P2Y/2008-03-01T13:00:00Z', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
       ['P2Y/2008-03-01', { Y: 2008, M: 2, D: 1 }],
+      ['P32Y4M/-00033-04-20', { Y: -33, M: 3, D: 20 }],
+      ['P32Y4M/+12001-12-24', { Y: 12001, M: 11, D: 24 }],
+      ['P33Y4M/-00033-04-24', { Y: -33, M: 3, D: 24, H: 0 }],
+      ['P33Y4M/-00002-12-24', { Y: -2, M: 11, D: 24 }],
+      ['P33Y4M/-00003-12-24', { Y: -3, M: 11, D: 24 }],
+      ['P30Y/-00030-12-24', { Y: -30, M: 11, D: 24 }],
+      ['P120Y/-1271-12-24', { Y: -1271, M: 11, D: 24 }],
+      ['P120Y/-1392-02-29', { Y: -1392, M: 1, D: 29 }],
+      ['P400Y/0101-02-28', { Y: 101, M: 1, D: 28 }],
+      ['P400Y/0800-02-29', { Y: 800, M: 1, D: 29 }],
+      ['P32Y4M/+12001-12-24', { Y: 12001, M: 11, D: 24 }],
     ].forEach(([interval, expected]) => {
       it(`getExpireAt("${interval}") with end date returns end date`, () => {
         const expireAt = getExpireAt(interval);
@@ -32,7 +43,16 @@ describe('ISO 8601 interval', () => {
       ['2008-03-01T13:00:00Z/P2Y', { Y: 2010, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
       ['2008-03-01/P1M', { Y: 2008, M: 3, D: 1 }],
       ['2008-03-01/P2Y', { Y: 2010, M: 2, D: 1 }],
-    ].forEach(([interval, expected]) => {
+      ['-00001-12-24/P33Y4M', { Y: 33, M: 3, D: 24, H: 0, m: 6, S: 32 }, { Y: 33, M: 3, D: 24 }],
+      ['-00002-12-24/P33Y4M', { Y: 32, M: 3, D: 24, H: 0, m: 6, S: 32 }, { Y: 32, M: 3, D: 24 }],
+      ['-00003-12-24/P33Y4M', { Y: 31, M: 3, D: 24, H: 0, m: 6, S: 32 }, { Y: 31, M: 3, D: 24 }],
+      ['-00030-12-24/P30Y', { Y: 0, M: 11, D: 24, H: 0, m: 6, S: 32 }, { Y: 0, M: 11, D: 24 }],
+      ['-1391-12-24/P120Y', { Y: -1271, M: 11, D: 24 }],
+      ['-1392-02-29/P120Y', { Y: -1272, M: 1, D: 29 }],
+      ['0101-02-28/P400Y', { Y: 501, M: 1, D: 28 }],
+      ['0800-02-29/P400Y', { Y: 1200, M: 1, D: 29 }],
+      ['+12001-12-24/P32Y4M', { Y: 12034, M: 3, D: 24 }],
+    ].forEach(([interval, expected, expectedUTC]) => {
       it(`getExpireAt("${interval}") with start date and duration returns start date with applied duration`, () => {
         const expireAt = getExpireAt(interval);
         expect(expireAt).to.deep.equal(getDateFromParts(expected));
@@ -40,7 +60,7 @@ describe('ISO 8601 interval', () => {
 
       it(`getExpireAt("${interval}", null, null, enforceUTC) with start date and duration returns start date with applied duration`, () => {
         const expireAt = getExpireAt(interval, null, null, true);
-        expect(expireAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...expected }));
+        expect(expireAt).to.deep.equal(getDateFromParts({ Z: 'Z', ...(expectedUTC ?? expected) }));
       });
     });
 
@@ -489,6 +509,7 @@ describe('ISO 8601 interval', () => {
       ['R2/2008-03-01T13:00:00Z/P2Y', { Y: 2008, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
       ['R2/2008-03-01/P1M', { Y: 2008, M: 2, D: 1 }],
       ['R2/2008-03-01/P2Y', { Y: 2008, M: 2, D: 1 }],
+      ['R4/-1391-03-01/P30Y', { Y: -1391, M: 2, D: 1 }],
     ].forEach(([interval, expected]) => {
       it(`getStartAt("${interval}") with repeat, start date has passed returns start date with first applied duration`, () => {
         const parsed = parseInterval(interval);
@@ -886,6 +907,10 @@ describe('ISO 8601 interval', () => {
       },
     );
 
+    it('"2007-02-01/02-2" throws unexpected error', () => {
+      expect(() => parseInterval('2007-02-01/02-2')).to.throw(RangeError, /Unexpected/i);
+    });
+
     it('partial end date without timezone offset shares timezone offset with start date', () => {
       let iso = parseInterval('2007-11-13T14:00+04/16:00');
 
@@ -1046,15 +1071,26 @@ describe('ISO 8601 interval', () => {
       });
     });
 
-    ['  ', 'Last wednesday', 'Past wednesday', 'Rather', 'R/And again', '2pac', '2024-03-08/R', '2024-03-00', 'R3//2027-02-01'].forEach(
-      (interval) => {
-        it(`non "${interval}" throws range error`, () => {
-          expect(() => {
-            parseInterval(interval);
-          }).to.throw(RangeError);
-        });
-      },
-    );
+    [
+      '  ',
+      'Last wednesday',
+      'Past wednesday',
+      'Rather',
+      'R/And again',
+      '2pac',
+      '2024-03-08/R',
+      '2024-03-00',
+      'R3//2027-02-01',
+      'R3/Z2027-02-01',
+      '2027-02-01/Z10000-02-01',
+      'Z12027-02-01/+13000-02-01',
+    ].forEach((interval) => {
+      it(`non "${interval}" throws range error`, () => {
+        expect(() => {
+          parseInterval(interval);
+        }).to.throw(RangeError);
+      });
+    });
 
     ['2027-0101', '202701-01', '2027-01-01T1200', '2027-01-01T12:0000', '20270101T12:0000', '20270101T1200:00'].forEach((interval) => {
       it(`unbalanced separators in start date "${interval}" throws range error`, () => {
@@ -1071,6 +1107,7 @@ describe('ISO 8601 interval', () => {
       '2007-12-12/2027-01-01T12:0000',
       '2007-12-12/20270101T12:0000',
       '20071212/20270101T1200:00',
+      '-2007-12-12/00000101',
     ].forEach((interval) => {
       it(`unbalanced end date and time separator in "${interval}" throws range error`, () => {
         expect(() => {
@@ -1388,6 +1425,27 @@ describe('ISO 8601 interval', () => {
       expect(() => parseInterval('R1/2025-12-15T22:00:00/25:00:00')).to.throw(
         RangeError,
         'Invalid ISO 8601 hours "R1/2025-12-15T22:00:00/2[5]" at 24',
+      );
+    });
+
+    it('indicate invalid BC start date', () => {
+      expect(() => parseInterval('R1/-0020250515/PU12H')).to.throw(
+        RangeError,
+        'Unexpected ISO 8601 date character "R1/-0020250515[/]" at 14',
+      );
+    });
+
+    it('indicate invalid 9999+ start date', () => {
+      expect(() => parseInterval('R1/+12020250515/PU12H')).to.throw(
+        RangeError,
+        'Unexpected ISO 8601 date character "R1/+12020250515[/]" at 15',
+      );
+    });
+
+    it('BC start date force separators on end date', () => {
+      expect(() => parseInterval('-0001-05-15T12:00/00010615')).to.throw(
+        RangeError,
+        'Unexpected ISO 8601 date character "-0001-05-15T12:00/0001[0]" at 22',
       );
     });
   });

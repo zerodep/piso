@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.1] - 2025-08-02
+
+- support years beyond 9999 using plus (+) and BC years with minus or hyphen (-)
+- an ISO date with only one day digit `2025-01-1` should not be considered an ordinal date. Furiosly throwing a unexpected EOL error is more like it. This happens now.
+
 ## [3.0.0] - 2025-07-31
 
 ### Breaking

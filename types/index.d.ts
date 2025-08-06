@@ -152,12 +152,6 @@ declare module '@0dep/piso' {
 		 */
 		continueFromWeekInstruction(Y: number): this;
 		/**
-		 * Consume weekday
-		 * @param Y from year
-		 * @param W from week
-		 */
-		continueWeekdayPrecision(Y: number, W: number): this;
-		/**
 		 * Continue from time instruction
 		 */
 		continueFromTimeInstruction(): this;

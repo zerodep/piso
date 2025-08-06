@@ -1,6 +1,8 @@
 const FRACTIONS = ',.';
+const UNICODE_MINUS = '\u2212';
 const ISO_ZULU = 'Z';
-const ISODATE_SEPARATOR = '-';
+const ISODATE_HYPHEN = '-';
+const ISODATE_PREFIX = '+-' + UNICODE_MINUS;
 const ISODATE_TIMEINSTRUCTION = 'T';
 const ISODATE_WEEKINSTRUCTION = 'W';
 const ISODURATION_DATE_DESIGNATORS = 'YMWD';
@@ -8,8 +10,7 @@ const ISODURATION_TIME_DESIGNATORS = 'HMS';
 const ISOINTERVAL_DURATION = 'P';
 const ISOINTERVAL_REPEAT = 'R';
 const ISOINTERVAL_SEPARATOR = '/';
-const UNICODE_MINUS = '\u2212';
-const ISOTIME_OFFSET = '+-' + UNICODE_MINUS + ISO_ZULU;
+const ISOTIME_OFFSET = ISODATE_PREFIX + ISO_ZULU;
 const ISOTIME_SEPARATOR = ':';
 const ISOTIME_STARTHOUR = '012';
 const ISOTIME_STARTPART = '012345';
@@ -97,7 +98,7 @@ ISOInterval.prototype.parse = function parseInterval() {
   }
 
   let start;
-  if (NUMBERS.indexOf(c) > -1) {
+  if (NUMBERS.indexOf(c) > -1 || ISODATE_PREFIX.indexOf(c) > -1) {
     start = this.consumeStartDate();
   } else if (c !== ISOINTERVAL_DURATION) {
     throw new RangeError(`Invalid ISO 8601 interval "${this.source}"`);
@@ -420,18 +421,67 @@ ISODate.prototype.parse = function parseISODate() {
   }
   this[kIsParsed] = true;
 
-  let value = this.consumeChar();
-  for (let idx = 0; idx < 3; idx++) {
-    value += this.consumeChar();
+  let c = this.peek();
+
+  let sign = '';
+  if (ISODATE_PREFIX.indexOf(c) > -1) {
+    sign = c === UNICODE_MINUS ? ISODATE_HYPHEN : c;
+    this.consume();
   }
 
-  const Y = (this.result.Y = Number(value));
+  const dateChars = NUMBERS + ISODATE_HYPHEN + ISODATE_TIMEINSTRUCTION + ISODATE_WEEKINSTRUCTION;
 
-  if (this.peek() === ISODATE_SEPARATOR || this.enforceSeparators) {
-    this.enforceSeparators = true;
+  let value = '';
+  while ((c = this.consumeCharOrEnd(dateChars))) {
+    if (c === ISODATE_HYPHEN) {
+      this.enforceSeparators = true;
+      break;
+    } else if (c === ISODATE_TIMEINSTRUCTION) {
+      break;
+    } else if (c === ISODATE_WEEKINSTRUCTION) {
+      break;
+    } else {
+      value += c;
+      if (!sign && value.length > 8) throw this.createUnexpectedError();
+      else if (sign && value.length > 17) throw this.createUnexpectedError();
+    }
   }
 
-  this.continueDatePrecision(Y);
+  if (value.length < 4) throw this.createUnexpectedError();
+
+  if (c === ISODATE_TIMEINSTRUCTION || !c) {
+    if (this.enforceSeparators) throw this.createUnexpectedError();
+
+    if (value.length === 7) {
+      const Y = (this.result.Y = Number(sign + value.substring(0, 4)));
+      const D = (this.result.D = Number(value.substring(4)));
+
+      this.continueOrdinalDatePrecision(Y, D, c);
+    } else {
+      if (value.length > 8) throw this.createUnexpectedError();
+
+      const Y = (this.result.Y = Number(sign + value.substring(0, 4)));
+      const M = (this.result.M = Number(value.substring(4, 6)) - 1);
+      const D = (this.result.D = Number(value.substring(6, 8)));
+
+      if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
+
+      if (c) this.continueFromTimeInstruction();
+    }
+  } else if (c === ISODATE_WEEKINSTRUCTION) {
+    if (this.enforceSeparators) throw this.createUnexpectedError();
+
+    const Y = (this.result.Y = Number(sign + value));
+
+    this.continueFromWeekInstruction(Y);
+  } else if (sign) {
+    const Y = (this.result.Y = Number(sign + value));
+    this.continueDatePrecision(Y);
+  } else {
+    if (value.length > 4) throw this.createUnexpectedError();
+    const Y = (this.result.Y = Number(value));
+    this.continueDatePrecision(Y);
+  }
 
   this.result.isValid = true;
 
@@ -476,7 +526,7 @@ ISODate.prototype.toString = function isoDateToString() {
  * @param {string} source ISO 8601 duration
  * @param {number?} [offset] source column offset
  */
-ISODate.parse = function parseISODate(source, offset) {
+ISODate.parse = function staticParseISODate(source, offset) {
   return new this(source, { offset }).parse().result;
 };
 
@@ -488,6 +538,7 @@ ISODate.parse = function parseISODate(source, offset) {
  * @param {number} [W] Weeknumber
  */
 ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
+  if (this[kIsParsed]) return this;
   this._parseRelativeDate(Y, M, D, W);
   this.result.isValid = true;
   return this;
@@ -501,10 +552,13 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
  * @param {number} [W] Weeknumber
  */
 ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
-  if (this[kIsParsed]) return this;
-  this[kIsParsed] = true;
-
   this.result.Y = Y;
+
+  if (ISODATE_PREFIX.indexOf(this.peek()) > -1) {
+    return this.parse();
+  }
+
+  this[kIsParsed] = true;
 
   const c = this.consumeChar(NUMBERS + ISODATE_WEEKINSTRUCTION);
   let next = this.peek();
@@ -558,8 +612,11 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
     }
 
     const year = (this.result.Y = Number(value + this.consumeChar()));
+
+    if (this.enforceSeparators) this.consumeChar(ISODATE_HYPHEN);
+
     return this.continueDatePrecision(year);
-  } else if (next === ISODATE_SEPARATOR) {
+  } else if (next === ISODATE_HYPHEN) {
     this.consume();
     const month = (this.result.M = Number(value) - 1);
     const day = (this.result.D = Number(this.consumeChar('0123') + this.consumeChar()));
@@ -582,17 +639,11 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
  * @param {number} Y year
  */
 ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
-  let dateSeparator = this.enforceSeparators ? ISODATE_SEPARATOR : '';
+  const dateSeparator = this.enforceSeparators ? ISODATE_HYPHEN : '';
   const initNext = ISODATE_WEEKINSTRUCTION + '0123';
 
   /** @type {string | undefined} */
   let c = this.consumeChar(dateSeparator + initNext);
-  if (c === dateSeparator) {
-    dateSeparator = c;
-    c = this.consumeChar(initNext);
-  } else if (dateSeparator) {
-    throw this.createUnexpectedError();
-  }
 
   if (c === ISODATE_WEEKINSTRUCTION) {
     return this.continueFromWeekInstruction(Y);
@@ -615,7 +666,7 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
     numbers += c;
   }
 
-  if (numbers.length === 3) {
+  if (numbers.length === 3 && separator === -1) {
     return this.continueOrdinalDatePrecision(Y, Number(numbers), c);
   }
 
@@ -623,6 +674,8 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
     throw new RangeError('Unbalanced ISO 8601 date separator');
   } else if (numbers.length === 2 && (!dateSeparator || separator === 0)) {
     throw new RangeError('Unbalanced ISO 8601 date separator');
+  } else if (numbers.length === 3) {
+    throw this.createUnexpectedError();
   }
 
   const M = (this.result.M = Number(numbers.substring(0, 2)) - 1);
@@ -658,18 +711,10 @@ ISODate.prototype.continueOrdinalDatePrecision = function continueOrdinalDatePre
  */
 ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruction(Y) {
   const W = (this.result.W = Number(this.consumeChar('012345') + this.consumeChar()));
-  return this.continueWeekdayPrecision(Y, W);
-};
 
-/**
- * Consume weekday
- * @param {number} Y from year
- * @param {number} W from week
- */
-ISODate.prototype.continueWeekdayPrecision = function continueWeekdayPrecision(Y, W) {
   let c;
   if (this.enforceSeparators) {
-    c = this.consumeCharOrEnd(ISODATE_SEPARATOR);
+    c = this.consumeCharOrEnd(ISODATE_HYPHEN);
     if (!c) {
       if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
       this.result.D = 1;

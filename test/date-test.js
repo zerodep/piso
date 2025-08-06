@@ -27,6 +27,7 @@ describe('ISO date', () => {
     ['2024-10-31', { Y: 2024, M: 9, D: 31 }],
     ['2024-11-30', { Y: 2024, M: 10, D: 30 }],
     ['2024-12-31', { Y: 2024, M: 11, D: 31 }],
+    ['+2024-12-31', { Y: 2024, M: 11, D: 31 }],
     ['2024-01', { Y: 2024, M: 0, D: 1 }],
     ['2024-12', { Y: 2024, M: 11, D: 1 }],
     ['20240127', { Y: 2024, M: 0, D: 27 }],
@@ -56,6 +57,10 @@ describe('ISO date', () => {
     ['2025-01-01T24:00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, Z: '+', OH: 1 }],
     ['2025-01-01T24:00:00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0, Z: '+', OH: 1 }],
     ['2025-01-01T24:00:00.00+01', { Y: 2025, M: 0, D: 1, H: 24, m: 0, S: 0, F: 0, Z: '+', OH: 1 }],
+    ['+012025-01-01T00:00:00.00Z', { Y: 12025, M: 0, D: 1, H: 0, m: 0, S: 0, F: 0, Z: 'Z' }],
+    ['+12025-01-01T00:00:00.00Z', { Y: 12025, M: 0, D: 1, H: 0, m: 0, S: 0, F: 0, Z: 'Z' }],
+    ['-000001-01-01T00:00:00.00Z', { Y: -1, M: 0, D: 1, H: 0, m: 0, S: 0, F: 0, Z: 'Z' }],
+    ['−000001-01-01T00:00:00.00Z', { Y: -1, M: 0, D: 1, H: 0, m: 0, S: 0, F: 0, Z: 'Z' }],
     ['20240127T1200', { Y: 2024, M: 0, D: 27, H: 12, m: 0 }],
     ['20240127T120001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1 }],
     ['20240127T120001,001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1, F: 1 }],
@@ -159,6 +164,30 @@ describe('ISO date', () => {
     }).to.throw(RangeError, /unbalanced/i);
   });
 
+  it('sources beyond year 9999 and BC enforces separators by default', () => {
+    expect(() => {
+      new ISODate('+120070101', { enforceSeparators: false }).parse();
+    }).to.throw(RangeError, /unexpected/i);
+
+    expect(() => {
+      new ISODate('+12007-0101', { enforceSeparators: false }).parse();
+    }).to.throw(RangeError, /unbalanced/i);
+
+    expect(() => {
+      new ISODate('-0001-0101', { enforceSeparators: false }).parse();
+    }).to.throw(RangeError, /unbalanced/i);
+
+    expect(() => {
+      new ISODate('-0001-W011', { enforceSeparators: false }).parse();
+    }).to.throw(RangeError, /unexpected/i);
+  });
+
+  it('signed year cannot handle more than 17 chars', () => {
+    expect(() => {
+      new ISODate('+' + new Array(18).fill(1).join('') + '-01-11', { enforceSeparators: false }).parse();
+    }).to.throw(RangeError, /unexpected/i);
+  });
+
   [
     ['2024-01-27', new Date(2024, 0, 27)],
     ['02-28', new Date(2024, 1, 28)],
@@ -170,6 +199,10 @@ describe('ISO date', () => {
     ['28T08:06:30+01', new Date(Date.UTC(2024, 0, 28, 7, 6, 30))],
     ['02-28T08:06:30-01', new Date(Date.UTC(2024, 1, 28, 9, 6, 30))],
     ['2025-02-28T08:06:30-01', new Date(Date.UTC(2025, 1, 28, 9, 6, 30))],
+    ['+012025-01-15T08:06:30.00Z', new Date(Date.UTC(12025, 0, 15, 8, 6, 30))],
+    ['+12025-02-16T08:06:30.00Z', new Date(Date.UTC(12025, 1, 16, 8, 6, 30))],
+    ['-000001-01-28T08:06:30.00Z', new Date(Date.UTC(-1, 0, 28, 8, 6, 30))],
+    ['−000001-02-18T08:06:30.00Z', new Date(Date.UTC(-1, 1, 18, 8, 6, 30))],
   ].forEach(([dt, expected]) => {
     it(`parse partial "${dt}" returns expected date`, () => {
       expect(new ISODate(dt, { enforceSeparators: true }).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
@@ -222,6 +255,10 @@ describe('ISO date', () => {
     '20242212',
     '2024-12-32',
     '2024-02-123',
+    '2025-02-1',
+    '2025-02-1T12:00',
+    '2025-1',
+    '20251',
     '202402123',
     '20240127T12',
     '20240127T12:',
@@ -255,6 +292,16 @@ describe('ISO date', () => {
     '2024-13-01',
     '2100-02-29',
     '2401-02-29',
+    '1-05-01',
+    '01-05-01',
+    '001-05-01',
+    '-1-05-01',
+    '-01-05-01',
+    '-001-05-01',
+    '+1-05-01',
+    '+01-05-01',
+    '+001-05-01',
+    'Z0001-05-01',
   ].forEach((dt) => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {

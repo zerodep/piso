@@ -7,7 +7,7 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
 > In Spain, piso refers to the whole apartment, whereas in Mexico, it refers only to the floor of your departamento.
 > But the above has nothing to do with this project.
 
-# Contents
+## Contents
 
 - [Api](#api)
   - [`parseInterval(iso8601Interval[, enforceUTC])`](#parseintervaliso8601interval-enforceutc)
@@ -18,9 +18,9 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
   - [`getUTCLastWeekOfYear(Y)`](#getutclastweekofyeary)
   - [`getUTCWeekOneDate(Y)`](#getutcweekonedatey)
 
-# Api
+## Api
 
-## `parseInterval(iso8601Interval[, enforceUTC])`
+### `parseInterval(iso8601Interval[, enforceUTC])`
 
 Parse interval from an ISO 8601 interval string.
 
@@ -49,7 +49,7 @@ for (const i of viableIntervals) {
 }
 ```
 
-## `parseDuration(iso8601Duration)`
+### `parseDuration(iso8601Duration)`
 
 Parse duration from an ISO 8601 duration string.
 
@@ -93,7 +93,7 @@ try {
 }
 ```
 
-## `getDate(iso8601Date[, enforceUTC])`
+### `getDate(iso8601Date[, enforceUTC])`
 
 Get Date from an ISO 8601 date time string.
 
@@ -173,9 +173,9 @@ try {
 }
 ```
 
-> NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time". Unless, of cource, enforce UTC instruction is used.
+> NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time". Unless, of course, enforce UTC instruction is used.
 
-## `getUTCLastWeekOfYear(Y)`
+### `getUTCLastWeekOfYear(Y)`
 
 Get last week of year
 
@@ -189,7 +189,7 @@ import { getUTCLastWeekOfYear } from '@0dep/piso';
 console.log('last week number', getUTCLastWeekOfYear(2024));
 ```
 
-## `getUTCWeekOneDate(Y)`
+### `getUTCWeekOneDate(Y)`
 
 Get Monday week one date
 
@@ -203,7 +203,7 @@ import { getUTCWeekOneDate } from '@0dep/piso';
 console.log('Monday week one', getUTCWeekOneDate(2021));
 ```
 
-## `getISOWeekString([date])`
+### `getISOWeekString([date])`
 
 Get ISO week date string from date.
 
@@ -215,7 +215,7 @@ import { getISOWeekString } from '@0dep/piso';
 console.log('date as week', getISOWeekString(new Date(2021, 11, 28)));
 ```
 
-## `getUTCWeekNumber([date])`
+### `getUTCWeekNumber([date])`
 
 Get weeknumber from date.
 
@@ -410,7 +410,7 @@ Get duration in milliseconds from optional start date.
 
 Get duration in milliseconds until optional end date.
 
-# Example
+## Example
 
 An example to get start and end date:
 
@@ -436,9 +436,9 @@ const duration = parseDuration('PT2H30M');
 console.log('duration millisecods', duration.toMilliseconds(new Date()));
 ```
 
-# Repetitions
+## Repetitions
 
-## With end date
+### With end date
 
 `R4/P2Y/2007-08-01`
 
@@ -449,6 +449,49 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 |          2 | 2003-08-01 | 2005-08-01 |
 |          1 | 2005-08-01 | 2007-08-01 |
 
-# Benchmarking
+## Benchmarking
 
 Seems to run 3 times more efficient than RegExp implementations. But date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+
+### Interval
+
+| Capability         | piso | luxon |
+| ------------------ | ---- | ----- |
+| start/end          | ✓    | ✓     |
+| start/duration     | ✓    | ✓     |
+| duration/end       | ✓    | ✓     |
+| Repeating interval | ✓    | ❌    |
+| Relative end date  | ✓    | ❌    |
+
+### Duration
+
+| Capability                        | piso | iso8601-duration | luxon |
+| --------------------------------- | ---- | ---------------- | ----- |
+| Fractional time designator        | ✓    | ✓                | ✓     |
+| Invalid if more than one fraction | ✓    | ✓                | ✓     |
+| Fractional date designator        | ✓    | ❌               | ✓     |
+| Comma as fraction separator       | ✓    | ✓                | ❌    |
+| Repeated duration instruction     | ✓    | ❌\*             | ❌    |
+
+> \* ignored by iso8601-duration
+
+### Date
+
+| Capability                  | piso | luxon | node 24 |
+| --------------------------- | ---- | ----- | ------- |
+| The 24:th hour              | ✓    | ✓     | ✓       |
+| Year +10000                 | ✓    | ✓     | ✓       |
+| Year 9999                   | ✓    | ✓     | ✓       |
+| BC dates                    | ✓    | ✓     | ✓       |
+| Week                        | ✓    | ✓     | ❌      |
+| Ordinal date                | ✓    | ✓     | ❌\*    |
+| Without separators          | ✓    | ✓     | ❌      |
+| Without offset minutes      | ✓    | ✓     | ❌      |
+| Comma as fraction separator | ✓    | ✓     | ❌      |
+| Throw on invalid leap year  | ✓    | ✓     | ❌\*\*  |
+| Offset unicode minus (−)    | ✓    | ❌    | ❌      |
+| Offset seconds              | ✓    | ❌    | ❌      |
+| 36 fractions of a second    | ❌   | ❌    | ✓       |
+
+> \* node misinterprets `2024-012` as December and fails when `2024-013` or `2024-012T07:30` is passed<br/>
+> \*\* node is benevolent when parsing `2100-02-29` as `2100-03-01`

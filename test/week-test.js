@@ -18,6 +18,8 @@ const mappedYears = new Map(Object.entries(years));
 const TZ = process.env.TZ;
 
 describe('ISO week', () => {
+  after(() => (process.env.TZ = TZ));
+
   [...mappedYears.entries()].forEach(([year, { w }]) => {
     const Y = Number(year);
     const wdLast = `${year}-W${w}-1`;
@@ -119,14 +121,6 @@ describe('ISO week', () => {
     });
   });
 
-  ['2008-W53-1', '2008-W53', '2008W53', '2009-W54-1', '2020-W59-1', '2020-W53-8', '2020-W53-0'].forEach((wd) => {
-    it(`parse "${wd}" throws RangeError`, () => {
-      expect(() => {
-        ISODate.parse(wd);
-      }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601/i);
-    });
-  });
-
   [
     ['2009-W01', { Y: 2009, W: 1, D: 1 }],
     ['2009W01', { Y: 2009, W: 1, D: 1 }],
@@ -152,6 +146,11 @@ describe('ISO week', () => {
     ['2009-W53-7', { Y: 2009, W: 53, D: 7 }],
     ['2009-W01-1T08:06:30', { Y: 2009, W: 1, D: 1, H: 8, m: 6, S: 30 }],
     ['2009-W53-7T08:06:30.001', { Y: 2009, W: 53, D: 7, H: 8, m: 6, S: 30, F: 1 }],
+    ['+2009-W53-7', { Y: 2009, W: 53, D: 7 }],
+    ['-2009-W40-7', { Y: -2009, W: 40, D: 7 }],
+    ['+010009W011', { Y: 10009, W: 1, D: 1 }],
+    ['-00002W407', { Y: -2, W: 40, D: 7 }],
+    ['−00002W407', { Y: -2, W: 40, D: 7 }],
   ].forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
@@ -258,6 +257,35 @@ describe('ISO week', () => {
     ['2007-W03-1/0', '2007-W03-1/8'].forEach((interval) => {
       it(`partial end date with invalid weekday throws unexpected RangeError`, () => {
         expect(() => parseInterval(interval)).to.throw(RangeError, /unexpected/i);
+      });
+    });
+  });
+
+  describe('invalid week source', () => {
+    [
+      '2008-W53-1',
+      '2008-W53',
+      '2008W53',
+      '2009-W54-1',
+      '2020-W59-1',
+      '2020-W53-8',
+      '2020-W53-0',
+      '+020-W26-1',
+      '+20-W26-1',
+      '+2-W26-1',
+    ].forEach((wd) => {
+      it(`parse "${wd}" throws RangeError`, () => {
+        expect(() => {
+          ISODate.parse(wd);
+        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601/i);
+      });
+    });
+
+    ['2025W321', '2025-W321', '2025W32-1'].forEach((wd) => {
+      it(`enforce separators throws if source lacks date separator when parsing "${wd}"`, () => {
+        expect(() => {
+          new ISODate(wd, { enforceSeparators: true }).parse();
+        }).to.throw(RangeError, /Unexpected ISO 8601/i);
       });
     });
   });

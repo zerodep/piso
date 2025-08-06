@@ -1,21 +1,21 @@
-import { ISODate, getDate } from '../src/index.js';
+import { ISODate, getDate } from '@0dep/piso';
+import { getDateFromParts } from './helpers.js';
 
 describe('ISO ordinal date', () => {
-  it('parses ordinal date', () => {
-    let dateString = '1981-095';
-    expect(getDate(dateString), dateString).to.deep.equal(new Date(1981, 3, 5));
-
-    dateString = '2007-195T12:30+02:00';
-    expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-07-14T10:30Z'));
-
-    dateString = '2024-366T12:30+02:00';
-    expect(getDate(dateString), dateString).to.deep.equal(new Date('2024-12-31T10:30Z'));
-
-    dateString = '2023-365T12:30+02:00';
-    expect(getDate(dateString), dateString).to.deep.equal(new Date('2023-12-31T10:30Z'));
-
-    dateString = '2023365T1230+0200';
-    expect(getDate(dateString), dateString).to.deep.equal(new Date('2023-12-31T10:30Z'));
+  [
+    ['1981-095', { Y: 1981, M: 3, D: 5 }],
+    ['1981095', { Y: 1981, M: 3, D: 5 }],
+    ['2007-195T12:30+02:00', { Y: 2007, M: 6, D: 14, H: 10, m: 30, Z: 'Z' }],
+    ['2024-366T12:30+02:00', { Y: 2024, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+    ['2023-365T12:30+02:00', { Y: 2023, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+    ['2023365T1230+0200', { Y: 2023, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+    ['-0001-365T12:30+02:00', { Y: -1, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+    ['+12001-365T12:30+02:00', { Y: 12001, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+    ['+012001-365T12:30+02:00', { Y: 12001, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
+  ].forEach(([source, expected]) => {
+    it(`parses ordinal date "${source}" as expected`, () => {
+      expect(getDate(source), source).to.deep.equal(getDateFromParts(expected));
+    });
   });
 
   [
