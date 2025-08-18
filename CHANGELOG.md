@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.2] - 2025-08-18
+
+- the consistent behaviour that a signed year enforces separators also applies to week dates, i.e. `+2025-W34-4T05:43Z` is accepted, `+2025W341T0427Z` is not
+
 ## [3.0.1] - 2025-08-02
 
 - support years beyond 9999 using plus (+) and BC years with minus or hyphen (-)
@@ -19,7 +23,6 @@ All notable changes to this project will be documented in this file.
 
 - implement enforce UTC instruction when parsing interval and date, hence `2025-07-31` with this instruction will be considered UTC, as if `new Date('2025-07-31')` was used
 - use optional chaining (?) and nullish coalescing (??) where feasible
-- hunt some performance to counteract the introduction of new functionality, using an instance property directly seems faster than assigning it to a scoped variable
 
 ## [2.5.0] - 2025-05-18
 

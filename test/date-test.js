@@ -164,23 +164,15 @@ describe('ISO date', () => {
     }).to.throw(RangeError, /unbalanced/i);
   });
 
-  it('sources beyond year 9999 and BC enforces separators by default', () => {
-    expect(() => {
-      new ISODate('+120070101', { enforceSeparators: false }).parse();
-    }).to.throw(RangeError, /unexpected/i);
-
-    expect(() => {
-      new ISODate('+12007-0101', { enforceSeparators: false }).parse();
-    }).to.throw(RangeError, /unbalanced/i);
-
-    expect(() => {
-      new ISODate('-0001-0101', { enforceSeparators: false }).parse();
-    }).to.throw(RangeError, /unbalanced/i);
-
-    expect(() => {
-      new ISODate('-0001-W011', { enforceSeparators: false }).parse();
-    }).to.throw(RangeError, /unexpected/i);
-  });
+  ['+120070101', '+20250811', '+20250811T0711', '+12007-0101', '-00010101', '-00010101T2359', '-0001-0101', '-0001-W011'].forEach(
+    (source) => {
+      it(`signed year "${source}" enforces separators by default`, () => {
+        expect(() => {
+          new ISODate(source, { enforceSeparators: false }).parse();
+        }).to.throw(RangeError, /unexpected|unbalanced/i);
+      });
+    },
+  );
 
   it('signed year cannot handle more than 17 chars', () => {
     expect(() => {
@@ -263,6 +255,7 @@ describe('ISO date', () => {
     '20240127T12',
     '20240127T12:',
     '20240212T1200:00',
+    '1224010229T1200Z',
     '2024_02_23',
     '2018-03-01TB0:00:01',
     '2018-03-01A00:00:01',
@@ -292,6 +285,7 @@ describe('ISO date', () => {
     '2024-13-01',
     '2100-02-29',
     '2401-02-29',
+    '122401-02-29T12:00Z',
     '1-05-01',
     '01-05-01',
     '001-05-01',

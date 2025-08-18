@@ -148,9 +148,9 @@ describe('ISO week', () => {
     ['2009-W53-7T08:06:30.001', { Y: 2009, W: 53, D: 7, H: 8, m: 6, S: 30, F: 1 }],
     ['+2009-W53-7', { Y: 2009, W: 53, D: 7 }],
     ['-2009-W40-7', { Y: -2009, W: 40, D: 7 }],
-    ['+010009W011', { Y: 10009, W: 1, D: 1 }],
-    ['-00002W407', { Y: -2, W: 40, D: 7 }],
-    ['−00002W407', { Y: -2, W: 40, D: 7 }],
+    ['+010009-W01-1', { Y: 10009, W: 1, D: 1 }],
+    ['-00002-W40-7', { Y: -2, W: 40, D: 7 }],
+    ['−00002-W40-7', { Y: -2, W: 40, D: 7 }],
   ].forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
@@ -273,6 +273,7 @@ describe('ISO week', () => {
       '+020-W26-1',
       '+20-W26-1',
       '+2-W26-1',
+      '+2025W341T0427Z',
     ].forEach((wd) => {
       it(`parse "${wd}" throws RangeError`, () => {
         expect(() => {
@@ -281,7 +282,7 @@ describe('ISO week', () => {
       });
     });
 
-    ['2025W321', '2025-W321', '2025W32-1'].forEach((wd) => {
+    ['2025W321', '2025-W321', '2025W32-1', '-00001W01'].forEach((wd) => {
       it(`enforce separators throws if source lacks date separator when parsing "${wd}"`, () => {
         expect(() => {
           new ISODate(wd, { enforceSeparators: true }).parse();

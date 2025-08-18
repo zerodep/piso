@@ -424,12 +424,14 @@ ISODate.prototype.parse = function parseISODate() {
   let c = this.peek();
 
   let sign = '';
+  let dateChars = NUMBERS + ISODATE_HYPHEN;
   if (ISODATE_PREFIX.indexOf(c) > -1) {
     sign = c === UNICODE_MINUS ? ISODATE_HYPHEN : c;
+    this.enforceSeparators = true;
     this.consume();
+  } else if (!this.enforceSeparators) {
+    dateChars += ISODATE_TIMEINSTRUCTION + ISODATE_WEEKINSTRUCTION;
   }
-
-  const dateChars = NUMBERS + ISODATE_HYPHEN + ISODATE_TIMEINSTRUCTION + ISODATE_WEEKINSTRUCTION;
 
   let value = '';
   while ((c = this.consumeCharOrEnd(dateChars))) {
@@ -452,15 +454,12 @@ ISODate.prototype.parse = function parseISODate() {
   if (c === ISODATE_TIMEINSTRUCTION || !c) {
     if (this.enforceSeparators) throw this.createUnexpectedError();
 
-    if (value.length === 7) {
-      const Y = (this.result.Y = Number(sign + value.substring(0, 4)));
-      const D = (this.result.D = Number(value.substring(4)));
+    const Y = (this.result.Y = Number(value.substring(0, 4)));
 
+    if (value.length === 7) {
+      const D = (this.result.D = Number(value.substring(4)));
       this.continueOrdinalDatePrecision(Y, D, c);
     } else {
-      if (value.length > 8) throw this.createUnexpectedError();
-
-      const Y = (this.result.Y = Number(sign + value.substring(0, 4)));
       const M = (this.result.M = Number(value.substring(4, 6)) - 1);
       const D = (this.result.D = Number(value.substring(6, 8)));
 
@@ -469,9 +468,7 @@ ISODate.prototype.parse = function parseISODate() {
       if (c) this.continueFromTimeInstruction();
     }
   } else if (c === ISODATE_WEEKINSTRUCTION) {
-    if (this.enforceSeparators) throw this.createUnexpectedError();
-
-    const Y = (this.result.Y = Number(sign + value));
+    const Y = (this.result.Y = Number(value));
 
     this.continueFromWeekInstruction(Y);
   } else if (sign) {
@@ -753,17 +750,16 @@ ISODate.prototype.continueFromTimeInstruction = function continueFromTimeInstruc
 ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
   if (H > 24) throw new RangeError(`Invalid ISO 8601 hours "${this.parsed}[${this.c}]" at ${this.idx}`);
 
-  const useSeparators = this.enforceSeparators;
   const midnight = H === 24;
   const firstChars = midnight ? '0' : ISOTIME_STARTPART;
   const numberChars = midnight ? '0' : NUMBERS;
-  const timeSeparator = useSeparators ? ISOTIME_SEPARATOR : '';
+  const timeSeparator = this.enforceSeparators ? ISOTIME_SEPARATOR : '';
 
   /** @type {string | undefined} */
   let c = this.consumeChar(timeSeparator + firstChars);
   if (c === timeSeparator) {
     c = this.consumeChar(firstChars);
-  } else if (useSeparators) {
+  } else if (this.enforceSeparators) {
     throw this.createUnexpectedError();
   }
 
@@ -777,7 +773,7 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
     c = this.consumeChar(ISOTIME_STARTPART);
   } else if (ISOTIME_OFFSET.indexOf(c) > -1) {
     return this.continueTimeZonePrecision(c);
-  } else if (useSeparators) {
+  } else if (this.enforceSeparators) {
     throw this.createUnexpectedError();
   }
 
