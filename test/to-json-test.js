@@ -1,4 +1,4 @@
-import { parseInterval, ISOInterval } from '../src/index.js';
+import { parseInterval, ISOInterval } from '@0dep/piso';
 
 describe('to JSON and to ISO string', () => {
   describe('interval', () => {

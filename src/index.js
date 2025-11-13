@@ -132,7 +132,7 @@ ISOInterval.prototype.parse = function parseInterval() {
 };
 
 /**
- * Get expire at
+ * Get closest expire at
  * @param {Date} [compareDate] optional compare date, defaults to now
  * @param {Date} [startDate] optional start date, duration without start or end defaults to now
  * @param {boolean} [enforceUTC] enforce UTC if source lacks timezone offset

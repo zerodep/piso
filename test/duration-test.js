@@ -1,6 +1,6 @@
 import * as ck from 'chronokinesis';
 
-import { ISOInterval, ISODuration } from '../src/index.js';
+import { ISOInterval, ISODuration } from '@0dep/piso';
 
 describe('duration', () => {
   after(ck.reset);

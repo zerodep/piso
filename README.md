@@ -465,15 +465,16 @@ Seems to run 3 times more efficient than RegExp implementations. But date parsin
 
 ### Duration
 
-| Capability                        | piso | iso8601-duration | luxon |
-| --------------------------------- | ---- | ---------------- | ----- |
-| Fractional time designator        | ✓    | ✓                | ✓     |
-| Invalid if more than one fraction | ✓    | ✓                | ✓     |
-| Fractional date designator        | ✓    | ❌               | ✓     |
-| Comma as fraction separator       | ✓    | ✓                | ❌    |
-| Repeated duration instruction     | ✓    | ❌\*             | ❌    |
+| Capability                        | piso | iso8601-duration | luxon | [temporal](https://www.npmjs.com/package/@js-temporal/polyfill) |
+| --------------------------------- | ---- | ---------------- | ----- | --------------------------------------------------------------- |
+| Fractional time designator        | ✓    | ✓                | ✓     | ✓                                                               |
+| Invalid if more than one fraction | ✓    | ✓                | ✓     | ✓                                                               |
+| Year designator                   | ✓    | ✓                | ✓     | ❌                                                              |
+| Fractional date designator        | ✓    | ❌               | ✓     | ❌                                                              |
+| Comma as fraction separator       | ✓    | ✓                | ❌    | ✓                                                               |
+| Repeated duration instruction     | ✓    | ❌\*             | ❌    | ❌                                                              |
 
-> \* ignored by iso8601-duration
+> \* ignored
 
 ### Date
 

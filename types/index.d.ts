@@ -40,7 +40,7 @@ declare module '@0dep/piso' {
 		 */
 		parse(): this;
 		/**
-		 * Get expire at
+		 * Get closest expire at
 		 * @param compareDate optional compare date, defaults to now
 		 * @param startDate optional start date, duration without start or end defaults to now
 		 * @param enforceUTC enforce UTC if source lacks timezone offset
@@ -353,6 +353,7 @@ declare module '@0dep/piso' {
 	export function getISOWeekString(date?: Date | number | string): string;
 	const kIsParsed: unique symbol;
   interface ISOParts {
+	/** Parse is valid */
 	isValid?: boolean;
 	/** Year designator that follows the value for the number of calendar years. */
 	Y: number;

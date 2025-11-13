@@ -1,4 +1,5 @@
 export interface ISOParts {
+  /** Parse is valid */
   isValid?: boolean;
   /** Year designator that follows the value for the number of calendar years. */
   Y: number;
@@ -46,12 +47,6 @@ export interface ISOWeekParts {
   W: number;
   /** ISO weekday */
   weekday: ISOWeekday;
-}
-
-export interface ISOInterval extends ISOParts {
-  repeat: number;
-  startDate?: string;
-  endDate?: string;
 }
 
 export enum ISOIntervalType {

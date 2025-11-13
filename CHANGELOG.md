@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.0] - 2025-11-13
+
+- release with github actions
+- remove type ISOInterval interface since it is not referenced anywhere
+
 ## [3.0.2] - 2025-08-18
 
 - the consistent behaviour that a signed year enforces separators also applies to week dates, i.e. `+2025-W34-4T05:43Z` is accepted, `+2025W341T0427Z` is not

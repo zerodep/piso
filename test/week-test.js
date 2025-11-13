@@ -1,18 +1,7 @@
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-
-import {
-  ISODate,
-  getDate,
-  parseInterval,
-  getUTCLastWeekOfYear,
-  getUTCWeekOneDate,
-  getISOWeekString,
-  getUTCWeekNumber,
-} from '../src/index.js';
+import { ISODate, getDate, parseInterval, getUTCLastWeekOfYear, getUTCWeekOneDate, getISOWeekString, getUTCWeekNumber } from '@0dep/piso';
+import years from './years.json' with { type: 'json' };
 import { getDateFromParts } from './helpers.js';
 
-const years = createRequire(fileURLToPath(import.meta.url))('./years.json');
 const mappedYears = new Map(Object.entries(years));
 
 const TZ = process.env.TZ;

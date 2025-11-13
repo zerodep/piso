@@ -1,4 +1,4 @@
-import { ISODate, getDate } from '../src/index.js';
+import { ISODate, getDate } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 
 describe('ISO date', () => {
