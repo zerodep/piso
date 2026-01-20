@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- bump actions/checkout@6
+- support publish with rc-tag
+
 ## [3.1.0] - 2025-11-13
 
 - release with github actions
