@@ -143,6 +143,9 @@ const viableDates = [
   '20240127T1200',
   '20240127T120001',
   '20240127T120001,001',
+  '2024',
+  '+102024',
+  '-00000012',
   new Date(2024, 3, 22),
   0,
   Date.UTC(2024, 3, 22),
@@ -483,6 +486,7 @@ Seems to run 3 times more efficient than RegExp implementations. But date parsin
 | The 24:th hour              | ✓    | ✓     | ✓       |
 | Year +10000                 | ✓    | ✓     | ✓       |
 | Year 9999                   | ✓    | ✓     | ✓       |
+| Year only (`YYYY`)          | ✓    | ✓     | ✓       |
 | BC dates                    | ✓    | ✓     | ✓       |
 | Week                        | ✓    | ✓     | ❌      |
 | Ordinal date                | ✓    | ✓     | ❌\*    |

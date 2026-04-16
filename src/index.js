@@ -351,13 +351,19 @@ export function ISODate(source, options) {
   this.enforceSeparators = options?.enforceSeparators;
   this.enforceUTC = options?.enforceUTC;
   this.c = '';
-  // @ts-ignore
-  this.parsed = this.offset > 0 ? source.substring(0, this.offset + 1) : '';
   this.endChars = options?.endChars;
   /** @type {Partial<import('types').ISODateParts>} */
   this.result = {};
   this[kIsParsed] = false;
 }
+
+/** @name module:piso.ISODate#parsed */
+Object.defineProperty(ISODate.prototype, 'parsed', {
+  /** @returns {string} */
+  get() {
+    return this.source.substring(0, this.idx);
+  },
+});
 
 /**
  * ISO Date to Date
@@ -450,13 +456,23 @@ ISODate.prototype.parse = function parseISODate() {
   }
 
   if (value.length < 4) throw this.createUnexpectedError();
+  if (sign && !c) {
+    this.result.Y = Number(sign + value);
+    this.result.M = 0;
+    this.result.D = 1;
+    this.result.isValid = true;
+    return this;
+  }
 
   if (c === ISODATE_TIMEINSTRUCTION || !c) {
     if (this.enforceSeparators) throw this.createUnexpectedError();
 
     const Y = (this.result.Y = Number(value.substring(0, 4)));
 
-    if (value.length === 7) {
+    if (value.length === 4 && !c) {
+      this.result.M = 0;
+      this.result.D = 1;
+    } else if (value.length === 7) {
       const D = (this.result.D = Number(value.substring(4)));
       this.continueOrdinalDatePrecision(Y, D, c);
     } else {
@@ -608,11 +624,17 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
       return this.continueOrdinalDatePrecision(Y, Number(value), next && this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION));
     }
 
-    const year = (this.result.Y = Number(value + this.consumeChar()));
+    this.result.Y = Number(value + this.consumeChar());
+
+    if (!this.peek()) {
+      this.result.M = 0;
+      this.result.D = 1;
+      return this;
+    }
 
     if (this.enforceSeparators) this.consumeChar(ISODATE_HYPHEN);
 
-    return this.continueDatePrecision(year);
+    return this.continueDatePrecision(this.result.Y);
   } else if (next === ISODATE_HYPHEN) {
     this.consume();
     const month = (this.result.M = Number(value) - 1);
@@ -839,9 +861,7 @@ ISODate.prototype.continueTimeZonePrecision = function continueTimeZonePrecision
 };
 
 ISODate.prototype.consume = function consume() {
-  this.parsed += this.c;
-  const c = (this.c = this.source[++this.idx]);
-  return c;
+  return (this.c = this.source[++this.idx]);
 };
 
 /**

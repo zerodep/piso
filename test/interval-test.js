@@ -542,6 +542,8 @@ describe('ISO 8601 interval', () => {
       ['R3/P1M/2008-01-01', { Y: 2007, M: 9, D: 1 }],
       ['R3/P1M/2008-03-01', { Y: 2007, M: 11, D: 1 }],
       ['R3/P2Y/2008-03-01', { Y: 2002, M: 2, D: 1 }],
+      ['R3/P2Y/2008', { Y: 2002, M: 0, D: 1 }],
+      ['R3/P2Y/+10008', { Y: 10002, M: 0, D: 1 }],
     ].forEach(([interval, expected]) => {
       it(`getStartAt("${interval}") with repeat, end date has NOT passed returns end date with all applied durations`, () => {
         ck.freeze(Date.UTC(1990, 0, 1));
@@ -555,6 +557,21 @@ describe('ISO 8601 interval', () => {
 
         expect(getStartAt(interval), 'one ms before first start at').to.deep.equal(expectedDate);
       });
+    });
+
+    it('getStartAt("R3/P2Y/-00008") with repeat, end date has NOT passed returns end date with all applied durations', () => {
+      const interval = 'R3/P2Y/-00008';
+      ck.freeze(Date.UTC(-1900, 0, 1));
+
+      const first = getStartAt(interval);
+
+      console.log({ first });
+
+      expect(first, 'way before first start at').to.deep.equal(getDateFromParts({ Y: -15, M: 0, D: 1 }));
+
+      ck.freeze(first.getTime() - 1);
+
+      expect(getStartAt(interval), 'one ms before first start at').to.deep.equal(getDateFromParts({ Y: -15, M: 0, D: 1 }));
     });
 
     it('with monthly-hourly repetitions, duration, and end date returns date relative to end date', () => {
@@ -1429,16 +1446,16 @@ describe('ISO 8601 interval', () => {
     });
 
     it('indicate invalid BC start date', () => {
-      expect(() => parseInterval('R1/-0020250515/PU12H')).to.throw(
+      expect(() => parseInterval('R1/-0020250515T00:00/PU12H')).to.throw(
         RangeError,
-        'Unexpected ISO 8601 date character "R1/-0020250515[/]" at 14',
+        'Unexpected ISO 8601 date character "R1/-0020250515[T]" at 14',
       );
     });
 
     it('indicate invalid 9999+ start date', () => {
-      expect(() => parseInterval('R1/+12020250515/PU12H')).to.throw(
+      expect(() => parseInterval('R1/+12020250515T00:00/PU12H')).to.throw(
         RangeError,
-        'Unexpected ISO 8601 date character "R1/+12020250515[/]" at 15',
+        'Unexpected ISO 8601 date character "R1/+12020250515[T]" at 15',
       );
     });
 

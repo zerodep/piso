@@ -94,10 +94,10 @@ declare module '@0dep/piso' {
 		enforceSeparators: boolean;
 		enforceUTC: boolean;
 		c: string;
-		parsed: string;
 		endChars: string;
 		
 		result: Partial<ISODateParts>;
+		get parsed(): string;
 		/**
 		 * ISO Date to Date
 		 * @param enforceUTC enforce UTC if source lacks timezone offset

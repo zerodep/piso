@@ -1,4 +1,4 @@
-import { ISODate, getDate } from '@0dep/piso';
+import { ISODate, getDate, parseInterval } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 
 describe('ISO date', () => {
@@ -64,6 +64,8 @@ describe('ISO date', () => {
     ['20240127T1200', { Y: 2024, M: 0, D: 27, H: 12, m: 0 }],
     ['20240127T120001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1 }],
     ['20240127T120001,001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1, F: 1 }],
+    ['2024', { Y: 2024, M: 0, D: 1 }],
+    ['+2024', { Y: 2024, M: 0, D: 1 }],
   ].forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
@@ -164,15 +166,22 @@ describe('ISO date', () => {
     }).to.throw(RangeError, /unbalanced/i);
   });
 
-  ['+120070101', '+20250811', '+20250811T0711', '+12007-0101', '-00010101', '-00010101T2359', '-0001-0101', '-0001-W011'].forEach(
-    (source) => {
-      it(`signed year "${source}" enforces separators by default`, () => {
-        expect(() => {
-          new ISODate(source, { enforceSeparators: false }).parse();
-        }).to.throw(RangeError, /unexpected|unbalanced/i);
-      });
-    },
-  );
+  [
+    '+120070101T12:00',
+    '+20250811T12:00',
+    '+20250811T0711',
+    '+12007-0101',
+    '-00010101W01',
+    '-00010101T2359',
+    '-0001-0101',
+    '-0001-W011',
+  ].forEach((source) => {
+    it(`signed year "${source}" enforces separators by default`, () => {
+      expect(() => {
+        new ISODate(source, { enforceSeparators: false }).parse();
+      }).to.throw(RangeError, /unexpected|unbalanced/i);
+    });
+  });
 
   it('signed year cannot handle more than 17 chars', () => {
     expect(() => {
@@ -215,7 +224,7 @@ describe('ISO date', () => {
     });
   });
 
-  ['0230', '2023366', '367', '2025-318'].forEach((dt) => {
+  ['2023366', '367', '2025-318'].forEach((dt) => {
     it(`parse partial without enforce separators and invalid partial "${dt}" throws range error`, () => {
       expect(() => new ISODate(dt, { enforceSeparators: false }).parsePartialDate(2024, 0, 1)).to.throw(RangeError);
     });
@@ -361,6 +370,114 @@ describe('ISO date', () => {
     });
   });
 
+  describe('parsed contract', () => {
+    it('top-level parse of a full date string sets parsed to the full source', () => {
+      const parser = new ISODate('2024-02-27T08:06:30.123Z').parse();
+      expect(parser.parsed).to.equal('2024-02-27T08:06:30.123Z');
+    });
+
+    it('top-level parse of a year-month source sets parsed to the consumed chars', () => {
+      const parser = new ISODate('2024-03').parse();
+      expect(parser.parsed).to.equal('2024-03');
+    });
+
+    it('parse with endChars stops parsed at the end char (exclusive)', () => {
+      const parser = new ISODate('2024-02-27/rest', { endChars: '/' }).parse();
+      expect(parser.parsed).to.equal('2024-02-27');
+    });
+
+    it('child parse with offset pre-includes the parent-consumed prefix in parsed', () => {
+      const source = 'R5/2024-02-27/P1Y';
+      const parser = new ISODate(source, { offset: 2, endChars: '/' }).parse();
+      expect(parser.parsed).to.equal('R5/2024-02-27');
+    });
+
+    it('error message prefix reflects parsed up to the bad character', () => {
+      expect(() => new ISODate('2024-13-01').parse()).to.throw(RangeError, 'Invalid ISO 8601 date "2024-13-01"');
+    });
+
+    it('unexpected character error message includes parsed prefix and bad char', () => {
+      expect(() => new ISODate('2024+01').parse()).to.throw(RangeError, 'Unexpected ISO 8601 date character "2024[+]" at 4');
+    });
+
+    it('child parse error message includes the parent-consumed prefix', () => {
+      expect(() => new ISODate('R1/2024-13-01', { offset: 2 }).parse()).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2024-13-01');
+    });
+
+    it('toString after parse returns the consumed slice (top-level)', () => {
+      const parser = new ISODate('2024-02-27T08:06:30').parse();
+      expect(parser.toString()).to.equal('2024-02-27T08:06:30');
+    });
+
+    it('toString after parse returns the child slice (offset > 0)', () => {
+      const parser = new ISODate('R5/2024-02-27/P1Y', { offset: 2, endChars: '/' }).parse();
+      expect(parser.toString()).to.equal('2024-02-27');
+    });
+  });
+
+  describe('year-only', () => {
+    it('parses a bare 4-digit year to January 1', () => {
+      expect(new ISODate('2024').parse().result).to.deep.equal({ Y: 2024, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses year-only as interval start with duration', () => {
+      const interval = parseInterval('2024/P1Y');
+      expect(interval.start.result).to.include({ Y: 2024, M: 0, D: 1 });
+    });
+
+    it('parses year-only on both sides of an interval', () => {
+      const interval = parseInterval('2024/2025');
+      expect(interval.start.result).to.include({ Y: 2024, M: 0, D: 1 });
+      expect(interval.end.result).to.include({ Y: 2025, M: 0, D: 1 });
+    });
+
+    it('parses year-only as partial end date after a full start date', () => {
+      const interval = parseInterval('2024-01-01/2025');
+      expect(interval.end.result).to.include({ Y: 2025, M: 0, D: 1 });
+    });
+
+    it('year-only combined with time instruction throws', () => {
+      expect(() => new ISODate('2024T12:00').parse()).to.throw(RangeError);
+    });
+
+    it('five-digit unsigned year-only throws', () => {
+      expect(() => new ISODate('20241').parse()).to.throw(RangeError);
+    });
+
+    it('parses signed 4-digit year-only', () => {
+      expect(new ISODate('+2024').parse().result).to.deep.equal({ Y: 2024, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses BC signed 4-digit year-only', () => {
+      expect(new ISODate('-0001').parse().result).to.deep.equal({ Y: -1, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses expanded 5-digit signed year-only "+10000"', () => {
+      expect(new ISODate('+10000').parse().result).to.deep.equal({ Y: 10000, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses expanded 6-digit signed year-only', () => {
+      expect(new ISODate('+120070').parse().result).to.deep.equal({ Y: 120070, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses unicode-minus expanded year-only', () => {
+      expect(new ISODate('−10000').parse().result).to.deep.equal({ Y: -10000, M: 0, D: 1, isValid: true });
+      expect(new ISODate('−1000000').parse().result).to.deep.equal({ Y: -1000000, M: 0, D: 1, isValid: true });
+    });
+
+    it('parses interval with unsigned year-only start and expanded year-only end', () => {
+      const interval = parseInterval('9999/+10000');
+      expect(interval.start.result).to.include({ Y: 9999, M: 0, D: 1 });
+      expect(interval.end.result).to.include({ Y: 10000, M: 0, D: 1 });
+    });
+
+    it('parses interval with signed year-only on both sides', () => {
+      const interval = parseInterval('+10000/+10001');
+      expect(interval.start.result).to.include({ Y: 10000, M: 0, D: 1 });
+      expect(interval.end.result).to.include({ Y: 10001, M: 0, D: 1 });
+    });
+  });
+
   describe(ISODate.name, () => {
     it('#toString returns source', () => {
       const idt = new ISODate('2024-11-07').toString();
@@ -378,6 +495,13 @@ describe('ISO date', () => {
       const idt = new ISODate('Today');
       expect(idt.toString()).to.equal('Invalid ISODate');
       expect(idt.toString()).to.equal('Invalid ISODate');
+    });
+  });
+
+  describe('misc', () => {
+    const bc0 = '-0000-01-01T12:00Z';
+    it(`${bc0} is a monday`, () => {
+      expect(new ISODate(bc0).toDate().getUTCDay()).to.equal(1);
     });
   });
 });

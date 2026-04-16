@@ -40,3 +40,9 @@ package-lock.json
 *.log
 
 Dockerfile
+
+# AI assistants
+CLAUDE.md
+.claude
+.agents
+.pi

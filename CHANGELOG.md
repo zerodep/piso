@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-04-15
+
+- support year only dates
+- add parsed property to ISODate
 - bump actions/checkout@6
 - support publish with rc-tag
 
