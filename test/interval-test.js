@@ -565,8 +565,6 @@ describe('ISO 8601 interval', () => {
 
       const first = getStartAt(interval);
 
-      console.log({ first });
-
       expect(first, 'way before first start at').to.deep.equal(getDateFromParts({ Y: -15, M: 0, D: 1 }));
 
       ck.freeze(first.getTime() - 1);

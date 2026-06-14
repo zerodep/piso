@@ -9,7 +9,7 @@ const rules = {
   'no-array-constructor': 2,
   'no-caller': 2,
   'no-catch-shadow': 2,
-  'no-console': 1,
+  'no-console': 2,
   'no-eval': 2,
   'no-extend-native': 2,
   'no-extra-bind': 2,
