@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Non-negotiables
 
+- **Never commit.** Leave changes in the working tree — the maintainer reviews and commits.
 - **Test-first.** Write the failing mocha test in `test/*-test.js` before editing `src/index.js`. No exceptions — even bug fixes start with a regression test that reproduces the bug.
 - **Speed is a feature.** The package's selling point is being faster than regex-based parsers (~3×) and faster than luxon / iso8601-duration / temporal. Do not introduce regex into the parser, do not allocate in the hot path (no `.split`, `.match`, intermediate arrays), and preserve the `idx`/`c`/`parsed` cursor pattern. When changing perf-sensitive code, profile with `node --prof <script>` then `node --prof-process isolate-*.log` — not `console.time` micro-benchmarks.
 

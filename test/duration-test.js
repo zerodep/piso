@@ -1,3 +1,4 @@
+// @ts-check
 import * as ck from 'chronokinesis';
 
 import { ISOInterval, ISODuration } from '@0dep/piso';
@@ -48,7 +49,7 @@ describe('duration', () => {
     it('with end date and falsy repetitions reduces 1 duration from end date', () => {
       const dur = new ISODuration('PT1M').parse();
       expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), 0)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
-      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), null)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), undefined)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
     });
 
     it('repeated duration without end date returns now with reduced repeated durations', () => {
@@ -73,21 +74,27 @@ describe('duration', () => {
   });
 
   describe('ISODuration.parse', () => {
-    [
+    /** @type {Array<[string, import('@0dep/piso').ISODuration['result']]>} */
+    const durationList = [
       ['P1Y', { Y: 1 }],
       ['PT0S', { S: 0 }],
       ['P0D', { D: 0 }],
       ['P1Y2M3W4DT5H6M7S', { Y: 1, M: 2, W: 3, D: 4, H: 5, m: 6, S: 7 }],
-    ].forEach(([dur, expected]) => {
+    ];
+    durationList.forEach(([dur, expected]) => {
       it(`"${dur}" is parsed as expected`, () => {
         expect(ISODuration.parse(dur)).to.deep.equal({ ...expected, isValid: true });
       });
     });
 
     it('throws type error if duration is not a string', () => {
+      // @ts-ignore
       expect(() => ISODuration.parse()).to.throw(TypeError, /must be a string/i);
+      // @ts-ignore
       expect(() => ISODuration.parse(1)).to.throw(TypeError, /must be a string/i);
+      // @ts-ignore
       expect(() => ISODuration.parse(null)).to.throw(TypeError, /must be a string/i);
+      // @ts-ignore
       expect(() => ISODuration.parse({})).to.throw(TypeError, /must be a string/i);
     });
   });
@@ -97,7 +104,7 @@ describe('duration', () => {
       const dur = 'PT0.1S';
       const writer = new ISODuration(dur);
       for (let i = 0; i <= dur.length; i++) {
-        writer.write(dur[i], i);
+        writer.write(dur[i]);
       }
 
       expect(writer.result).to.have.property('S', 0.1);
@@ -105,7 +112,8 @@ describe('duration', () => {
   });
 
   describe('toMilliseconds', () => {
-    [
+    /** @type {Array<[string, number]>} */
+    const durationMsList = [
       ['PT1M5S', 65000],
       ['PT1M0.5S', 60500],
       ['PT0.5S', 500],
@@ -124,7 +132,8 @@ describe('duration', () => {
       ['P1Y2M3W4DT5H6M7S', 38898367000],
       ['PT0S', 0],
       ['P0D', 0],
-    ].forEach(([dur, expected]) => {
+    ];
+    durationMsList.forEach(([dur, expected]) => {
       it(`"without start date ${dur}" returns expected milliseconds ${expected} from 1971 UTC`, () => {
         const parser = new ISODuration(dur).parse();
         expect(parser.toMilliseconds()).to.deep.equal(expected);
@@ -143,14 +152,15 @@ describe('duration', () => {
         const { startDate, duration } = new ISOInterval(interval).parse();
         const toDate = new Date(startDate);
 
-        toDate.setUTCFullYear(toDate.getUTCFullYear() + (duration.result.Y ?? 0));
-        toDate.setUTCMonth(toDate.getUTCMonth() + duration.result.M);
+        toDate.setUTCFullYear(toDate.getUTCFullYear() + (duration?.result.Y ?? 0));
+        toDate.setUTCMonth(toDate.getUTCMonth() + (duration?.result?.M || 0));
 
-        expect(duration.toMilliseconds(startDate)).to.equal(toDate.getTime() - startDate.getTime());
+        expect(duration?.toMilliseconds(startDate)).to.equal(toDate.getTime() - startDate.getTime());
       });
     });
 
-    [
+    /** @type {Array<[string, number]>} */
+    const durationStartDateMsList = [
       ['2020-01-01T00:00Z/P0.1M', Math.round(3.1 * 24 * 3600 * 1000)],
       ['2020-01-01T00:00Z/P0.1Y', Math.round(36.6 * 24 * 3600 * 1000)],
       ['2020-01-01T00:00Z/P1.1M', Math.round((31 + 2.9) * 24 * 3600 * 1000)],
@@ -165,11 +175,12 @@ describe('duration', () => {
       ['2019-02-01T00:00Z/P1Y0.5D', Math.round((365 + 0.5) * 24 * 3600 * 1000)],
       ['2019-02-01T00:00Z/P3Y0.5D', Math.round((366 + 365 + 365 + 0.5) * 24 * 3600 * 1000)],
       ['2019-02-01T00:00Z/PT0.5S', 500],
-    ].forEach(([interval, expected]) => {
+    ];
+    durationStartDateMsList.forEach(([interval, expected]) => {
       it(`fractional "${interval}" returns expected milliseconds from start date`, () => {
         const { startDate, duration } = new ISOInterval(interval).parse();
 
-        const ms = duration.toMilliseconds(startDate);
+        const ms = duration?.toMilliseconds(startDate);
 
         expect(ms).to.equal(expected);
       });
@@ -178,14 +189,15 @@ describe('duration', () => {
     it('ignores leap seconds since that`s what javascript does', () => {
       const { startDate, duration } = new ISOInterval('1972-06-28T00:00Z/P3D').parse();
 
-      const ms = duration.toMilliseconds(startDate);
+      const ms = duration?.toMilliseconds(startDate);
 
       expect(ms).to.equal(3 * 24 * 3600 * 1000);
     });
   });
 
   describe('untilMilliseconds', () => {
-    [
+    /** @type {Array<[string, number]>} */
+    const durationMsList = [
       ['PT1M5S', -65000],
       ['PT1M0.5S', -60500],
       ['PT0.5S', -500],
@@ -204,7 +216,8 @@ describe('duration', () => {
       ['P1Y2M3W4DT5H6M7S', -38984767000],
       ['PT0S', 0],
       ['P0D', 0],
-    ].forEach(([dur, expected]) => {
+    ];
+    durationMsList.forEach(([dur, expected]) => {
       it(`"without end date ${dur}" returns expected milliseconds ${expected} from epoch`, () => {
         const parser = new ISODuration(dur).parse();
         expect(parser.untilMilliseconds()).to.equal(expected);
@@ -223,14 +236,15 @@ describe('duration', () => {
         const { duration, endDate } = new ISOInterval(interval).parse();
         const untilDate = new Date(endDate);
 
-        untilDate.setUTCFullYear(untilDate.getUTCFullYear() - (duration.result.Y ?? 0));
-        untilDate.setUTCMonth(untilDate.getUTCMonth() - duration.result.M);
+        untilDate.setUTCFullYear(untilDate.getUTCFullYear() - (duration?.result.Y ?? 0));
+        untilDate.setUTCMonth(untilDate.getUTCMonth() - (duration?.result.M ?? 0));
 
-        expect(duration.untilMilliseconds(endDate)).to.equal(untilDate.getTime() - endDate.getTime());
+        expect(duration?.untilMilliseconds(endDate)).to.equal(untilDate.getTime() - endDate.getTime());
       });
     });
 
-    [
+    /** @type {Array<[string, number]>} */
+    const durationFractionalMsList = [
       ['P0.1M/2020-01-01T00:00Z', -1 * Math.round(3.1 * 24 * 3600 * 1000)],
       ['P0.5Y/2020-02-01T00:00Z', -1 * Math.round(182.5 * 24 * 3600 * 1000)],
       ['P0.1Y/2020-01-01T00:00Z', -1 * Math.round(36.5 * 24 * 3600 * 1000)],
@@ -244,13 +258,11 @@ describe('duration', () => {
       ['P1Y0.5D/2020-02-01T00:00Z', -1 * Math.round((365 + 0.5) * 24 * 3600 * 1000)],
       ['P1Y0.5D/2019-02-01T00:00Z', -1 * Math.round((365 + 0.5) * 24 * 3600 * 1000)],
       ['PT0.5S/2019-02-01T00:00Z', -500],
-    ].forEach(([interval, expected]) => {
+    ];
+    durationFractionalMsList.forEach(([interval, expected]) => {
       it(`fractional "${interval}" returns expected milliseconds from end date`, () => {
         const { endDate, duration } = new ISOInterval(interval).parse();
-
-        const ms = duration.untilMilliseconds(endDate);
-
-        expect(ms).to.equal(expected);
+        expect(duration?.untilMilliseconds(endDate)).to.equal(expected);
       });
     });
   });
@@ -271,7 +283,8 @@ describe('duration', () => {
       expect(() => duration.write('1')).to.throw(RangeError);
     });
 
-    [
+    /** @type {Array<[string, RegExp]>} */
+    const durationErrMsgList = [
       ['Last wednesday', /unexpected/i],
       ['P1 Y', /unexpected/i],
       ['PP', /unexpected/i],
@@ -282,8 +295,11 @@ describe('duration', () => {
       ['P1Y2M3W4DP0.5H', /unexpected/i],
       ['PT7', /EOL/i],
       ['P', /EOL/i],
+      ['PT', /EOL/i],
+      ['', /EOL/i],
       ['R/', /unexpected/i],
-    ].forEach(([dur, expected]) => {
+    ];
+    durationErrMsgList.forEach(([dur, expected]) => {
       it(`parse invalid "${dur}" throws`, () => {
         expect(() => {
           ISODuration.parse(dur);
@@ -304,6 +320,10 @@ describe('duration', () => {
         expect(duration.toJSON()).to.be.null;
         expect(duration.toJSON()).to.be.null;
       });
+    });
+
+    it('empty duration source reports EOL at 0', () => {
+      expect(() => ISODuration.parse('')).to.throw(RangeError, 'Unexpected ISO 8601 duration character "[EOL]" at 0');
     });
 
     it('really long duration throws when getting expire at', () => {

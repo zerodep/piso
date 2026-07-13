@@ -4,28 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [4.0.0] - 2026-04-15
+## v4.0.1 - 2026-07-13
+
+- slightly faster parsing due to fewer allocations
+- an interval ending with a bare duration, e.g. `2024-01-01/P`, was silently accepted. It now throws RangeError like the standalone duration always did
+- errors for a source that ends abruptly while reading repeat say `[EOL]` instead of `[undefined]`
+- `parsed` property on ISOInterval and ISODuration is now read-only
+- ISODuration `write(c)` no longer takes a column argument, the parser keeps track of position itself
+
+## v4.0.0 - 2026-04-15
 
 - support year only dates
 - add parsed property to ISODate
 - bump actions/checkout@6
 - support publish with rc-tag
 
-## [3.1.0] - 2025-11-13
+## v3.1.0 - 2025-11-13
 
 - release with github actions
 - remove type ISOInterval interface since it is not referenced anywhere
 
-## [3.0.2] - 2025-08-18
+## v3.0.2 - 2025-08-18
 
 - the consistent behaviour that a signed year enforces separators also applies to week dates, i.e. `+2025-W34-4T05:43Z` is accepted, `+2025W341T0427Z` is not
 
-## [3.0.1] - 2025-08-02
+## v3.0.1 - 2025-08-02
 
 - support years beyond 9999 using plus (+) and BC years with minus or hyphen (-)
 - an ISO date with only one day digit `2025-01-1` should not be considered an ordinal date. Furiosly throwing a unexpected EOL error is more like it. This happens now.
 
-## [3.0.0] - 2025-07-31
+## v3.0.0 - 2025-07-31
 
 ### Breaking
 
@@ -36,33 +44,33 @@ All notable changes to this project will be documented in this file.
 - implement enforce UTC instruction when parsing interval and date, hence `2025-07-31` with this instruction will be considered UTC, as if `new Date('2025-07-31')` was used
 - use optional chaining (?) and nullish coalescing (??) where feasible
 
-## [2.5.0] - 2025-05-18
+## v2.5.0 - 2025-05-18
 
 Performance hunting.
 
 - remove c prop from duration
 - adjust function description
 
-## [2.4.0] - 2024-12-10
+## v2.4.0 - 2024-12-10
 
 - support ordinal date, e.g. `2024-343`
 
-## [2.3.1] - 2024-11-08
+## v2.3.1 - 2024-11-08
 
 - a duration so far in the future or past that a date cannot be rendered throws RangeError when attempting to get expire or start date
 - duration of more than 255 chars throws error, cannot/shouldn't read a string indefinitely
 
-## [2.3.0] - 2024-11-08
+## v2.3.0 - 2024-11-08
 
 - add toISOString, toJSON, and toString functions to ISOInterval, ISODate, and ISODuration
 - disallow more than 17 fractions of a second in ISODate
 - support unicode minus (−, u2212) as offset specification, hyphen is the exception if you read the spec
 
-## [2.2.0] - 2024-10-17
+## v2.2.0 - 2024-10-17
 
 - expose function to get week number from date
 
-## [2.1.0] - 2024-10-09
+## v2.1.0 - 2024-10-09
 
 - support week in date and interval, e.g. `2024-W41-3T06:40+02/W42-7`
 - fix jump century leap year except every 400 years
@@ -70,11 +78,11 @@ Performance hunting.
 - expose function to get date for Monday week one
 - expose function to generate ISO week date string from date
 
-## [2.0.2] - 2024-09-08
+## v2.0.2 - 2024-09-08
 
 - repeat interval without `[n]` means an unbounded number of repetitions, e.g. `R/PT1S`
 
-## [2.0.1] - 2024-08-30
+## v2.0.1 - 2024-08-30
 
 - fix embarrassing bug where `2024-08-31` is deemed invalid, dates are hard but this bug was just stupid
 
@@ -90,22 +98,22 @@ Production ready.
 - stop shipping types/interfaces.d.ts since all is included in types/index.d.ts
 - run through markdown examples with [texample](https://www.npmjs.com/package/texample)
 
-## [0.1.4] - 2024-05-03
+## v0.1.4 - 2024-05-03
 
 - Informative RangeError messages, especially interval messages that only informed about an unexpected character, period (.).
 
-## [0.1.3] - 2024-04-22
+## v0.1.3 - 2024-04-22
 
 - `getDate(arg)` now checks if the argument is a date or a number, if so it will put it into a `new Date(arg)`
 
-## [0.1.2] - 2024-04-21
+## v0.1.2 - 2024-04-21
 
 - remove magic next function and refactor
 
-## [0.1.0] - 2024-03-27
+## v0.1.0 - 2024-03-27
 
 - ~~add `getEndDate(interval)` function to get end date of an interval~~
 
-## [0.0.1] - 2024-03-26
+## v0.0.1 - 2024-03-26
 
 - first release after struggling with parse

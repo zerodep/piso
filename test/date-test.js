@@ -1,3 +1,4 @@
+// @ts-check
 import { ISODate, getDate, parseInterval } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 
@@ -10,7 +11,8 @@ describe('ISO date', () => {
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T10:30Z'));
   });
 
-  [
+  /** @type {Array<[string, import('@0dep/piso').ISODate['result']]>} */
+  const parseList = [
     ['2024-01-27', { Y: 2024, M: 0, D: 27 }],
     ['2024-02-28', { Y: 2024, M: 1, D: 28 }],
     ['2024-02-29', { Y: 2024, M: 1, D: 29 }],
@@ -66,7 +68,8 @@ describe('ISO date', () => {
     ['20240127T120001,001', { Y: 2024, M: 0, D: 27, H: 12, m: 0, S: 1, F: 1 }],
     ['2024', { Y: 2024, M: 0, D: 1 }],
     ['+2024', { Y: 2024, M: 0, D: 1 }],
-  ].forEach(([dt, expected]) => {
+  ];
+  parseList.forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
     });
@@ -141,8 +144,11 @@ describe('ISO date', () => {
   });
 
   it('getDate(null | undefined | {}) throws range error', () => {
+    // @ts-ignore
     expect(() => getDate(null)).to.throw(TypeError);
+    // @ts-ignore
     expect(() => getDate(undefined)).to.throw(TypeError);
+    // @ts-ignore
     expect(() => getDate({})).to.throw(TypeError);
     expect(() => getDate('')).to.throw(TypeError);
   });
@@ -189,7 +195,8 @@ describe('ISO date', () => {
     }).to.throw(RangeError, /unexpected/i);
   });
 
-  [
+  /** @type {Array<[string, Date]>} */
+  const parsePartialList = [
     ['2024-01-27', new Date(2024, 0, 27)],
     ['02-28', new Date(2024, 1, 28)],
     ['28', new Date(2024, 0, 28)],
@@ -204,7 +211,8 @@ describe('ISO date', () => {
     ['+12025-02-16T08:06:30.00Z', new Date(Date.UTC(12025, 1, 16, 8, 6, 30))],
     ['-000001-01-28T08:06:30.00Z', new Date(Date.UTC(-1, 0, 28, 8, 6, 30))],
     ['−000001-02-18T08:06:30.00Z', new Date(Date.UTC(-1, 1, 18, 8, 6, 30))],
-  ].forEach(([dt, expected]) => {
+  ];
+  parsePartialList.forEach(([dt, expected]) => {
     it(`parse partial "${dt}" returns expected date`, () => {
       expect(new ISODate(dt, { enforceSeparators: true }).parsePartialDate(2024, 0, 1).toDate()).to.deep.equal(expected);
     });
@@ -422,18 +430,18 @@ describe('ISO date', () => {
 
     it('parses year-only as interval start with duration', () => {
       const interval = parseInterval('2024/P1Y');
-      expect(interval.start.result).to.include({ Y: 2024, M: 0, D: 1 });
+      expect(interval.start?.result).to.include({ Y: 2024, M: 0, D: 1 });
     });
 
     it('parses year-only on both sides of an interval', () => {
       const interval = parseInterval('2024/2025');
-      expect(interval.start.result).to.include({ Y: 2024, M: 0, D: 1 });
-      expect(interval.end.result).to.include({ Y: 2025, M: 0, D: 1 });
+      expect(interval.start?.result).to.include({ Y: 2024, M: 0, D: 1 });
+      expect(interval.end?.result).to.include({ Y: 2025, M: 0, D: 1 });
     });
 
     it('parses year-only as partial end date after a full start date', () => {
       const interval = parseInterval('2024-01-01/2025');
-      expect(interval.end.result).to.include({ Y: 2025, M: 0, D: 1 });
+      expect(interval.end?.result).to.include({ Y: 2025, M: 0, D: 1 });
     });
 
     it('year-only combined with time instruction throws', () => {
@@ -467,14 +475,14 @@ describe('ISO date', () => {
 
     it('parses interval with unsigned year-only start and expanded year-only end', () => {
       const interval = parseInterval('9999/+10000');
-      expect(interval.start.result).to.include({ Y: 9999, M: 0, D: 1 });
-      expect(interval.end.result).to.include({ Y: 10000, M: 0, D: 1 });
+      expect(interval.start?.result).to.include({ Y: 9999, M: 0, D: 1 });
+      expect(interval.end?.result).to.include({ Y: 10000, M: 0, D: 1 });
     });
 
     it('parses interval with signed year-only on both sides', () => {
       const interval = parseInterval('+10000/+10001');
-      expect(interval.start.result).to.include({ Y: 10000, M: 0, D: 1 });
-      expect(interval.end.result).to.include({ Y: 10001, M: 0, D: 1 });
+      expect(interval.start?.result).to.include({ Y: 10000, M: 0, D: 1 });
+      expect(interval.end?.result).to.include({ Y: 10001, M: 0, D: 1 });
     });
   });
 

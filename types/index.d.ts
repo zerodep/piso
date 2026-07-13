@@ -14,14 +14,6 @@ declare module '@0dep/piso' {
 		 * @param enforceUTC enforce UTC if source lacks timezone offset
 		 */
 		constructor(source: string, enforceUTC?: boolean);
-		/** @internal Interval source string */
-		source: string;
-		
-		c: string;
-		
-		parsed: string;
-		
-		idx: number;
 		
 		repeat: number | undefined;
 		
@@ -35,6 +27,7 @@ declare module '@0dep/piso' {
 		enforceUTC: boolean;
 		get startDate(): Date;
 		get endDate(): Date;
+		get parsed(): string;
 		/**
 		 * ISO 8601 interval parser
 		 */
@@ -57,6 +50,7 @@ declare module '@0dep/piso' {
 		toISOString(): string;
 		toString(): string;
 		consumeRepeat(): string;
+		createUnexpectedError(): RangeError;
 		consumeStartDate(): ISODate;
 		consumeDuration(): ISODuration;
 		/**
@@ -71,8 +65,6 @@ declare module '@0dep/piso' {
 		read(): string;
 		current(): string;
 		peek(): string;
-		
-		[kIsParsed]: boolean;
 	}
 	/**
 	 * ISO 8601 date parser
@@ -127,7 +119,8 @@ declare module '@0dep/piso' {
 		 */
 		parsePartialDate(Y: number, M: number, D?: number, W?: number): this;
 		/**
-		 * @internal Parse relative date
+		 * @internal
+		 * Parse relative date
 		 * @param Y Year if year is not defined
 		 * @param M JavaScript month if month is not defined
 		 * @param D Date if date is not defined
@@ -179,7 +172,6 @@ declare module '@0dep/piso' {
 		 * */
 		consumeCharOrEnd(valid?: string): string | undefined;
 		createUnexpectedError(): RangeError;
-		[kIsParsed]: boolean;
 	}
 	export namespace ISODate {
 		/**
@@ -202,11 +194,8 @@ declare module '@0dep/piso' {
 		constructor(source: string, offset?: number);
 		source: string;
 		idx: number;
-		type: string;
-		parsed: string;
 		
 		designator: keyof ISOParts | undefined;
-		value: string;
 		usedFractions: boolean;
 		fractionedDesignator: string;
 		designators: string;
@@ -214,6 +203,7 @@ declare module '@0dep/piso' {
 		
 		result: Partial<ISOParts>;
 		isDateIndifferent: boolean;
+		get parsed(): string;
 		parse(): this;
 		toISOString(): string;
 		toJSON(): string;
@@ -221,9 +211,8 @@ declare module '@0dep/piso' {
 		/**
 		 * Write
 		 * @param c ISO 8601 character
-		 * @param column Current column
 		 */
-		write(c: string | undefined, column: number): void;
+		write(c: string | undefined): void;
 		/**
 		 * @internal
 		 * Set duration designator and value
@@ -231,9 +220,8 @@ declare module '@0dep/piso' {
 		setDesignatorValue(designator: string, value: string): void;
 		/**
 		 * Parse completed, no more chars
-		 * @param column Current column
 		 */
-		end(column: number): void;
+		end(): void;
 		/**
 		 * Get duration expire at date
 		 * @param startDate start ticking from date, defaults to now
@@ -269,7 +257,7 @@ declare module '@0dep/piso' {
 		/**
 		 * Create unexpected error
 		 * */
-		createUnexpectedError(c: string | undefined, column: number): RangeError;
+		createUnexpectedError(c: string | undefined): RangeError;
 		/**
 		 *
 		 * @param useUtc UTC
@@ -288,8 +276,6 @@ declare module '@0dep/piso' {
 		 * Get date designator getter and setter;
 		 * */
 		_getDateFns(designator: string, useUtc: boolean): any;
-		
-		[kIsParsed]: boolean;
 	}
 	export namespace ISODuration {
 		/**
@@ -351,7 +337,6 @@ declare module '@0dep/piso' {
 	 * 
 	 */
 	export function getISOWeekString(date?: Date | number | string): string;
-	const kIsParsed: unique symbol;
   interface ISOParts {
 	/** Parse is valid */
 	isValid?: boolean;
