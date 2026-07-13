@@ -30,8 +30,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: run-${{ matrix.node-version }}
           parallel: true
+          fail-on-error: false
   finish:
     needs: build
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
@@ -39,3 +41,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
+          fail-on-error: false
