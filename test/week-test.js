@@ -41,14 +41,14 @@ describe('ISO week', () => {
 
         it(`parses "${wdW01MidnightInTz}" with timezone to timestamp`, () => {
           const dt = getDate(wdW01MidnightInTz);
-          const monWeekOne = getUTCWeekOneDate(year);
+          const monWeekOne = getUTCWeekOneDate(Y);
 
           expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() - 2 * 3600 * 1000 + 5));
         });
 
         it(`parses "${wdW01UTC}" to UTC timestamp`, () => {
           const dt = getDate(wdW01UTC);
-          const monWeekOne = getUTCWeekOneDate(year);
+          const monWeekOne = getUTCWeekOneDate(Y);
 
           expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + 11 * 3600 * 1000 + 100));
         });
@@ -64,7 +64,7 @@ describe('ISO week', () => {
             expect(dt.getMinutes(), 'minutes').to.equal(0);
             expect(dt.getSeconds(), 'seconds').to.equal(0);
 
-            const monWeekOne = getUTCWeekOneDate(year);
+            const monWeekOne = getUTCWeekOneDate(Y);
             expect(dt, dt.toISOString()).to.deep.equal(new Date(monWeekOne.getTime() + dt.getTimezoneOffset() * 60000));
           });
         }
@@ -110,7 +110,7 @@ describe('ISO week', () => {
     });
   });
 
-  [
+  /** @type {[string, Partial<import('../types/interfaces.js').ISODateParts>][]} */ ([
     ['2009-W01', { Y: 2009, W: 1, D: 1 }],
     ['2009W01', { Y: 2009, W: 1, D: 1 }],
     ['2009-W52', { Y: 2009, W: 52, D: 1 }],
@@ -140,13 +140,13 @@ describe('ISO week', () => {
     ['+010009-W01-1', { Y: 10009, W: 1, D: 1 }],
     ['-00002-W40-7', { Y: -2, W: 40, D: 7 }],
     ['−00002-W40-7', { Y: -2, W: 40, D: 7 }],
-  ].forEach(([dt, expected]) => {
+  ]).forEach(([dt, expected]) => {
     it(`parse "${dt}" is parsed as expected`, () => {
       expect(ISODate.parse(dt)).to.deep.equal({ ...expected, isValid: true });
     });
   });
 
-  [
+  /** @type {[string, Partial<import('../types/interfaces.js').ISODateParts>][]} */ ([
     ['1942-W01-1', { Y: 1941, M: 11, D: 29 }],
     ['1942-W02-1', { Y: 1942, M: 0, D: 5 }],
     ['1942-W52-1', { Y: 1942, M: 11, D: 21 }],
@@ -190,17 +190,17 @@ describe('ISO week', () => {
     ['2024-W14-2T08:06:00+02', { Y: 2024, M: 3, D: 2, H: 8, m: 6, Z: '+', OH: 2 }],
     ['2024-W40-1T08:06:30Z', { Y: 2024, M: 8, D: 30, H: 8, m: 6, S: 30, Z: 'Z' }],
     ['2024-W40-7T08:06:00+02', { Y: 2024, M: 9, D: 6, H: 8, m: 6, Z: '+', OH: 2 }],
-  ].forEach(([wd, expected]) => {
+  ]).forEach(([wd, expected]) => {
     it(`parses "${wd}" to expected date Date(${[expected.Y, expected.M, expected.D]})`, () => {
       expect(getDate(wd), wd).to.deep.equal(getDateFromParts(expected));
     });
   });
 
   describe('interval start and duration', () => {
-    [
+    /** @type {[string, Partial<import('../types/interfaces.js').ISOParts>][]} */ ([
       ['2007-W09-7/P1Y2M10DT2H30M', { Y: 1, M: 2, D: 10, H: 2, m: 30 }],
       ['2007-W09-7/PT2H30M1.5S', { H: 2, m: 30, S: 1.5 }],
-    ].forEach(([interval, expected]) => {
+    ]).forEach(([interval, expected]) => {
       it(`"${interval}" has the expected parsed start date and duration parts`, () => {
         const iso = parseInterval(interval);
         expect(iso.start.result).to.include({ Y: 2007, W: 9, D: 7 });
@@ -210,7 +210,7 @@ describe('ISO week', () => {
   });
 
   describe('interval start week and end week', () => {
-    [
+    /** @type {[string, Partial<import('../types/interfaces.js').ISODateParts>][]} */ ([
       ['2007-W01/W03-2', { Y: 2007, M: 0, D: 16 }],
       ['2007-W01-1/2', { Y: 2007, M: 0, D: 2 }],
       ['2007-W01/2', { Y: 2007, M: 0, D: 2 }],
@@ -221,7 +221,7 @@ describe('ISO week', () => {
       ['2007-W50-5T13:30/15:30', { Y: 2007, M: 11, D: 14, H: 15, m: 30 }],
       ['2007-W01/2007-W03-1', { Y: 2007, M: 0, D: 15 }],
       ['2009-W01/2009-W53-7', { Y: 2010, M: 0, D: 3 }],
-    ].forEach(([interval, expected]) => {
+    ]).forEach(([interval, expected]) => {
       it(`"${interval}" returns expected end date`, () => {
         const iso = parseInterval(interval);
 

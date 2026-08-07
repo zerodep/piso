@@ -14,8 +14,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm test` — run mocha suite. `posttest` chains lint, dist build, and `texample` (runs README JS code blocks as live tests, so README examples must be runnable).
+- `npm test` — run mocha suite. `posttest` chains lint, `tsc -p test`, dist build, and `texample` (runs README JS code blocks as live tests, so README examples must be runnable).
 - `npm run lint` — eslint (with cache) + prettier check.
+- `tsc -p test` — type-check test files (`test/tsconfig.json`, `checkJs` over JSDoc). TypeScript is pinned to `^6` — v7 breaks `dts-buddy`.
+- The package is isomorphic. Root `tsconfig.json` sets `"types": []` and `"lib": ["es2017"]` on purpose: `src/` must type-check against ECMAScript built-ins only, so any reference to Node (`process`, `Buffer`) or DOM (`window`) globals is a type error. Don't add `node` or `dom` there; tests opt into `node`/`chai`/`mocha` in `test/tsconfig.json`.
 - `npm run dist` — rollup ESM→CJS (`lib/index.cjs`) plus `dts-buddy` regen of `types/index.d.ts`. Run after any change to `src/index.js` before publishing.
 - `npm run cov:html` / `npm run test:lcov` — coverage via c8 over `src`.
 - Single test: `npx mocha test/interval-test.js` or `npx mocha --grep "pattern"`.

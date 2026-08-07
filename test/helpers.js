@@ -4,7 +4,9 @@
  * @returns
  */
 export function getDateFromParts(parts) {
-  const args = [parts.Y, parts.M, parts.D, parts.H, parts.m, parts.S, parts.F].filter((p) => p !== undefined);
+  const args = /** @type {[number, number, number?, number?, number?, number?, number?]} */ (
+    [parts.Y, parts.M, parts.D, parts.H, parts.m, parts.S, parts.F].filter((p) => p !== undefined)
+  );
 
   let setFullYear;
   if (parts.Y < 100) {

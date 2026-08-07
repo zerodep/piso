@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["**/*"],
+  "compilerOptions": {
+    "rootDir": "..",
+    "checkJs": true,
+    "emitDeclarationOnly": false,
+    "declaration": false,
+    "noEmit": true,
+    "types": ["node", "chai", "mocha"]
+  }
+}

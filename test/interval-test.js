@@ -1,4 +1,3 @@
-// @ts-check
 import * as ck from 'chronokinesis';
 
 import { parseInterval, parseDuration, ISOInterval, getExpireAt, getStartAt } from '@0dep/piso';

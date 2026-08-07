@@ -2,7 +2,7 @@ import { ISODate, getDate } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 
 describe('ISO ordinal date', () => {
-  [
+  /** @type {[string, Partial<import('../types/interfaces.js').ISODateParts>][]} */ ([
     ['1981-095', { Y: 1981, M: 3, D: 5 }],
     ['1981095', { Y: 1981, M: 3, D: 5 }],
     ['2007-195T12:30+02:00', { Y: 2007, M: 6, D: 14, H: 10, m: 30, Z: 'Z' }],
@@ -12,16 +12,16 @@ describe('ISO ordinal date', () => {
     ['-0001-365T12:30+02:00', { Y: -1, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
     ['+12001-365T12:30+02:00', { Y: 12001, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
     ['+012001-365T12:30+02:00', { Y: 12001, M: 11, D: 31, H: 10, m: 30, Z: 'Z' }],
-  ].forEach(([source, expected]) => {
+  ]).forEach(([source, expected]) => {
     it(`parses ordinal date "${source}" as expected`, () => {
       expect(getDate(source), source).to.deep.equal(getDateFromParts(expected));
     });
   });
 
-  [
+  /** @type {[string, number, number, number, number, number][]} */ ([
     ['2007-318T12:00', 2007, 10, 14, 11, 0],
     ['2024-318T12:00Z', 2024, 10, 13, 12, 0],
-  ].forEach(([dt, Y, M, D, H, m]) => {
+  ]).forEach(([dt, Y, M, D, H, m]) => {
     it(`parses ${dt} as expected`, () => {
       expect(getDate(dt), dt).to.deep.equal(new Date(Date.UTC(Y, M, D, H, m)));
     });

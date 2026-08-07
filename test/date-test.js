@@ -1,4 +1,3 @@
-// @ts-check
 import { ISODate, getDate, parseInterval } from '@0dep/piso';
 import { getDateFromParts } from './helpers.js';
 

@@ -17,8 +17,8 @@ describe('to JSON and to ISO string', () => {
       it(`${itv} toJSON and toISOString returns normalized interval string`, () => {
         const interval = new ISOInterval(itv);
 
-        expect(interval.toISOString(), interval).to.equal(iso);
-        expect(interval.toJSON(), interval).to.equal(iso);
+        expect(interval.toISOString(), itv).to.equal(iso);
+        expect(interval.toJSON(), itv).to.equal(iso);
       });
 
       it(`${itv} when serialized toJSON is used`, () => {
