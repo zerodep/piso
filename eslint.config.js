@@ -112,6 +112,17 @@ export default [
     },
   },
   {
+    files: ['bench/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-console': 0,
+    },
+  },
+  {
     ignores: ['coverage/**/*', 'node_modules/**/*', 'tmp/*', 'lib/*'],
   },
 ];

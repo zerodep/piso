@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v4.1.0 - 2026-08-14
+
+- faster parsing across the board: durations now outpace luxon and iso8601-duration, dates parse about 6 times and intervals 6–11 times faster than luxon
+- date and interval parsing shaved another ~20% off and produces about a third less garbage
+- benchmark and functionality comparison workspace, run with `npm run bench` and `npm run compare`
+- README benchmarking tables and claims now reflect executed results, with temporal added to the date comparison
+
 ## v4.0.1 - 2026-07-13
 
 - slightly faster parsing due to fewer allocations

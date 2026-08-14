@@ -454,9 +454,19 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 ## Benchmarking
 
-Seems to run 3 times more efficient than RegExp implementations. But date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+How piso stacks up against the RegExp-based implementations depends on the capability, so speed and functionality are compared per capability below.
+
+Benchmarks and functionality comparison against luxon, iso8601-duration, [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date` live in the [bench](/bench) workspace. `npm run bench` measures parse throughput and `npm run compare` executes each capability below against every library and prints ✓/✗ tables from actual behavior:
+
+```sh
+npm install
+npm run bench
+npm run compare
+```
 
 ### Interval
+
+Parses intervals 6–11 times faster than luxon, depending on the interval form.
 
 | Capability         | piso | luxon |
 | ------------------ | ---- | ----- |
@@ -464,39 +474,44 @@ Seems to run 3 times more efficient than RegExp implementations. But date parsin
 | start/duration     | ✓    | ✓     |
 | duration/end       | ✓    | ✓     |
 | Repeating interval | ✓    | ❌    |
-| Relative end date  | ✓    | ❌    |
+| Relative end date  | ✓    | ❌\*  |
+
+> \* `2007-11-13/15` parses but the relative end resolves to a time of day instead of a date
 
 ### Duration
+
+Parses durations 1.1–2 times faster than luxon and iso8601-duration, and 2–3 times faster than temporal.
 
 | Capability                        | piso | iso8601-duration | luxon | [temporal](https://www.npmjs.com/package/@js-temporal/polyfill) |
 | --------------------------------- | ---- | ---------------- | ----- | --------------------------------------------------------------- |
 | Fractional time designator        | ✓    | ✓                | ✓     | ✓                                                               |
-| Invalid if more than one fraction | ✓    | ✓                | ✓     | ✓                                                               |
+| Invalid if more than one fraction | ✓    | ✓                | ❌    | ✓                                                               |
 | Year designator                   | ✓    | ✓                | ✓     | ❌                                                              |
 | Fractional date designator        | ✓    | ❌               | ✓     | ❌                                                              |
 | Comma as fraction separator       | ✓    | ✓                | ❌    | ✓                                                               |
-| Repeated duration instruction     | ✓    | ❌\*             | ❌    | ❌                                                              |
+| Repeated duration instruction     | ✓    | ✓\*              | ❌    | ❌                                                              |
 
-> \* ignored
+> \* parses to the correct duration but the repeat instruction is ignored
 
 ### Date
 
-| Capability                  | piso | luxon | node 24 |
-| --------------------------- | ---- | ----- | ------- |
-| The 24:th hour              | ✓    | ✓     | ✓       |
-| Year +10000                 | ✓    | ✓     | ✓       |
-| Year 9999                   | ✓    | ✓     | ✓       |
-| Year only (`YYYY`)          | ✓    | ✓     | ✓       |
-| BC dates                    | ✓    | ✓     | ✓       |
-| Week                        | ✓    | ✓     | ❌      |
-| Ordinal date                | ✓    | ✓     | ❌\*    |
-| Without separators          | ✓    | ✓     | ❌      |
-| Without offset minutes      | ✓    | ✓     | ❌      |
-| Comma as fraction separator | ✓    | ✓     | ❌      |
-| Throw on invalid leap year  | ✓    | ✓     | ❌\*\*  |
-| Offset unicode minus (−)    | ✓    | ❌    | ❌      |
-| Offset seconds              | ✓    | ❌    | ❌      |
-| 36 fractions of a second    | ❌   | ❌    | ✓       |
+Parses dates about 6 times faster than luxon and 2–4 times faster than temporal. Date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
-> \* node misinterprets `2024-012` as December and fails when `2024-013` or `2024-012T07:30` is passed<br/>
-> \*\* node is benevolent when parsing `2100-02-29` as `2100-03-01`
+| Capability                  | piso | luxon | temporal | node 20 |
+| --------------------------- | ---- | ----- | -------- | ------- |
+| The 24:th hour              | ✓    | ✓     | ❌       | ✓       |
+| Year +10000                 | ✓    | ✓     | ✓        | ✓       |
+| Year 9999                   | ✓    | ✓     | ✓        | ✓       |
+| Year only (`YYYY`)          | ✓    | ✓     | ❌       | ✓       |
+| BC dates                    | ✓    | ✓     | ✓        | ✓       |
+| Week                        | ✓    | ✓     | ❌       | ❌      |
+| Ordinal date                | ✓    | ✓     | ❌       | ❌      |
+| Without separators          | ✓    | ✓     | ✓        | ❌      |
+| Without offset minutes      | ✓    | ✓     | ✓        | ❌      |
+| Comma as fraction separator | ✓    | ✓     | ✓        | ❌      |
+| Throw on invalid leap year  | ✓    | ✓     | ✓        | ❌\*    |
+| Offset unicode minus (−)    | ✓    | ❌    | ❌       | ❌      |
+| Offset seconds              | ✓    | ❌    | ✓        | ❌      |
+| 36 fractions of a second    | ❌   | ❌    | ❌       | ✓       |
+
+> \* node is benevolent when parsing `2100-02-29` as `2100-03-01`

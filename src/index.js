@@ -16,6 +16,18 @@ const ISOTIME_STARTHOUR = '012';
 const ISOTIME_STARTPART = '012345';
 const ISODATE_WEEKDAYS = '1234567';
 const NUMBERS = '0123456789';
+const ISODATE_CHARS = NUMBERS + ISODATE_HYPHEN;
+const ISODATE_CHARS_UNSEPARATED = ISODATE_CHARS + ISODATE_TIMEINSTRUCTION + ISODATE_WEEKINSTRUCTION;
+const ISODATE_NUMBER_OR_WEEK = NUMBERS + ISODATE_WEEKINSTRUCTION;
+const ISODATE_MONTH_START = ISODATE_WEEKINSTRUCTION + '0123';
+const ISODATE_MONTH_START_SEPARATED = ISODATE_HYPHEN + ISODATE_MONTH_START;
+const ISODATE_DATE_CONT = ISODATE_TIMEINSTRUCTION + NUMBERS;
+const ISODATE_DATE_CONT_SEPARATED = ISODATE_DATE_CONT + ISODATE_HYPHEN;
+const ISOTIME_START_SEPARATED = ISOTIME_SEPARATOR + ISOTIME_STARTPART;
+const ISOTIME_CONT = ISOTIME_OFFSET + NUMBERS;
+const ISOTIME_CONT_SEPARATED = ISOTIME_SEPARATOR + ISOTIME_CONT;
+const ISOTIME_FRACTION_OR_OFFSET = FRACTIONS + ISOTIME_OFFSET;
+const POW10 = [1, 10, 100, 1000, 10000];
 const MILLISECONDS_PER_HOUR = 3600000;
 const MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
@@ -101,7 +113,7 @@ ISOInterval.prototype.parse = function parseInterval() {
   }
 
   let start;
-  if (NUMBERS.indexOf(c) > -1 || ISODATE_PREFIX.indexOf(c) > -1) {
+  if (isDigit(c) || isDatePrefix(c)) {
     start = this.consumeStartDate();
   } else if (c !== ISOINTERVAL_DURATION) {
     throw new RangeError(`Invalid ISO 8601 interval "${this.source}"`);
@@ -262,7 +274,7 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   }
 
   let value = '';
-  while (c && NUMBERS.indexOf(c) > -1) {
+  while (isDigit(c)) {
     value += c;
     c = this.read();
   }
@@ -431,16 +443,18 @@ ISODate.prototype.parse = function parseISODate() {
   let c = this.peek();
 
   let sign = '';
-  let dateChars = NUMBERS + ISODATE_HYPHEN;
-  if (ISODATE_PREFIX.indexOf(c) > -1) {
+  let dateChars = ISODATE_CHARS;
+  if (isDatePrefix(c)) {
     sign = c === UNICODE_MINUS ? ISODATE_HYPHEN : c;
     this.enforceSeparators = true;
     this.consume();
   } else if (!this.enforceSeparators) {
-    dateChars += ISODATE_TIMEINSTRUCTION + ISODATE_WEEKINSTRUCTION;
+    dateChars = ISODATE_CHARS_UNSEPARATED;
   }
 
-  let value = '';
+  const digitsStart = this.idx + 1;
+  let value = 0;
+  let len = 0;
   while ((c = this.consumeCharOrEnd(dateChars))) {
     if (c === ISODATE_HYPHEN) {
       this.enforceSeparators = true;
@@ -450,15 +464,16 @@ ISODate.prototype.parse = function parseISODate() {
     } else if (c === ISODATE_WEEKINSTRUCTION) {
       break;
     } else {
-      value += c;
-      if (!sign && value.length > 8) throw this.createUnexpectedError();
-      else if (sign && value.length > 17) throw this.createUnexpectedError();
+      value = value * 10 + digitValue(c);
+      len++;
+      if (!sign && len > 8) throw this.createUnexpectedError();
+      else if (sign && len > 17) throw this.createUnexpectedError();
     }
   }
 
-  if (value.length < 4) throw this.createUnexpectedError();
+  if (len < 4) throw this.createUnexpectedError();
   if (sign && !c) {
-    this.result.Y = Number(sign + value);
+    this.result.Y = signedYear(this.source, sign, value, digitsStart, len);
     this.result.M = 0;
     this.result.D = 1;
     this.result.isValid = true;
@@ -468,32 +483,34 @@ ISODate.prototype.parse = function parseISODate() {
   if (c === ISODATE_TIMEINSTRUCTION || !c) {
     if (this.enforceSeparators) throw this.createUnexpectedError();
 
-    const Y = (this.result.Y = Number(value.substring(0, 4)));
+    const pow = POW10[len - 4];
+    const Y = (this.result.Y = (value / pow) | 0);
+    const rest = value % pow;
 
-    if (value.length === 4 && !c) {
+    if (len === 4 && !c) {
       this.result.M = 0;
       this.result.D = 1;
-    } else if (value.length === 7) {
-      const D = (this.result.D = Number(value.substring(4)));
+    } else if (len === 7) {
+      const D = (this.result.D = rest);
       this.continueOrdinalDatePrecision(Y, D, c);
     } else {
-      const M = (this.result.M = Number(value.substring(4, 6)) - 1);
-      const D = (this.result.D = Number(value.substring(6, 8)));
+      const M = (this.result.M = (len === 8 ? (rest / 100) | 0 : rest) - 1);
+      const D = (this.result.D = len === 8 ? rest % 100 : 0);
 
       if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
 
       if (c) this.continueFromTimeInstruction();
     }
   } else if (c === ISODATE_WEEKINSTRUCTION) {
-    const Y = (this.result.Y = Number(value));
+    const Y = (this.result.Y = value);
 
     this.continueFromWeekInstruction(Y);
   } else if (sign) {
-    const Y = (this.result.Y = Number(sign + value));
+    const Y = (this.result.Y = signedYear(this.source, sign, value, digitsStart, len));
     this.continueDatePrecision(Y);
   } else {
-    if (value.length > 4) throw this.createUnexpectedError();
-    const Y = (this.result.Y = Number(value));
+    if (len > 4) throw this.createUnexpectedError();
+    const Y = (this.result.Y = value);
     this.continueDatePrecision(Y);
   }
 
@@ -569,18 +586,18 @@ ISODate.prototype.parsePartialDate = function parsePartialDate(Y, M, D, W) {
 ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
   this.result.Y = Y;
 
-  if (ISODATE_PREFIX.indexOf(this.peek()) > -1) {
+  if (isDatePrefix(this.peek())) {
     return this.parse();
   }
 
   this[kIsParsed] = true;
 
-  const c = this.consumeChar(NUMBERS + ISODATE_WEEKINSTRUCTION);
+  const c = this.consumeChar(ISODATE_NUMBER_OR_WEEK);
   let next = this.peek();
 
   if (c === ISODATE_WEEKINSTRUCTION) {
     return this.continueFromWeekInstruction(Y);
-  } else if (W && (!next || next === ISODATE_TIMEINSTRUCTION) && ISODATE_WEEKDAYS.indexOf(c) > -1) {
+  } else if (W && (!next || next === ISODATE_TIMEINSTRUCTION) && isWeekday(c)) {
     this.result.W = W;
     this.result.D = Number(c);
 
@@ -593,19 +610,19 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
   this.result.M = M;
   this.result.D = D;
 
-  let value = c + this.consumeChar();
+  let value = twoDigits(c, this.consumeChar());
 
   next = this.peek();
 
   if (!next) {
     this.consume();
-    const day = (this.result.D = Number(value));
+    const day = (this.result.D = value);
 
     if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
     return this;
   } else if (next === ISODATE_TIMEINSTRUCTION) {
-    const day = (this.result.D = Number(value));
+    const day = (this.result.D = value);
 
     if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
@@ -613,20 +630,20 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
 
     return this.continueFromTimeInstruction();
   } else if (next === ISOTIME_SEPARATOR) {
-    const hours = (this.result.H = Number(value));
+    const hours = (this.result.H = value);
     if (!M) this.result.W = W;
 
     return this.continueTimePrecision(hours);
-  } else if (NUMBERS.indexOf(next) > -1) {
+  } else if (isDigit(next)) {
     this.result = {};
-    value += this.consumeChar();
+    value = value * 10 + digitValue(this.consumeChar());
     next = this.peek();
 
     if (!next || next === ISODATE_TIMEINSTRUCTION) {
-      return this.continueOrdinalDatePrecision(Y, Number(value), next && this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION));
+      return this.continueOrdinalDatePrecision(Y, value, next && this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION));
     }
 
-    this.result.Y = Number(value + this.consumeChar());
+    this.result.Y = value * 10 + digitValue(this.consumeChar());
 
     if (!this.peek()) {
       this.result.M = 0;
@@ -639,8 +656,8 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
     return this.continueDatePrecision(this.result.Y);
   } else if (next === ISODATE_HYPHEN) {
     this.consume();
-    const month = (this.result.M = Number(value) - 1);
-    const day = (this.result.D = Number(this.consumeChar('0123') + this.consumeChar()));
+    const month = (this.result.M = value - 1);
+    const day = (this.result.D = twoDigits(this.consumeChar('0123'), this.consumeChar()));
 
     if (!validateDate(Y, month, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
 
@@ -661,18 +678,18 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
  */
 ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   const dateSeparator = this.enforceSeparators ? ISODATE_HYPHEN : '';
-  const initNext = ISODATE_WEEKINSTRUCTION + '0123';
 
   /** @type {string | undefined} */
-  let c = this.consumeChar(dateSeparator + initNext);
+  let c = this.consumeChar(dateSeparator ? ISODATE_MONTH_START_SEPARATED : ISODATE_MONTH_START);
 
   if (c === ISODATE_WEEKINSTRUCTION) {
     return this.continueFromWeekInstruction(Y);
   }
 
-  const instructions = ISODATE_TIMEINSTRUCTION + NUMBERS + dateSeparator;
+  const instructions = dateSeparator ? ISODATE_DATE_CONT_SEPARATED : ISODATE_DATE_CONT;
 
-  let numbers = c + this.consumeChar();
+  let numbers = twoDigits(c, this.consumeChar());
+  let len = 2;
   let separator = -1;
   for (let i = 0; i < 4; i++) {
     c = this.consumeCharOrEnd(instructions);
@@ -684,23 +701,25 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
       continue;
     }
 
-    numbers += c;
+    numbers = numbers * 10 + digitValue(c);
+    len++;
   }
 
-  if (numbers.length === 3 && separator === -1) {
-    return this.continueOrdinalDatePrecision(Y, Number(numbers), c);
+  if (len === 3 && separator === -1) {
+    return this.continueOrdinalDatePrecision(Y, numbers, c);
   }
 
-  if (numbers.length === 4 && dateSeparator && separator !== 0) {
+  if (len === 4 && dateSeparator && separator !== 0) {
     throw new RangeError('Unbalanced ISO 8601 date separator');
-  } else if (numbers.length === 2 && (!dateSeparator || separator === 0)) {
+  } else if (len === 2 && (!dateSeparator || separator === 0)) {
     throw new RangeError('Unbalanced ISO 8601 date separator');
-  } else if (numbers.length === 3) {
+  } else if (len === 3) {
     throw this.createUnexpectedError();
   }
 
-  const M = (this.result.M = Number(numbers.substring(0, 2)) - 1);
-  const D = (this.result.D = Number(numbers.substring(2) || 1));
+  const pow = POW10[len - 2];
+  const M = (this.result.M = ((numbers / pow) | 0) - 1);
+  const D = (this.result.D = len === 2 ? 1 : numbers % pow);
 
   if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
 
@@ -731,7 +750,7 @@ ISODate.prototype.continueOrdinalDatePrecision = function continueOrdinalDatePre
  * @param {number} Y year
  */
 ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruction(Y) {
-  const W = (this.result.W = Number(this.consumeChar('012345') + this.consumeChar()));
+  const W = (this.result.W = twoDigits(this.consumeChar('012345'), this.consumeChar()));
 
   let c;
   if (this.enforceSeparators) {
@@ -763,7 +782,7 @@ ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruc
  * Continue from time instruction
  */
 ISODate.prototype.continueFromTimeInstruction = function continueFromTimeInstruction() {
-  const H = (this.result.H = Number(this.consumeChar(ISOTIME_STARTHOUR) + this.consumeChar()));
+  const H = (this.result.H = twoDigits(this.consumeChar(ISOTIME_STARTHOUR), this.consumeChar()));
   return this.continueTimePrecision(H);
 };
 
@@ -779,46 +798,64 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
   const numberChars = midnight ? '0' : NUMBERS;
   const timeSeparator = this.enforceSeparators ? ISOTIME_SEPARATOR : '';
 
+  let startChars, contChars;
+  if (midnight) {
+    startChars = timeSeparator + firstChars;
+    contChars = timeSeparator + ISOTIME_OFFSET + numberChars;
+  } else if (timeSeparator) {
+    startChars = ISOTIME_START_SEPARATED;
+    contChars = ISOTIME_CONT_SEPARATED;
+  } else {
+    startChars = ISOTIME_STARTPART;
+    contChars = ISOTIME_CONT;
+  }
+
   /** @type {string | undefined} */
-  let c = this.consumeChar(timeSeparator + firstChars);
+  let c = this.consumeChar(startChars);
   if (c === timeSeparator) {
     c = this.consumeChar(firstChars);
   } else if (this.enforceSeparators) {
     throw this.createUnexpectedError();
   }
 
-  this.result.m = Number(c + this.consumeChar(numberChars));
+  this.result.m = twoDigits(c, this.consumeChar(numberChars));
 
-  c = this.consumeCharOrEnd(timeSeparator + ISOTIME_OFFSET + numberChars);
+  c = this.consumeCharOrEnd(contChars);
 
   if (!c) {
     return this;
   } else if (c === ISOTIME_SEPARATOR) {
     c = this.consumeChar(ISOTIME_STARTPART);
-  } else if (ISOTIME_OFFSET.indexOf(c) > -1) {
+  } else if (c === ISO_ZULU || isDatePrefix(c)) {
     return this.continueTimeZonePrecision(c);
   } else if (this.enforceSeparators) {
     throw this.createUnexpectedError();
   }
 
-  let value = c + this.consumeChar(numberChars);
-  this.result.S = Number(value);
+  this.result.S = twoDigits(c, this.consumeChar(numberChars));
 
-  c = this.consumeCharOrEnd(FRACTIONS + ISOTIME_OFFSET);
+  c = this.consumeCharOrEnd(ISOTIME_FRACTION_OR_OFFSET);
   if (!c) {
     return this;
   }
 
-  if (FRACTIONS.indexOf(c) > -1) {
-    value = this.consumeChar(numberChars);
-    while ((c = this.consumeCharOrEnd(numberChars + ISOTIME_OFFSET))) {
-      if (!c || NUMBERS.indexOf(c) === -1) break;
-      if (value.length === 3) value += '.';
-      value += c;
-      if (value.length > 18) throw this.createUnexpectedError();
+  if (isFraction(c)) {
+    const fractionChars = midnight ? numberChars + ISOTIME_OFFSET : ISOTIME_CONT;
+    const fractionStart = this.idx + 1;
+    let F = digitValue(this.consumeChar(numberChars));
+    let count = 1;
+    while ((c = this.consumeCharOrEnd(fractionChars))) {
+      if (!isDigit(c)) break;
+      if (++count > 17) throw this.createUnexpectedError();
+      if (count <= 15) F = F * 10 + digitValue(c);
     }
-    if (value.length < 3) value = (value + '000').slice(0, 3);
-    this.result.F = Number(value);
+    if (count <= 3) F = F * POW10[3 - count];
+    else if (count <= 15) F = F / 10 ** (count - 3);
+    else
+      F = Number(
+        this.source.substring(fractionStart, fractionStart + 3) + '.' + this.source.substring(fractionStart + 3, fractionStart + count),
+      );
+    this.result.F = F;
   }
 
   if (!c) {
@@ -839,25 +876,25 @@ ISODate.prototype.continueTimeZonePrecision = function continueTimeZonePrecision
   if (c && z === ISO_ZULU) throw this.createUnexpectedError();
   else if (!c) return this;
 
-  this.result.OH = Number(c + this.consumeChar(c === '2' ? '0123' : NUMBERS));
+  this.result.OH = twoDigits(c, this.consumeChar(c === '2' ? '0123' : NUMBERS));
 
-  c = this.consumeCharOrEnd(ISOTIME_SEPARATOR + ISOTIME_STARTPART);
+  c = this.consumeCharOrEnd(ISOTIME_START_SEPARATED);
   if (!c) return this;
 
   if (c === ISOTIME_SEPARATOR) {
     c = this.consumeChar(ISOTIME_STARTPART);
   }
 
-  this.result.Om = Number(c + this.consumeChar());
+  this.result.Om = twoDigits(c, this.consumeChar());
 
-  c = this.consumeCharOrEnd(ISOTIME_SEPARATOR + ISOTIME_STARTPART);
+  c = this.consumeCharOrEnd(ISOTIME_START_SEPARATED);
   if (!c) return this;
 
   if (c === ISOTIME_SEPARATOR) {
     c = this.consumeChar(ISOTIME_STARTPART);
   }
 
-  this.result.OS = Number(c + this.consumeChar());
+  this.result.OS = twoDigits(c, this.consumeChar());
 
   return this.end();
 };
@@ -872,7 +909,7 @@ ISODate.prototype.consume = function consume() {
  */
 ISODate.prototype.consumeChar = function consumeChar(valid = NUMBERS) {
   const c = this.consume();
-  if (valid.indexOf(c) === -1) throw this.createUnexpectedError();
+  if (valid === NUMBERS ? !isDigit(c) : valid.indexOf(c) === -1) throw this.createUnexpectedError();
   return c;
 };
 
@@ -894,7 +931,7 @@ ISODate.prototype.consumeCharOrEnd = function consumeCharOrEnd(valid = NUMBERS) 
   const c = this.consume();
   if (c && this.endChars && this.endChars.indexOf(c) > -1) {
     return undefined;
-  } else if (c && valid.indexOf(c) === -1) {
+  } else if (c && (valid === NUMBERS ? !isDigit(c) : valid.indexOf(c) === -1)) {
     throw this.createUnexpectedError();
   }
   return c;
@@ -1045,14 +1082,14 @@ ISODuration.prototype.write = function writeDuration(c) {
   }
 
   let designatorIdx;
-  if (NUMBERS.indexOf(c) > -1) {
+  if (isDigit(c)) {
     this._value += c;
   } else if ((designatorIdx = this.designators.indexOf(c)) > -1) {
     this.designators = this.designators.slice(designatorIdx + 1);
     // @ts-ignore
     this.designator = c;
     this.setDesignatorValue(c, this._value);
-  } else if (FRACTIONS.indexOf(c) > -1) {
+  } else if (isFraction(c)) {
     this.usedFractions = true;
     this._value += '.';
   } else if (c === ISOINTERVAL_DURATION && !this._type) {
@@ -1537,6 +1574,72 @@ function getUTCWeekday(date) {
 function isLeapYear(year) {
   if (year % 4) return false;
   return year % 100 === 0 ? year % 400 === 0 : true;
+}
+
+/**
+ * Char is 0-9
+ * @param {string} [c]
+ */
+function isDigit(c) {
+  if (c === undefined) return false;
+  const code = c.charCodeAt(0);
+  return code > 47 && code < 58;
+}
+
+/**
+ * Digit char to number
+ * @param {string} c digit char
+ */
+function digitValue(c) {
+  return c.charCodeAt(0) - 48;
+}
+
+/**
+ * Two digit chars to number
+ * @param {string} c1 first digit char
+ * @param {string} c2 second digit char
+ */
+function twoDigits(c1, c2) {
+  return (c1.charCodeAt(0) - 48) * 10 + (c2.charCodeAt(0) - 48);
+}
+
+/**
+ * Signed year from accumulated digits, sourced from string for years beyond safe integer precision
+ * @param {string} source date source string
+ * @param {string} sign year sign
+ * @param {number} value accumulated year digits
+ * @param {number} digitsStart source index of first year digit
+ * @param {number} len number of year digits
+ */
+function signedYear(source, sign, value, digitsStart, len) {
+  if (len < 16) return sign === ISODATE_HYPHEN ? -value : value;
+  return Number(sign + source.substring(digitsStart, digitsStart + len));
+}
+
+/**
+ * Char is ISO weekday 1-7
+ * @param {string} [c]
+ */
+function isWeekday(c) {
+  if (c === undefined) return false;
+  const code = c.charCodeAt(0);
+  return code > 48 && code < 56;
+}
+
+/**
+ * Char is date sign prefix +, -, or unicode minus
+ * @param {string} [c]
+ */
+function isDatePrefix(c) {
+  return c === '+' || c === ISODATE_HYPHEN || c === UNICODE_MINUS;
+}
+
+/**
+ * Char is fraction separator . or ,
+ * @param {string} [c]
+ */
+function isFraction(c) {
+  return c === '.' || c === ',';
 }
 
 /**

@@ -1,0 +1,21 @@
+{
+  "name": "@0dep/piso-bench",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Benchmarks comparing @0dep/piso with other ISO 8601 parsers",
+  "type": "module",
+  "scripts": {
+    "bench": "node index.js",
+    "compare": "node compare.js",
+    "bench:interval": "node suites/interval.js",
+    "bench:duration": "node suites/duration.js",
+    "bench:date": "node suites/date.js"
+  },
+  "dependencies": {
+    "@0dep/piso": "file:..",
+    "@js-temporal/polyfill": "^0.5.1",
+    "iso8601-duration": "^2.1.2",
+    "luxon": "^3.5.0",
+    "tinybench": "^6.1.3"
+  }
+}
