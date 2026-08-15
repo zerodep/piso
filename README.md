@@ -29,6 +29,8 @@ Parse interval from an ISO 8601 interval string.
 
 Returns [ISOInterval](#new-isointervalsource-enforceutc).
 
+Interval sources are bounded by their field limits: repetitions accept at most 17 digits, a maximal date — signed 17 digit year, 17 second fractions, and offset with seconds — is 60 characters, and a maximal [duration](#parsedurationiso8601duration) is 129 characters. Consequently a valid interval never exceeds 209 characters.
+
 ```javascript
 import { parseInterval, ISOInterval } from '@0dep/piso';
 
@@ -56,6 +58,8 @@ Parse duration from an ISO 8601 duration string.
 - `iso8601Duration`: string with ISO 8601 duration source
 
 Returns [ISODuration](#new-isodurationsource-offset).
+
+Each duration designator value accepts at most 17 digits, so a valid duration never exceeds 129 characters — more throws RangeError.
 
 ```javascript
 import { parseDuration } from '@0dep/piso';
@@ -355,7 +359,7 @@ ISO date instance.
   - `H`: hours
   - `m`: minutes
   - `S`: seconds
-  - `F`: milliseconds
+  - `F`: milliseconds, including fractional milliseconds when the source has more than 3 fraction digits; at most 17 fraction digits are accepted, more throws RangeError
   - `Z`: Z, +, −, or -
   - `OH`: offset hours
   - `Om`: offset minutes
@@ -480,7 +484,7 @@ Parses intervals 6–11 times faster than luxon, depending on the interval form.
 
 ### Duration
 
-Parses durations 1.1–2 times faster than luxon and iso8601-duration, and 2–3 times faster than temporal.
+Parses durations 1.1–2.3 times faster than luxon and iso8601-duration, and 1.9–4.3 times faster than temporal.
 
 | Capability                        | piso | iso8601-duration | luxon | [temporal](https://www.npmjs.com/package/@js-temporal/polyfill) |
 | --------------------------------- | ---- | ---------------- | ----- | --------------------------------------------------------------- |
@@ -495,23 +499,24 @@ Parses durations 1.1–2 times faster than luxon and iso8601-duration, and 2–3
 
 ### Date
 
-Parses dates about 6 times faster than luxon and 2–4 times faster than temporal. Date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+Parses dates 6–7 times faster than luxon and 2–4 times faster than temporal. Date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
-| Capability                  | piso | luxon | temporal | node 20 |
-| --------------------------- | ---- | ----- | -------- | ------- |
-| The 24:th hour              | ✓    | ✓     | ❌       | ✓       |
-| Year +10000                 | ✓    | ✓     | ✓        | ✓       |
-| Year 9999                   | ✓    | ✓     | ✓        | ✓       |
-| Year only (`YYYY`)          | ✓    | ✓     | ❌       | ✓       |
-| BC dates                    | ✓    | ✓     | ✓        | ✓       |
-| Week                        | ✓    | ✓     | ❌       | ❌      |
-| Ordinal date                | ✓    | ✓     | ❌       | ❌      |
-| Without separators          | ✓    | ✓     | ✓        | ❌      |
-| Without offset minutes      | ✓    | ✓     | ✓        | ❌      |
-| Comma as fraction separator | ✓    | ✓     | ✓        | ❌      |
-| Throw on invalid leap year  | ✓    | ✓     | ✓        | ❌\*    |
-| Offset unicode minus (−)    | ✓    | ❌    | ❌       | ❌      |
-| Offset seconds              | ✓    | ❌    | ✓        | ❌      |
-| 36 fractions of a second    | ❌   | ❌    | ❌       | ✓       |
+| Capability                  | piso   | luxon | temporal | node 20 |
+| --------------------------- | ------ | ----- | -------- | ------- |
+| The 24:th hour              | ✓      | ✓     | ❌       | ✓       |
+| Year +10000                 | ✓      | ✓     | ✓        | ✓       |
+| Year 9999                   | ✓      | ✓     | ✓        | ✓       |
+| Year only (`YYYY`)          | ✓      | ✓     | ❌       | ✓       |
+| BC dates                    | ✓      | ✓     | ✓        | ✓       |
+| Week                        | ✓      | ✓     | ❌       | ❌      |
+| Ordinal date                | ✓      | ✓     | ❌       | ❌      |
+| Without separators          | ✓      | ✓     | ✓        | ❌      |
+| Without offset minutes      | ✓      | ✓     | ✓        | ❌      |
+| Comma as fraction separator | ✓      | ✓     | ✓        | ❌      |
+| Throw on invalid leap year  | ✓      | ✓     | ✓        | ❌\*    |
+| Offset unicode minus (−)    | ✓      | ❌    | ❌       | ❌      |
+| Offset seconds              | ✓      | ❌    | ✓        | ❌      |
+| 36 fractions of a second    | ❌\*\* | ❌    | ❌       | ✓       |
 
-> \* node is benevolent when parsing `2100-02-29` as `2100-03-01`
+> \* node is benevolent when parsing `2100-02-29` as `2100-03-01`<br/>
+> \*\* piso accepts at most 17 fraction digits, more throws RangeError

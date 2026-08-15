@@ -4,12 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## v4.1.0 - 2026-08-14
+## v5.0.0 - 2026-08-15
 
-- faster parsing across the board: durations now outpace luxon and iso8601-duration, dates parse about 6 times and intervals 6–11 times faster than luxon
-- date and interval parsing shaved another ~20% off and produces about a third less garbage
+### Breaking
+
+- interval repetitions and duration designator values are capped at 17 digits — sources with longer values used to parse to precision-lossy floats but now throw RangeError
+- the 255 character duration source limit is superseded by the digit caps, so the `ISO 8601 duration string is too long` error no longer exists
+- digit cap errors report what actually went wrong: exceeding a year, fraction, duration value, or repeat limit throws `... exceeds N digits` with the consumed prefix and position, instead of the unexpected character error
+
+### Other
+
+- faster parsing across the board: durations now outpace luxon and iso8601-duration, dates parse 6–7 times and intervals 6–11 times faster than luxon
+- compared to v4.0.1, parsing runs 25–40% faster and produces 30–50% less garbage across dates, durations, and intervals
 - benchmark and functionality comparison workspace, run with `npm run bench` and `npm run compare`
 - README benchmarking tables and claims now reflect executed results, with temporal added to the date comparison
+- effective source length limits are documented: a valid duration never exceeds 129 characters and a valid interval 209
 
 ## v4.0.1 - 2026-07-13
 

@@ -191,7 +191,7 @@ describe('ISO date', () => {
   it('signed year cannot handle more than 17 chars', () => {
     expect(() => {
       new ISODate('+' + new Array(18).fill(1).join('') + '-01-11', { enforceSeparators: false }).parse();
-    }).to.throw(RangeError, /unexpected/i);
+    }).to.throw(RangeError, /year .* exceeds 17 digits/i);
   });
 
   /** @type {Array<[string, Date]>} */
@@ -316,7 +316,7 @@ describe('ISO date', () => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
         ISODate.parse(dt);
-      }).to.throw(RangeError, /(Unexpected|Invalid|Unbalanced) ISO 8601 date/i);
+      }).to.throw(RangeError, /(Unexpected|Invalid|Unbalanced) ISO 8601 date|ISO 8601 date (year|fraction) .* exceeds \d+ digits/i);
     });
   });
 
@@ -352,13 +352,19 @@ describe('ISO date', () => {
     expect(getDate(dateString), dateString).to.deep.equal(new Date('2007-04-05T11:30:01.123Z'));
 
     dateString = '2007-04-05T12:30:30.123456789012345678-02';
-    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /fraction .* exceeds 17 digits/i);
 
     dateString = '2007-04-05T12:30:30.1234567890123456789-02';
-    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /fraction .* exceeds 17 digits/i);
 
     dateString = '2007-04-05T12:30:02.1234' + Array(1000).fill(1).join('') + '+02';
-    expect(() => getDate(dateString), dateString).to.throw(RangeError, /unexp/i);
+    expect(() => getDate(dateString), dateString).to.throw(RangeError, /fraction .* exceeds 17 digits/i);
+  });
+
+  it('year digits above cap throws', () => {
+    expect(() => getDate('123456789-01-01')).to.throw(RangeError, /year .* exceeds 8 digits/i);
+    expect(() => getDate('+123456789012345678-01-01')).to.throw(RangeError, /year .* exceeds 17 digits/i);
+    expect(() => getDate('-123456789012345678-01-01')).to.throw(RangeError, /year .* exceeds 17 digits/i);
   });
 
   describe('leap years', () => {

@@ -276,6 +276,9 @@ ISOInterval.prototype.consumeRepeat = function consumeRepeat() {
   let value = '';
   while (isDigit(c)) {
     value += c;
+    if (value.length > 17) {
+      throw new RangeError(`ISO 8601 interval repeat "${this.parsed}[${c}]" at ${this.idx} exceeds 17 digits`);
+    }
     c = this.read();
   }
   this.repeat = value ? Number(value) : -1;
@@ -466,8 +469,11 @@ ISODate.prototype.parse = function parseISODate() {
     } else {
       value = value * 10 + digitValue(c);
       len++;
-      if (!sign && len > 8) throw this.createUnexpectedError();
-      else if (sign && len > 17) throw this.createUnexpectedError();
+      if (!sign && len > 8) {
+        throw new RangeError(`ISO 8601 date year "${this.parsed}[${c}]" at ${this.idx} exceeds 8 digits`);
+      } else if (sign && len > 17) {
+        throw new RangeError(`ISO 8601 date year "${this.parsed}[${c}]" at ${this.idx} exceeds 17 digits`);
+      }
     }
   }
 
@@ -846,7 +852,9 @@ ISODate.prototype.continueTimePrecision = function continueTimePrecision(H) {
     let count = 1;
     while ((c = this.consumeCharOrEnd(fractionChars))) {
       if (!isDigit(c)) break;
-      if (++count > 17) throw this.createUnexpectedError();
+      if (++count > 17) {
+        throw new RangeError(`ISO 8601 date fraction "${this.parsed}[${c}]" at ${this.idx} exceeds 17 digits`);
+      }
       if (count <= 15) F = F * 10 + digitValue(c);
     }
     if (count <= 3) F = F * POW10[3 - count];
@@ -994,7 +1002,6 @@ ISODuration.prototype.parse = function parseDuration() {
 
   const source = this.source;
   if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
-  if (source.length > 255) throw new RangeError('ISO 8601 duration string is too long');
 
   const start = this.idx + 1;
   const first = source[start];
@@ -1003,7 +1010,8 @@ ISODuration.prototype.parse = function parseDuration() {
     throw this.createUnexpectedError(first);
   }
 
-  for (const c of source.slice(start)) {
+  for (let i = start, len = source.length; i < len; i++) {
+    const c = source[i];
     if (c === ISOINTERVAL_SEPARATOR) break;
     this.write(c);
   }
@@ -1084,6 +1092,9 @@ ISODuration.prototype.write = function writeDuration(c) {
   let designatorIdx;
   if (isDigit(c)) {
     this._value += c;
+    if (this._value.length > (this.usedFractions ? 18 : 17)) {
+      throw new RangeError(`ISO 8601 duration value "${this.parsed}[${c}]" at ${this.idx} exceeds 17 digits`);
+    }
   } else if ((designatorIdx = this.designators.indexOf(c)) > -1) {
     this.designators = this.designators.slice(designatorIdx + 1);
     // @ts-ignore

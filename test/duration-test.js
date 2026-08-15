@@ -326,21 +326,31 @@ describe('duration', () => {
     });
 
     it('really long duration throws when getting expire at', () => {
-      let dur = new ISODuration(`P${new Array(252).fill(1).join('')}Y`).parse();
+      let dur = new ISODuration(`P${'9'.repeat(17)}Y`).parse();
 
       expect(() => dur.getExpireAt(), 'Y expire at').to.throw(RangeError);
 
-      dur = new ISODuration(`PT${new Array(252).fill(1).join('')}H`).parse();
+      dur = new ISODuration(`PT${'9'.repeat(17)}H`).parse();
 
       expect(() => dur.getExpireAt(), 'H expire at').to.throw(RangeError);
     });
 
-    it('above 255 chars throws', () => {
+    it('designator value with 17 digits is accepted', () => {
+      expect(new ISODuration(`PT${'9'.repeat(17)}H`).parse().result).to.deep.include({ H: Number('9'.repeat(17)) });
+      expect(new ISODuration(`PT1.${'1'.repeat(16)}S`).parse().result).to.deep.include({ S: Number(`1.${'1'.repeat(16)}`) });
+    });
+
+    it('designator value above 17 digits throws', () => {
+      expect(() => new ISODuration(`PT${'9'.repeat(18)}H`).parse()).to.throw(RangeError, /duration value .* exceeds 17 digits/i);
+      expect(() => new ISODuration(`PT1.${'1'.repeat(17)}S`).parse()).to.throw(RangeError, /duration value .* exceeds 17 digits/i);
+    });
+
+    it('really long source throws on the 18:th value digit without reading it all', () => {
       let dur = `PT${new Array(253).fill(1).join('')}H`;
 
       expect(() => {
         ISODuration.parse(dur);
-      }, dur).to.throw(RangeError, /too long/i);
+      }, dur).to.throw(RangeError, /duration value .* at 19 exceeds 17 digits/i);
 
       dur = `PT${new Array(1000)
         .fill(0)
@@ -349,7 +359,30 @@ describe('duration', () => {
 
       expect(() => {
         ISODuration.parse(dur);
-      }, dur).to.throw(RangeError, /too long/i);
+      }, dur).to.throw(RangeError, /exceeds 17 digits/i);
+    });
+
+    it('repeat with 17 digits is accepted', () => {
+      const repeat = '9'.repeat(17);
+      const interval = new ISOInterval(`R${repeat}/2024-01-01/P1Y`).parse();
+
+      expect(interval.repeat).to.equal(Number(repeat));
+    });
+
+    it('repeat above 17 digits throws', () => {
+      const interval = `R${'9'.repeat(18)}/2024-01-01/P1Y`;
+
+      expect(() => {
+        new ISOInterval(interval).parse();
+      }, interval).to.throw(RangeError, /repeat .* exceeds 17 digits/i);
+    });
+
+    it('interval duration with too many value digits throws', () => {
+      const interval = `2024-01-01/P${new Array(256).fill(1).join('')}Y`;
+
+      expect(() => {
+        new ISOInterval(interval).parse();
+      }, interval).to.throw(RangeError, /duration value .* exceeds 17 digits/i);
     });
 
     describe.skip('designator fractions', () => {
