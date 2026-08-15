@@ -499,7 +499,7 @@ Parses durations 1.1–2.3 times faster than luxon and iso8601-duration, and 1.9
 
 ### Date
 
-Parses dates 6–7 times faster than luxon and 2–4 times faster than temporal. Date parsing is, of course, slower compared to `new Date('2024-03-26')`. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+Parses dates 6–7 times faster than luxon and 2–4 times faster than temporal. Native `new Date('2024-03-26')` is, of course, still faster — about 3 times in the benchmark. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
 | Capability                  | piso   | luxon | temporal | node 20 |
 | --------------------------- | ------ | ----- | -------- | ------- |
