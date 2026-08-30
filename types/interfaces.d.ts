@@ -19,6 +19,11 @@ export interface ISOParts {
   F: number;
 }
 
+export interface ISODurationParts extends ISOParts {
+  /** Duration sign, -1 when the source has a leading minus, otherwise absent */
+  sign?: -1;
+}
+
 export interface ISODateParts extends ISOParts {
   /** Timezone offset char */
   Z?: string;

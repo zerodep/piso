@@ -62,6 +62,16 @@ Returns [ISODuration](#new-isodurationsource-offset).
 
 Each duration designator value accepts at most 17 digits, so a valid duration never exceeds 129 characters — more throws RangeError.
 
+A leading minus (`-` or unicode minus `−`) as of ISO 8601-2:2019 negates the duration, e.g. `-P1D`, and is only accepted by `parseDuration` and [ISODuration](#new-isodurationsource-offset) — not in intervals. The parsed result then has `sign: -1`, `getExpireAt` subtracts the duration and `getStartAt` adds it.
+
+```javascript
+import { parseDuration } from '@0dep/piso';
+
+const yesterday = parseDuration('-P1D');
+
+console.log(yesterday.result.sign, yesterday.getExpireAt(new Date(Date.UTC(2024, 2, 1))).toISOString());
+```
+
 ```javascript
 import { parseDuration } from '@0dep/piso';
 
@@ -481,7 +491,7 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 How piso stacks up against the RegExp-based implementations depends on the capability, so speed and functionality are compared per capability below.
 
-Benchmarks and functionality comparison against luxon, iso8601-duration, [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date` live in the [bench](/bench) workspace. `npm run bench` measures parse throughput and `npm run compare` executes each capability below against every library and prints ✓/✗ tables from actual behavior:
+Benchmarks and functionality comparison against luxon, iso8601-duration, [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date` live in the [bench](/bench) workspace. `npm run bench` measures parse throughput as well as parse-and-apply throughput — duration to expire at and milliseconds, interval to expire at and start at — and `npm run compare` executes each capability below against every library and prints ✓/✗ tables from actual behavior:
 
 ```sh
 npm install
@@ -516,9 +526,24 @@ Parses durations 1.1–2.3 times faster than luxon and iso8601-duration, and 1.9
 | Fractional date designator        | ✓    | ❌               | ✓     | ❌                                                              |
 | Comma as fraction separator       | ✓    | ✓                | ❌    | ✓                                                               |
 | Repeated duration instruction     | ✓    | ❌\*             | ❌    | ❌                                                              |
-| Negative duration instruction     | ❌   | ❌\*             | ✓     | ✓                                                               |
+| Negative duration instruction     | ✓    | ❌\*             | ✓     | ✓                                                               |
 
 > \* parses but the instruction is ignored
+
+### Applying durations and intervals
+
+Parsing is only half the job, so `bench/suites/apply.js` measures the outcome: parse a duration and get its expire at date or milliseconds, parse an interval and get its expire at or start at date. Every library is verified to produce the same result before timing.
+
+| Outcome                                       | piso vs luxon | piso vs temporal | piso vs iso8601-duration |
+| --------------------------------------------- | ------------- | ---------------- | ------------------------ |
+| Duration `P1Y2M10DT2H30M` expire at from date | 2.9×          | 7×               | n/a\*                    |
+| Negative duration `-P1D` expire at from date  | 7.7×          | 18×              | n/a\*                    |
+| Duration `PT2H30M` milliseconds               | 1.4×          | 11×              | 5.7×                     |
+| Interval start/duration expire at             | 4.3×          | n/a              | n/a                      |
+| Interval duration/end start at                | 4.5×          | n/a              | n/a                      |
+| Interval start/end expire at                  | 6×            | n/a              | n/a                      |
+
+\* iso8601-duration `end()` applies the duration in local time so it is not comparable with the UTC results of the others.
 
 ### Date
 

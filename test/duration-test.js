@@ -1,6 +1,6 @@
 import * as ck from 'chronokinesis';
 
-import { ISOInterval, ISODuration } from '@0dep/piso';
+import { ISOInterval, ISODuration, parseDuration } from '@0dep/piso';
 
 describe('duration', () => {
   after(ck.reset);
@@ -400,6 +400,105 @@ describe('duration', () => {
           }, dur).to.throw(RangeError, /unexpected/i);
         });
       });
+    });
+  });
+
+  describe('negative duration', () => {
+    afterEach(ck.reset);
+
+    it('leading minus parses with sign -1', () => {
+      expect(parseDuration('-P1Y').result).to.deep.equal({ sign: -1, Y: 1, isValid: true });
+      expect(parseDuration('-PT1M').result).to.deep.equal({ sign: -1, m: 1, isValid: true });
+      expect(parseDuration('-P1Y2M3W4DT5H6M7.5S').result).to.deep.equal({
+        sign: -1,
+        Y: 1,
+        M: 2,
+        W: 3,
+        D: 4,
+        H: 5,
+        m: 6,
+        S: 7.5,
+        isValid: true,
+      });
+    });
+
+    it('unicode minus is also accepted', () => {
+      expect(parseDuration('\u2212P1D').result).to.deep.equal({ sign: -1, D: 1, isValid: true });
+    });
+
+    it('positive duration has no sign', () => {
+      expect(parseDuration('P1D').result).to.not.have.property('sign');
+    });
+
+    it('getExpireAt subtracts duration', () => {
+      const dur = parseDuration('-PT1M');
+      expect(dur.getExpireAt(new Date(Date.UTC(2024, 2, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 59)));
+      expect(dur.getExpireAt(new Date(Date.UTC(2024, 2, 29)), 2)).to.deep.equal(new Date(Date.UTC(2024, 2, 28, 23, 58)));
+    });
+
+    it('getExpireAt with date designators subtracts calendar units', () => {
+      const dur = parseDuration('-P1M');
+      expect(dur.getExpireAt(new Date(Date.UTC(2024, 2, 31)))).to.deep.equal(new Date(Date.UTC(2024, 2, 2)));
+      expect(parseDuration('-P1Y').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2023, 2, 1)));
+      expect(parseDuration('-P1W').getExpireAt(new Date(Date.UTC(2024, 2, 4)))).to.deep.equal(new Date(Date.UTC(2024, 1, 26)));
+    });
+
+    it('getExpireAt with fractioned date designator subtracts fraction', () => {
+      expect(parseDuration('-P1.5D').getExpireAt(new Date(Date.UTC(2024, 2, 4)))).to.deep.equal(new Date(Date.UTC(2024, 2, 2, 12)));
+      expect(parseDuration('-P0.5D').getExpireAt(new Date(Date.UTC(2024, 2, 4)))).to.deep.equal(new Date(Date.UTC(2024, 2, 3, 12)));
+    });
+
+    it('getStartAt adds duration', () => {
+      const dur = parseDuration('-PT1M');
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 1)));
+      expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), 2)).to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 2)));
+      expect(parseDuration('-P1M').getStartAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 29)));
+    });
+
+    it('toMilliseconds and untilMilliseconds are negative', () => {
+      expect(parseDuration('-PT1M').toMilliseconds(new Date(Date.UTC(2024, 2, 29)))).to.equal(-60000);
+      expect(parseDuration('-PT1M').untilMilliseconds(new Date(Date.UTC(2024, 2, 29)))).to.equal(60000);
+      expect(parseDuration('-P1D').toMilliseconds(new Date(Date.UTC(2024, 2, 29)))).to.equal(-86400000);
+    });
+
+    it('toISOString and toJSON keep the minus', () => {
+      const dur = parseDuration('-P1Y2M3DT4H5M6S');
+      expect(dur.toISOString()).to.equal('-P1Y2M3DT4H5M6S');
+      expect(dur.toJSON()).to.equal('-P1Y2M3DT4H5M6S');
+      expect(dur.toString()).to.equal('-P1Y2M3DT4H5M6S');
+      expect(parseDuration('-P1W').toISOString()).to.equal('-P1W');
+    });
+
+    it('write(c) accepts leading minus only before P', () => {
+      const dur = new ISODuration('-P1D');
+      dur.write('-');
+      dur.write('P');
+      dur.write('1');
+      dur.write('D');
+      dur.write(undefined);
+      expect(dur.result).to.deep.equal({ sign: -1, D: 1 });
+    });
+
+    /** @type {Array<[string, RegExp]>} */
+    const invalid = [
+      ['--P1D', /unexpected .* character "-\[-\]" at 1/i],
+      ['P-1D', /unexpected .* character "P\[-\]" at 1/i],
+      ['PT-1H', /unexpected .* character "PT\[-\]" at 2/i],
+      ['-', /EOL/i],
+      ['-1D', /unexpected .* character "-\[1\]" at 1/i],
+      ['-T1H', /unexpected .* character "-\[T\]" at 1/i],
+    ];
+
+    invalid.forEach(([source, message]) => {
+      it(`"${source}" throws ${message}`, () => {
+        expect(() => parseDuration(source), source).to.throw(RangeError, message);
+        expect(() => new ISODuration(source).parse(), source).to.throw(RangeError, message);
+      });
+    });
+
+    it('leading plus is not supported', () => {
+      expect(() => new ISODuration('+P1D').parse()).to.throw(RangeError, /unexpected .* character "\[\+\]" at 0/i);
+      expect(() => parseDuration('+P1D')).to.throw(RangeError, /unexpected/i);
     });
   });
 

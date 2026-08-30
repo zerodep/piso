@@ -70,6 +70,11 @@ describe('ISO 8601 interval', () => {
       });
     });
 
+    it('getExpireAt with compare date far beyond every repetition returns last repetition', () => {
+      const expireAt = getExpireAt('R3/2007-03-01T13:00:00Z/P1D', new Date(Date.UTC(2020, 0, 1)));
+      expect(expireAt).to.deep.equal(new Date(Date.UTC(2007, 2, 4, 13)));
+    });
+
     /** @type {Array<[string, import('@0dep/piso').ISODate['result']]>} */
     const expireRepeatList = [
       ['R2/2007-03-01T13:00:00Z/P2Y', { Y: 2009, M: 2, D: 1, H: 13, m: 0, S: 0, Z: 'Z' }],
@@ -1543,6 +1548,13 @@ describe('ISO 8601 interval', () => {
         RangeError,
         'Unexpected ISO 8601 date character "-0001-05-15T12:00/0001[0]" at 22',
       );
+    });
+  });
+  describe('negative duration in interval', () => {
+    ['-P1D', '2024-01-01/-P1D', '-P1D/2024-01-01', 'R2/-P1D', 'R2/2024-01-01/-P1D'].forEach((source) => {
+      it(`"${source}" is not supported and throws RangeError`, () => {
+        expect(() => parseInterval(source), source).to.throw(RangeError, /unexpected/i);
+      });
     });
   });
 });

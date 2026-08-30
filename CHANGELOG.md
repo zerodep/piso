@@ -4,8 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## v5.0.1 - 2026-08-29
+## v5.1.0 - 2026-08-30
 
+- `parseDuration` and `ISODuration` accept a leading minus (`-P1D`, ISO 8601-2:2019) as a negative duration; the result gets `sign: -1`, `getExpireAt` subtracts and `getStartAt` adds. Intervals still reject it
+- new `bench/suites/apply.js` benchmark measures parse-and-apply throughput — duration expire at and milliseconds, interval expire at and start at — against luxon, temporal, and iso8601-duration
+- `getExpireAt` on a non-repeating start/duration interval no longer estimates repetitions first, which applied the duration twice — about 40% faster
 - `getExpireAt` on an interval with only a start date, e.g. `2026-09-01T10:00:00Z`, threw `TypeError: this.duration.toMilliseconds is not a function`. It now returns the start date, mirroring `getStartAt` and the end-date-only case
 
 ## v5.0.0 - 2026-08-15

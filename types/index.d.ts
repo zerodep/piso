@@ -201,7 +201,7 @@ declare module '@0dep/piso' {
 		designators: string;
 		usedDesignators: string;
 		
-		result: Partial<ISOParts>;
+		result: Partial<ISODurationParts>;
 		isDateIndifferent: boolean;
 		get parsed(): string;
 		parse(): this;
@@ -283,7 +283,7 @@ declare module '@0dep/piso' {
 		 * @param source ISO 8601 duration
 		 * @param offset Column offset
 		 */
-		function parse(source: string, offset?: number): Partial<ISOParts>;
+		function parse(source: string, offset?: number): Partial<ISODurationParts>;
 	}
 	/**
 	 * Parse ISO 8601 interval
@@ -356,6 +356,11 @@ declare module '@0dep/piso' {
 	S: number;
 	/** Millisecond designator that follows the value for the number of milliseconds */
 	F: number;
+  }
+
+  interface ISODurationParts extends ISOParts {
+	/** Duration sign, -1 when the source has a leading minus, otherwise absent */
+	sign?: -1;
   }
 
   interface ISODateParts extends ISOParts {

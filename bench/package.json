@@ -9,7 +9,8 @@
     "compare": "node compare.js",
     "bench:interval": "node suites/interval.js",
     "bench:duration": "node suites/duration.js",
-    "bench:date": "node suites/date.js"
+    "bench:date": "node suites/date.js",
+    "bench:apply": "node suites/apply.js"
   },
   "dependencies": {
     "@0dep/piso": "file:..",

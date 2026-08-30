@@ -970,7 +970,7 @@ export function ISODuration(source, offset = -1) {
   this.fractionedDesignator = undefined;
   this.designators = ISODURATION_DATE_DESIGNATORS;
   this.usedDesignators = '';
-  /** @type {Partial<import('types').ISOParts>} */
+  /** @type {Partial<import('types').ISODurationParts>} */
   this.result = {};
   this.isDateIndifferent = true;
   /** @internal */
@@ -1005,8 +1005,13 @@ ISODuration.prototype.parse = function parseDuration() {
   const source = this.source;
   if (typeof source !== 'string') throw new TypeError('ISO 8601 duration must be a string');
 
-  const start = this.idx + 1;
-  const first = source[start];
+  let start = this.idx + 1;
+  let first = source[start];
+  if (first === ISODATE_HYPHEN || first === UNICODE_MINUS) {
+    this.result.sign = -1;
+    this.idx = start;
+    first = source[++start];
+  }
   if (first !== ISOINTERVAL_DURATION) {
     this.idx = first ? start : start + 1;
     throw this.createUnexpectedError(first);
@@ -1029,7 +1034,7 @@ ISODuration.prototype.toISOString = function durationToISOString() {
 
   const result = this.result;
 
-  let isoString = 'P';
+  let isoString = result.sign === -1 ? '-P' : 'P';
   for (const designator of ISODURATION_DATE_DESIGNATORS) {
     // @ts-ignore
     const v = result[designator];
@@ -1107,6 +1112,8 @@ ISODuration.prototype.write = function writeDuration(c) {
     this._value += '.';
   } else if (c === ISOINTERVAL_DURATION && !this._type) {
     this._type = c;
+  } else if ((c === ISODATE_HYPHEN || c === UNICODE_MINUS) && !this._type && !this._value && !this.result.sign) {
+    this.result.sign = -1;
   } else if (c === ISODATE_TIMEINSTRUCTION && this._type === ISOINTERVAL_DURATION) {
     this.designators = ISODURATION_TIME_DESIGNATORS;
     this._type = c;
@@ -1239,6 +1246,8 @@ ISODuration.prototype.createUnexpectedError = function createUnexpectedError(c) 
 ISODuration.prototype.applyDuration = function applyDuration(date, repetitions = 1, useUtc = false) {
   date = date ?? new Date();
 
+  if (this.result.sign === -1) repetitions = -repetitions;
+
   const indifferentMs = this.getDateIndifferentMilliseconds(repetitions);
 
   const ms = date.getTime();
@@ -1333,9 +1342,11 @@ function ISODateDurationFunctions(date, duration, compareTo, enforceUTC) {
 
 /**
  * Add duration to date
- * @param {number} [repetitions] repetition
+ * @param {number} repetitions repetitions, 1 for a single application
  */
-ISODateDurationFunctions.prototype.addDuration = function addDuration(repetitions = 1) {
+ISODateDurationFunctions.prototype.addDuration = function addDuration(repetitions) {
+  if (repetitions === 1) return this.applyDuration(this.date);
+
   const diff = this.compareTo.getTime() - this.date.getTime();
   const q = diff / this.duration.toMilliseconds();
 
@@ -1410,6 +1421,9 @@ export function parseInterval(isoInterval, enforceUTC) {
  * @param {string} isoDuration ISO 8601 duration or interval
  */
 export function parseDuration(isoDuration) {
+  if (typeof isoDuration === 'string' && (isoDuration[0] === ISODATE_HYPHEN || isoDuration[0] === UNICODE_MINUS)) {
+    return new ISODuration(isoDuration).parse();
+  }
   return new ISOInterval(isoDuration).parse().duration;
 }
 
