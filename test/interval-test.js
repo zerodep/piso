@@ -814,6 +814,19 @@ describe('ISO 8601 interval', () => {
     it('invalid start date with repeat throws RangeError', () => {
       expect(() => parseInterval('2025-02-Z9T12:00')).to.throw(RangeError, 'Unexpected ISO 8601 date character "2025-02-[Z]" at 8');
     });
+
+    it('getExpireAt on start date only returns start date', () => {
+      const iso = new ISOInterval('2026-09-01T10:00:00Z').parse();
+      expect(iso.type, 'type').to.equal(2);
+      expect(iso.getExpireAt()).to.deep.equal(new Date(Date.UTC(2026, 8, 1, 10)));
+      expect(getExpireAt('2026-09-01T10:00:00Z')).to.deep.equal(new Date(Date.UTC(2026, 8, 1, 10)));
+    });
+
+    it('getExpireAt on local start date only respects enforceUTC', () => {
+      const iso = new ISOInterval('2026-09-01T10:00:00').parse();
+      expect(iso.getExpireAt()).to.deep.equal(new Date(2026, 8, 1, 10));
+      expect(iso.getExpireAt(null, null, true)).to.deep.equal(new Date(Date.UTC(2026, 8, 1, 10)));
+    });
   });
 
   describe('interval start and duration', () => {

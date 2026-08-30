@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v5.0.1 - 2026-08-29
+
+- `getExpireAt` on an interval with only a start date, e.g. `2026-09-01T10:00:00Z`, threw `TypeError: this.duration.toMilliseconds is not a function`. It now returns the start date, mirroring `getStartAt` and the end-date-only case
+
 ## v5.0.0 - 2026-08-15
 
 ### Breaking

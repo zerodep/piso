@@ -44,6 +44,7 @@ const viableIntervals = [
   'R-1/P1M/2024-07-27T00:00Z',
   '2007-318/2007-319',
   '2007-318/319T24:00:00Z',
+  '2026-09-01T10:00:00Z',
 ];
 
 for (const i of viableIntervals) {
@@ -270,6 +271,7 @@ Number representing the interval type flags. Available after [parse](#intervalpa
 
 **Example flags**
 
+- `2`: Start date only, a point in time where start and expire dates coincide
 - `3`: Repeat and start date, rather pointless but possible nevertheless
 - `5`: Repeat and duration
 - `6`: Start date and duration
@@ -319,6 +321,25 @@ import { parseInterval } from '@0dep/piso';
 const interval = parseInterval('R-1/2024-03-28/P1Y');
 
 console.log((interval.type | 2) === interval.type ? 'Yes' : 'No');
+```
+
+> Start date only
+
+An interval consisting of only a start date is a point in time, start and expire dates are the same.
+
+```javascript
+import { parseInterval } from '@0dep/piso';
+
+const interval = parseInterval('2026-09-01T10:00:00Z');
+
+console.log(interval.type);
+// 2
+
+console.log(interval.getStartAt().toISOString());
+// 2026-09-01T10:00:00.000Z
+
+console.log(interval.getExpireAt().toISOString());
+// 2026-09-01T10:00:00.000Z
 ```
 
 ### `interval.parse()`
@@ -478,6 +499,7 @@ Parses intervals 6–11 times faster than luxon, depending on the interval form.
 | start/duration     | ✓    | ✓     |
 | duration/end       | ✓    | ✓     |
 | Repeating interval | ✓    | ❌    |
+| Start date only    | ✓    | ❌    |
 | Relative end date  | ✓    | ❌\*  |
 
 > \* `2007-11-13/15` parses but the relative end resolves to a time of day instead of a date
@@ -493,9 +515,10 @@ Parses durations 1.1–2.3 times faster than luxon and iso8601-duration, and 1.9
 | Year designator                   | ✓    | ✓                | ✓     | ❌                                                              |
 | Fractional date designator        | ✓    | ❌               | ✓     | ❌                                                              |
 | Comma as fraction separator       | ✓    | ✓                | ❌    | ✓                                                               |
-| Repeated duration instruction     | ✓    | ✓\*              | ❌    | ❌                                                              |
+| Repeated duration instruction     | ✓    | ❌\*             | ❌    | ❌                                                              |
+| Negative duration instruction     | ❌   | ❌\*             | ✓     | ✓                                                               |
 
-> \* parses to the correct duration but the repeat instruction is ignored
+> \* parses but the instruction is ignored
 
 ### Date
 

@@ -164,6 +164,8 @@ ISOInterval.prototype.getExpireAt = function getExpireAt(compareDate, startDate,
 
   const hasStartDate = (type & 2) === 2;
 
+  if (hasStartDate && !duration) return this.start.toDate(eUTC);
+
   compareDate = compareDate ?? new Date();
 
   if (hasStartDate && duration) {
@@ -932,14 +934,14 @@ ISODate.prototype.end = function end() {
 
 /**
  * Consume char or end
- * @param {string} [valid] Valid chars, defaults to 0-9
+ * @param {string} valid Valid chars
  * @returns {string | undefined}
  */
-ISODate.prototype.consumeCharOrEnd = function consumeCharOrEnd(valid = NUMBERS) {
+ISODate.prototype.consumeCharOrEnd = function consumeCharOrEnd(valid) {
   const c = this.consume();
   if (c && this.endChars && this.endChars.indexOf(c) > -1) {
     return undefined;
-  } else if (c && (valid === NUMBERS ? !isDigit(c) : valid.indexOf(c) === -1)) {
+  } else if (c && valid.indexOf(c) === -1) {
     throw this.createUnexpectedError();
   }
   return c;
@@ -1629,10 +1631,9 @@ function signedYear(source, sign, value, digitsStart, len) {
 
 /**
  * Char is ISO weekday 1-7
- * @param {string} [c]
+ * @param {string} c
  */
 function isWeekday(c) {
-  if (c === undefined) return false;
   const code = c.charCodeAt(0);
   return code > 48 && code < 56;
 }

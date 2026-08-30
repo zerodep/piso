@@ -168,9 +168,9 @@ declare module '@0dep/piso' {
 		end(): this;
 		/**
 		 * Consume char or end
-		 * @param valid Valid chars, defaults to 0-9
+		 * @param valid Valid chars
 		 * */
-		consumeCharOrEnd(valid?: string): string | undefined;
+		consumeCharOrEnd(valid: string): string | undefined;
 		createUnexpectedError(): RangeError;
 	}
 	export namespace ISODate {

@@ -113,6 +113,11 @@ compare(
       verify: (v) => v.repeat === 5,
     },
     {
+      name: 'Start date only',
+      source: '2026-09-01T10:00:00Z',
+      verify: (v) => v.start === utc(2026, 8, 1, 10) && v.end === utc(2026, 8, 1, 10),
+    },
+    {
       name: 'Relative end date',
       source: '2007-11-13/15',
       verify: (v) => anyOf(local(2007, 10, 15), utc(2007, 10, 15))(v.end),
@@ -140,6 +145,11 @@ compare(
     },
     {
       name: 'Invalid if more than one fraction',
+      source: 'PT0.5H0.2S',
+      mode: 'rejects',
+    },
+    {
+      name: 'Invalid if fraction not on least designator',
       source: 'PT0.5H2S',
       mode: 'rejects',
     },
@@ -162,6 +172,11 @@ compare(
       name: 'Repeated duration instruction',
       source: 'R3/PT10H',
       verify: (ms) => ms === 36000000,
+    },
+    {
+      name: 'Negative duration instruction',
+      source: '-PT10H',
+      verify: (ms) => ms === -36000000,
     },
   ],
 );

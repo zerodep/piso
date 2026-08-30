@@ -188,6 +188,15 @@ describe('ISO date', () => {
     });
   });
 
+  it('signed year with 16 and 17 digits is read from source to keep precision', () => {
+    expect(new ISODate('+0000000000012345-01-01').parse().result.Y, '16 digits').to.equal(12345);
+    expect(new ISODate('-0000000000012345-01-01').parse().result.Y, '16 digits negative').to.equal(-12345);
+    expect(new ISODate('+00000000000123456-01-01').parse().result.Y, '17 digits').to.equal(123456);
+    expect(new ISODate('-00000000000123456').parse().result.Y, '17 digits year only').to.equal(-123456);
+    expect(new ISODate('+12345678901234567-01-01').parse().result.Y, 'beyond safe integer').to.equal(Number('12345678901234567'));
+    expect(new ISODate('-12345678901234567-01-01').parse().result.Y, 'beyond safe integer negative').to.equal(Number('-12345678901234567'));
+  });
+
   it('signed year cannot handle more than 17 chars', () => {
     expect(() => {
       new ISODate('+' + new Array(18).fill(1).join('') + '-01-11', { enforceSeparators: false }).parse();
