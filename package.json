@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -48,18 +48,14 @@
   ],
   "author": {
     "name": "Zerodep AB",
-    "url": "https://github.com/zerodep"
+    "url": "https://0dep.se"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zerodep/piso.git"
   },
+  "homepage": "https://0dep.se/tools",
   "license": "MIT",
-  "overrides": {
-    "mocha": {
-      "yargs": "^18.0.0"
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-commonjs": "^29.0.0",
@@ -73,7 +69,7 @@
     "dts-buddy": "^0.8.0",
     "eslint": "^10.7.0",
     "globals": "^17.7.0",
-    "mocha": "^11.0.1",
+    "mocha": "^12.0.0",
     "prettier": "^3.5.0",
     "rollup": "^4.10.0",
     "texample": "^1.0.2",

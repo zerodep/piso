@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v5.1.1 - 2026-09-04
+
+- set package homepage
+
 ## v5.1.0 - 2026-08-30
 
 - `parseDuration` and `ISODuration` accept a leading minus (`-P1D`, ISO 8601-2:2019) as a negative duration; the result gets `sign: -1`, `getExpireAt` subtracts and `getStartAt` adds. Intervals still reject it
