@@ -128,7 +128,11 @@ compare(
 compare(
   'Duration to milliseconds',
   {
-    piso: (source) => parseDuration(source).toMilliseconds(),
+    piso: (source) => {
+      if (source[0] === '-') return parseDuration(source).toMilliseconds();
+      const interval = parseInterval(source);
+      return interval.duration.toMilliseconds(undefined, interval.repeat ?? 1);
+    },
     'iso8601-duration': (source) => toSeconds(parseIsoDuration(source)) * 1000,
     luxon: (source) => {
       const duration = Duration.fromISO(source);
@@ -171,7 +175,7 @@ compare(
     {
       name: 'Repeated duration instruction',
       source: 'R3/PT10H',
-      verify: (ms) => ms === 36000000,
+      verify: (ms) => ms === 108000000,
     },
     {
       name: 'Negative duration instruction',
@@ -264,5 +268,48 @@ compare(
       source: '2024-03-26T12:00:00.123456789012345678901234567890123456Z',
       verify: anyOf(utc(2024, 2, 26, 12, 0, 0, 123)),
     },
+  ],
+);
+
+/**
+ * Print what each library reports for a malformed source
+ * @param {string} title table title
+ * @param {Record<string, (source: string) => any>} libs map of library name -> parse function
+ * @param {{name: string, source: string}[]} cases
+ */
+function compareErrors(title, libs, cases) {
+  const rows = cases.map((c) => {
+    const row = { Malformed: c.name, Source: c.source };
+    for (const [name, parse] of Object.entries(libs)) {
+      let value;
+      try {
+        value = parse(c.source);
+      } catch (err) {
+        row[name] = err.message;
+        continue;
+      }
+      row[name] = value?.isValid === false ? `${value.invalidReason}: ${value.invalidExplanation}` : `${FAIL} accepted`;
+    }
+    return row;
+  });
+
+  console.log(`\n${title}`);
+  console.table(rows);
+}
+
+compareErrors(
+  'Error message',
+  {
+    piso: (source) => (source[0] === 'P' || source[0] === 'R' ? parseInterval(source) : getDate(source)),
+    luxon: (source) =>
+      source[0] === 'P' ? Duration.fromISO(source) : source[0] === 'R' ? Interval.fromISO(source) : DateTime.fromISO(source),
+    temporal: (source) => (source[0] === 'P' || source[0] === 'R' ? Temporal.Duration.from(source) : Temporal.Instant.from(source)),
+    'iso8601-duration': (source) => parseIsoDuration(source),
+  },
+  [
+    { name: 'Letter O for zero in minutes', source: '2024-03-26T12:3O:15Z' },
+    { name: 'Day out of range', source: '2024-02-30T12:00:00Z' },
+    { name: 'Unknown duration designator', source: 'P1Y2M10DT2H30X' },
+    { name: 'Typo inside repeating interval', source: 'R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM' },
   ],
 );

@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -21,13 +21,14 @@
     "test": "mocha",
     "bench": "npm run bench --workspace bench",
     "compare": "npm run compare --workspace bench",
-    "posttest": "npm run lint && tsc -p test && npm run dist && npm run test:md",
+    "posttest": "npm run dist && npm run lint && tsc -p test && npm run test:md",
     "lint": "eslint . --cache && prettier . --check --cache",
     "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
     "test:md": "texample",
-    "dist": "rollup -c && dts-buddy"
+    "toc": "toc README.md,bench/README.md",
+    "dist": "npm run toc && rollup -c && dts-buddy"
   },
   "engines": {
     "node": ">=14"
@@ -57,6 +58,7 @@
   "homepage": "https://0dep.se/tools",
   "license": "MIT",
   "devDependencies": {
+    "@0dep/toc": "^1.0.1",
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.0",

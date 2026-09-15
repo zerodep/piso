@@ -9,14 +9,41 @@ ISO 8601 date, duration, and interval parsing package as declared on [Wikipedia 
 
 ## Contents
 
+<!-- toc -->
+
 - [Api](#api)
   - [`parseInterval(iso8601Interval[, enforceUTC])`](#parseintervaliso8601interval-enforceutc)
   - [`parseDuration(iso8601Duration)`](#parsedurationiso8601duration)
   - [`getDate(iso8601Date[, enforceUTC])`](#getdateiso8601date-enforceutc)
-  - [`getISOWeekString([date])`](#getisoweekstringdate)
-  - [`getUTCWeekNumber([date])`](#getutcweeknumberdate)
+  - [`getExpireAt(iso8601Interval[, compareDate[, startDate[, enforceUTC]]])`](#getexpireatiso8601interval-comparedate-startdate-enforceutc)
+  - [`getStartAt(iso8601Interval[, compareDate[, endDate[, enforceUTC]]])`](#getstartatiso8601interval-comparedate-enddate-enforceutc)
   - [`getUTCLastWeekOfYear(Y)`](#getutclastweekofyeary)
   - [`getUTCWeekOneDate(Y)`](#getutcweekonedatey)
+  - [`getISOWeekString([date])`](#getisoweekstringdate)
+  - [`getUTCWeekNumber([date])`](#getutcweeknumberdate)
+- [`new ISOInterval(source[, enforceUTC])`](#new-isointervalsource-enforceutc)
+  - [`interval.type`](#intervaltype)
+  - [`interval.parse()`](#intervalparse)
+  - [`interval.getExpireAt([compareDate[, startDate[, enforceUTC]]])`](#intervalgetexpireatcomparedate-startdate-enforceutc)
+  - [`interval.getStartAt([compareDate[, endDate[, enforceUTC]]])`](#intervalgetstartatcomparedate-enddate-enforceutc)
+  - [`interval.toJSON()`](#intervaltojson)
+- [`new ISODate(source[, options])`](#new-isodatesource-options)
+  - [`date.parse()`](#dateparse)
+  - [`date.parsePartialDate(Y, M, D, W)`](#dateparsepartialdatey-m-d-w)
+  - [`date.toDate([enforceUTC])`](#datetodateenforceutc)
+  - [`date.toJSON()`](#datetojson)
+- [`new ISODuration(source[, offset])`](#new-isodurationsource-offset)
+  - [`duration.parse()`](#durationparse)
+  - [`duration.getExpireAt([startDate[, repetition]])`](#durationgetexpireatstartdate-repetition)
+  - [`duration.getStartAt([endDate[, repetition]])`](#durationgetstartatenddate-repetition)
+  - [`duration.toMilliseconds([startDate[, repetition]])`](#durationtomillisecondsstartdate-repetition)
+  - [`duration.untilMilliseconds([endDate[, repetition]])`](#durationuntilmillisecondsenddate-repetition)
+- [Example](#example)
+- [Repetitions](#repetitions)
+  - [With end date](#with-end-date)
+- [Benchmarking](#benchmarking)
+
+<!-- /toc -->
 
 ## Api
 
@@ -59,6 +86,8 @@ Parse duration from an ISO 8601 duration string.
 - `iso8601Duration`: string with ISO 8601 duration source
 
 Returns [ISODuration](#new-isodurationsource-offset).
+
+Interval sources are accepted as well, e.g. `R3/PT10H` or `2007-03-01/P1Y`, in which case the duration part is returned.
 
 Each duration designator value accepts at most 17 digits, so a valid duration never exceeds 129 characters — more throws RangeError.
 
@@ -193,6 +222,45 @@ try {
 
 > NB! string without timezone precision is considered local date, or as Wikipedia put it "If no UTC relation information is given with a time representation, the time is assumed to be in local time". Unless, of course, enforce UTC instruction is used.
 
+### `getExpireAt(iso8601Interval[, compareDate[, startDate[, enforceUTC]]])`
+
+Parse interval and get the closest expire at date, see [interval.getExpireAt](#intervalgetexpireatcomparedate-startdate-enforceutc).
+
+- `iso8601Interval`: string with ISO 8601 interval source
+- `compareDate`: optional date that repetitions are compared against, defaults to now
+- `startDate`: optional start date, used when the source is a duration without start or end date, defaults to now
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
+
+Returns date.
+
+```javascript
+import { getExpireAt } from '@0dep/piso';
+
+console.log(getExpireAt('R-1/2024-01-01T00:00Z/P1M', new Date(Date.UTC(2024, 2, 15))).toISOString());
+// 2024-04-01T00:00:00.000Z
+
+console.log(getExpireAt('PT1H', undefined, new Date(Date.UTC(2024, 0, 1))).toISOString());
+// 2024-01-01T01:00:00.000Z
+```
+
+### `getStartAt(iso8601Interval[, compareDate[, endDate[, enforceUTC]]])`
+
+Parse interval and get the start at date, see [interval.getStartAt](#intervalgetstartatcomparedate-enddate-enforceutc).
+
+- `iso8601Interval`: string with ISO 8601 interval source
+- `compareDate`: optional date that repetitions are compared against, defaults to now
+- `endDate`: optional end date, used when the source is a duration without start or end date, defaults to now
+- `enforceUTC`: optional boolean, enforce UTC if source lacks time zone offset
+
+Returns date.
+
+```javascript
+import { getStartAt } from '@0dep/piso';
+
+console.log(getStartAt('R-1/P1M/2024-12-01T00:00Z', new Date(Date.UTC(2024, 2, 15))).toISOString());
+// 2024-11-01T00:00:00.000Z
+```
+
 ### `getUTCLastWeekOfYear(Y)`
 
 Get last week of year
@@ -243,7 +311,7 @@ Returns:
 
 - `Y`: full year representation of week date
 - `W`: week number
-- `weekday`:
+- `weekday`: ISO weekday, 1 = Monday .. 7 = Sunday
 
 ```javascript
 import { getUTCWeekNumber } from '@0dep/piso';
@@ -299,13 +367,13 @@ console.log((parseInterval('R3/P1Y').type & 1) === 1 ? 'Yes' : 'No');
 // Yes
 
 console.log((parseInterval('R-1/P1Y').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinite number of repetititions
+// Yes, indefinite number of repetitions
 
 console.log((parseInterval('R-1/2024-03-27/P1Y').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinite number of repetititions from start date
+// Yes, indefinite number of repetitions from start date
 
 console.log((parseInterval('R-1/P1Y/2024-03-27').type & 1) === 1 ? 'Yes' : 'No');
-// Yes, indefinite number of repetititions until end date
+// Yes, indefinite number of repetitions until end date
 
 console.log((parseInterval('R0/P1Y').type & 1) === 1 ? 'Yes' : 'No');
 // No, zero is equal to once
@@ -358,6 +426,48 @@ Returns [ISOInterval](#new-isointervalsource-enforceutc).
 
 Throws `RangeError` if something is off.
 
+### `interval.getExpireAt([compareDate[, startDate[, enforceUTC]]])`
+
+Get the closest expire at date. Parses the source if [parse()](#intervalparse) has not been called.
+
+- `compareDate`: optional date that repetitions are compared against, defaults to now
+- `startDate`: optional start date, used when the interval is a duration without start or end date, defaults to now
+- `enforceUTC`: optional boolean, overrides the constructor argument
+
+Returns date.
+
+A repeating interval walks the repetitions forward from the start date, or backward from the end date, and returns the first expire date after `compareDate`. An interval with an end date and no repeat returns the end date, and an interval with only a start date returns the start date.
+
+```javascript
+import { parseInterval } from '@0dep/piso';
+
+const interval = parseInterval('R-1/2024-01-01T00:00Z/P1M');
+
+console.log(interval.getExpireAt(new Date(Date.UTC(2024, 2, 15))).toISOString());
+// 2024-04-01T00:00:00.000Z
+```
+
+### `interval.getStartAt([compareDate[, endDate[, enforceUTC]]])`
+
+Get the start at date. Parses the source if [parse()](#intervalparse) has not been called.
+
+- `compareDate`: optional date that repetitions are compared against, defaults to now
+- `endDate`: optional end date, used when the interval is a duration without start or end date, defaults to now
+- `enforceUTC`: optional boolean, overrides the constructor argument
+
+Returns date.
+
+A repeating interval returns the start of the repetition that expires first after `compareDate`. An interval with a start date and no repeat returns the start date.
+
+```javascript
+import { parseInterval } from '@0dep/piso';
+
+const interval = parseInterval('R-1/2024-01-01T00:00Z/P1M');
+
+console.log(interval.getStartAt(new Date(Date.UTC(2024, 2, 15))).toISOString());
+// 2024-03-01T00:00:00.000Z
+```
+
 ### `interval.toJSON()`
 
 Get interval represented as JavaScript Object Notation.
@@ -399,6 +509,10 @@ ISO date instance.
 
 ### `date.parse()`
 
+Parse the source and populate `result`. Returns [ISODate](#new-isodatesource-options).
+
+Throws `RangeError` if something is off.
+
 ### `date.parsePartialDate(Y, M, D, W)`
 
 Parse partial date as compared to passed date part arguments.
@@ -439,14 +553,55 @@ Duration instance.
   - `H`: hours
   - `m`: minutes
   - `S`: seconds
+  - `sign`: `-1` if the source has a leading minus, otherwise absent
+  - `isValid`: boolean indicating if parse was successful
 
-### `duration.toMilliseconds([startDate])`
+### `duration.parse()`
+
+Parse the source and populate `result`. Returns [ISODuration](#new-isodurationsource-offset).
+
+Throws `RangeError` if something is off.
+
+### `duration.getExpireAt([startDate[, repetition]])`
+
+Get the date the duration expires at, applied in UTC. A negative duration subtracts instead.
+
+- `startDate`: optional start date, defaults to now
+- `repetition`: optional number of times to apply the duration, defaults to 1
+
+Returns date.
+
+```javascript
+import { parseDuration } from '@0dep/piso';
+
+const duration = parseDuration('PT2H30M');
+
+console.log(duration.getExpireAt(new Date(Date.UTC(2024, 0, 1)), 2).toISOString());
+// 2024-01-01T05:00:00.000Z
+```
+
+### `duration.getStartAt([endDate[, repetition]])`
+
+Get the date the duration started at, i.e. the duration subtracted from the end date in UTC. A negative duration adds instead.
+
+- `endDate`: optional end date, defaults to now
+- `repetition`: optional number of times to apply the duration, defaults to 1
+
+Returns date.
+
+### `duration.toMilliseconds([startDate[, repetition]])`
 
 Get duration in milliseconds from optional start date.
 
-### `duration.untilMilliseconds([endDate])`
+- `startDate`: optional start date, defaults to `1971-01-01T00:00:00Z` since it is not a leap year
+- `repetition`: optional number of times to apply the duration, defaults to 1
 
-Get duration in milliseconds until optional end date.
+### `duration.untilMilliseconds([endDate[, repetition]])`
+
+Get duration in milliseconds until optional end date, hence a negative number for a positive duration.
+
+- `endDate`: optional end date, defaults to `1971-01-01T00:00:00Z`
+- `repetition`: optional number of times to apply the duration, defaults to 1
 
 ## Example
 
@@ -471,7 +626,7 @@ import { parseDuration } from '@0dep/piso';
 
 const duration = parseDuration('PT2H30M');
 
-console.log('duration millisecods', duration.toMilliseconds(new Date()));
+console.log('duration milliseconds', duration.toMilliseconds(new Date()));
 ```
 
 ## Repetitions
@@ -489,82 +644,17 @@ console.log('duration millisecods', duration.toMilliseconds(new Date()));
 
 ## Benchmarking
 
-How piso stacks up against the RegExp-based implementations depends on the capability, so speed and functionality are compared per capability below.
+On Node 24 piso parses intervals 4–7.5 times and dates 4–5 times faster than luxon, and durations 1.2–2.2 times faster than luxon and iso8601-duration. Native `new Date` is still 2–3 times faster than piso. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
 
-Benchmarks and functionality comparison against luxon, iso8601-duration, [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date` live in the [bench](/bench) workspace. `npm run bench` measures parse throughput as well as parse-and-apply throughput — duration to expire at and milliseconds, interval to expire at and start at — and `npm run compare` executes each capability below against every library and prints ✓/✗ tables from actual behavior:
+```javascript
+import { parseInterval } from '@0dep/piso';
 
-```sh
-npm install
-npm run bench
-npm run compare
+try {
+  parseInterval('R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM');
+} catch (err) {
+  console.log(err.message);
+  // Unexpected ISO 8601 duration character "R5/2024-01-01T00:00Z/P1Y2M10DT2H3[O]" at 33
+}
 ```
 
-### Interval
-
-Parses intervals 6–11 times faster than luxon, depending on the interval form.
-
-| Capability         | piso | luxon |
-| ------------------ | ---- | ----- |
-| start/end          | ✓    | ✓     |
-| start/duration     | ✓    | ✓     |
-| duration/end       | ✓    | ✓     |
-| Repeating interval | ✓    | ❌    |
-| Start date only    | ✓    | ❌    |
-| Relative end date  | ✓    | ❌\*  |
-
-> \* `2007-11-13/15` parses but the relative end resolves to a time of day instead of a date
-
-### Duration
-
-Parses durations 1.1–2.3 times faster than luxon and iso8601-duration, and 1.9–4.3 times faster than temporal.
-
-| Capability                        | piso | iso8601-duration | luxon | [temporal](https://www.npmjs.com/package/@js-temporal/polyfill) |
-| --------------------------------- | ---- | ---------------- | ----- | --------------------------------------------------------------- |
-| Fractional time designator        | ✓    | ✓                | ✓     | ✓                                                               |
-| Invalid if more than one fraction | ✓    | ✓                | ❌    | ✓                                                               |
-| Year designator                   | ✓    | ✓                | ✓     | ❌                                                              |
-| Fractional date designator        | ✓    | ❌               | ✓     | ❌                                                              |
-| Comma as fraction separator       | ✓    | ✓                | ❌    | ✓                                                               |
-| Repeated duration instruction     | ✓    | ❌\*             | ❌    | ❌                                                              |
-| Negative duration instruction     | ✓    | ❌\*             | ✓     | ✓                                                               |
-
-> \* parses but the instruction is ignored
-
-### Applying durations and intervals
-
-Parsing is only half the job, so `bench/suites/apply.js` measures the outcome: parse a duration and get its expire at date or milliseconds, parse an interval and get its expire at or start at date. Every library is verified to produce the same result before timing.
-
-| Outcome                                       | piso vs luxon | piso vs temporal | piso vs iso8601-duration |
-| --------------------------------------------- | ------------- | ---------------- | ------------------------ |
-| Duration `P1Y2M10DT2H30M` expire at from date | 2.9×          | 7×               | n/a\*                    |
-| Negative duration `-P1D` expire at from date  | 7.7×          | 18×              | n/a\*                    |
-| Duration `PT2H30M` milliseconds               | 1.4×          | 11×              | 5.7×                     |
-| Interval start/duration expire at             | 4.3×          | n/a              | n/a                      |
-| Interval duration/end start at                | 4.5×          | n/a              | n/a                      |
-| Interval start/end expire at                  | 6×            | n/a              | n/a                      |
-
-\* iso8601-duration `end()` applies the duration in local time so it is not comparable with the UTC results of the others.
-
-### Date
-
-Parses dates 6–7 times faster than luxon and 2–4 times faster than temporal. Native `new Date('2024-03-26')` is, of course, still faster — about 3 times in the benchmark. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
-
-| Capability                  | piso   | luxon | temporal | node 20 |
-| --------------------------- | ------ | ----- | -------- | ------- |
-| The 24:th hour              | ✓      | ✓     | ❌       | ✓       |
-| Year +10000                 | ✓      | ✓     | ✓        | ✓       |
-| Year 9999                   | ✓      | ✓     | ✓        | ✓       |
-| Year only (`YYYY`)          | ✓      | ✓     | ❌       | ✓       |
-| BC dates                    | ✓      | ✓     | ✓        | ✓       |
-| Week                        | ✓      | ✓     | ❌       | ❌      |
-| Ordinal date                | ✓      | ✓     | ❌       | ❌      |
-| Without separators          | ✓      | ✓     | ✓        | ❌      |
-| Without offset minutes      | ✓      | ✓     | ✓        | ❌      |
-| Comma as fraction separator | ✓      | ✓     | ✓        | ❌      |
-| Throw on invalid leap year  | ✓      | ✓     | ✓        | ❌\*    |
-| Offset unicode minus (−)    | ✓      | ❌    | ❌       | ❌      |
-| Offset seconds              | ✓      | ❌    | ✓        | ❌      |
-| 36 fractions of a second    | ❌\*\* | ❌    | ❌       | ✓       |
-
-> \* node is benevolent when parsing `2100-02-29` as `2100-03-01`<br/>
-> \*\* piso accepts at most 17 fraction digits, more throws RangeError
+Throughput tables, the capability and error message comparison against luxon, iso8601-duration, and temporal, and how to run the suites are in [bench/README.md](bench/README.md). The numbers there come from executed `npm run bench` and `npm run compare` runs and note the Node version, since the margins over the RegExp-based libraries shift between V8 versions.

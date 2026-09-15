@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v5.1.2 - 2026-09-15
+
+Documentation update. Source not touched.
+
+- table of contents in `README.md` and `bench/README.md` generated with `@0dep/toc` via `npm run toc`, which `npm run dist` runs first
+- benchmark throughput and capability tables moved to `bench/README.md`, re-measured on Node v24.21.0 and stating the Node version, since the margin over luxon is narrower on Node 22+ than on Node 20; the root README links there with a one-sentence summary
+- `npm run compare` prints what each library reports for a malformed source; `bench/README.md` has the table and the root README shows that piso brackets the unexpected character and gives its position
+- document `getExpireAt`, `getStartAt`, `interval.getExpireAt`, `interval.getStartAt`, `duration.getExpireAt`, `duration.getStartAt`, the `repetition` argument of `toMilliseconds` and `untilMilliseconds`, and the `sign` and `isValid` duration result properties
+
 ## v5.1.1 - 2026-09-04
 
 - set package homepage
