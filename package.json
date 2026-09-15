@@ -55,7 +55,7 @@
     "type": "git",
     "url": "git+https://github.com/zerodep/piso.git"
   },
-  "homepage": "https://0dep.se/tools",
+  "homepage": "https://0dep.se/tools/",
   "license": "MIT",
   "devDependencies": {
     "@0dep/toc": "^1.0.1",
