@@ -1,7 +1,8 @@
 import { getDate, parseDuration, parseInterval } from '@0dep/piso';
-import { Temporal } from '@js-temporal/polyfill';
 import { parse as parseIsoDuration, toSeconds } from 'iso8601-duration';
 import { DateTime, Duration, Interval } from 'luxon';
+
+import { temporalCases } from './temporal.js';
 
 const OK = '✓';
 const FAIL = '✗';
@@ -70,7 +71,7 @@ function validDate(date) {
 }
 
 /** Instant covers sources with offset or Z, PlainDateTime the rest, resolved in the local zone like the other parsers */
-function temporalDate(source) {
+function temporalDate(Temporal, source) {
   try {
     return Temporal.Instant.from(source).epochMilliseconds;
   } catch {
@@ -139,7 +140,7 @@ compare(
       if (!duration.isValid) throw new RangeError(duration.invalidReason);
       return duration.toMillis();
     },
-    temporal: (source) => Temporal.Duration.from(source).total('milliseconds'),
+    ...temporalCases((Temporal) => (source) => Temporal.Duration.from(source).total('milliseconds')),
   },
   [
     {
@@ -194,7 +195,7 @@ compare(
       if (!date.isValid) throw new RangeError(date.invalidReason);
       return date.toMillis();
     },
-    temporal: (source) => temporalDate(source),
+    ...temporalCases((Temporal) => (source) => temporalDate(Temporal, source)),
     [`node ${process.versions.node}`]: (source) => validDate(new Date(source)),
   },
   [
@@ -303,7 +304,9 @@ compareErrors(
     piso: (source) => (source[0] === 'P' || source[0] === 'R' ? parseInterval(source) : getDate(source)),
     luxon: (source) =>
       source[0] === 'P' ? Duration.fromISO(source) : source[0] === 'R' ? Interval.fromISO(source) : DateTime.fromISO(source),
-    temporal: (source) => (source[0] === 'P' || source[0] === 'R' ? Temporal.Duration.from(source) : Temporal.Instant.from(source)),
+    ...temporalCases(
+      (Temporal) => (source) => (source[0] === 'P' || source[0] === 'R' ? Temporal.Duration.from(source) : Temporal.Instant.from(source)),
+    ),
     'iso8601-duration': (source) => parseIsoDuration(source),
   },
   [

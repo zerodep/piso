@@ -2,11 +2,13 @@
 
 Throughput and capability comparison of `@0dep/piso` against [luxon](https://www.npmjs.com/package/luxon), [iso8601-duration](https://www.npmjs.com/package/iso8601-duration), [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date`. All three libraries parse with regular expressions, piso reads the source character by character.
 
-The numbers below are from an executed `npm run bench` on Node v24.21.0, Apple M3 Pro, macOS 26.6.2. Throughput is the tinybench average in operations per second, rounded, and the ratio is piso divided by the other library. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
+The numbers below are from an executed `npm run bench` on Node v26.9.0, Apple M3 Pro, macOS 26.6.2. Throughput is the tinybench average in operations per second, rounded, and the ratio is piso divided by the other library. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
 
 Speed is not the only difference. A regular expression either matches or it does not, so the other libraries can only echo the input back when it is malformed. piso reads the source with a cursor and reports the offending character and its position, see [Error messages](#error-messages).
 
-The ratios depend on the Node version. luxon spends most of its time copying objects, and V8 in Node 22 and later made object spread and clone considerably cheaper, so the margin over luxon is narrower on Node 24 than the 6–11 times measured on Node 20. Re-run before quoting.
+The ratios depend on the Node version. luxon spends most of its time copying objects, and V8 in Node 22 and later made object spread and clone considerably cheaper, so the margin over luxon is narrower on Node 24 and 26 than the 6–11 times measured on Node 20. Re-run before quoting.
+
+The temporal column is the `@js-temporal/polyfill` package. The native temporal column is `globalThis.Temporal`, which Node 26 ships, and `npm run bench` and `npm run compare` add it only when the runtime has it. Native Temporal is 4–14 times faster than the polyfill and lands just below `new Date`: about twice as fast as piso on parsing dates and `P1Y2M10DT2H30M`, while piso is still ahead on the fractional `PT0.5H` parse, the negative duration expire at and `PT2H30M` milliseconds. Native and polyfill accept and reject the same capability rows.
 
 ```sh
 npm install
@@ -30,9 +32,9 @@ npm run compare
 
 | Source                                      | piso  | luxon | ratio |
 | ------------------------------------------- | ----- | ----- | ----- |
-| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.42M | 339k  | 4.2×  |
-| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.70M | 277k  | 6.1×  |
-| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.01M | 269k  | 7.5×  |
+| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.35M | 327k  | 4.1×  |
+| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.78M | 265k  | 6.7×  |
+| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.11M | 251k  | 8.4×  |
 
 | Capability         | piso | luxon |
 | ------------------ | ---- | ----- |
@@ -47,21 +49,21 @@ npm run compare
 
 ## Duration
 
-| Source           | piso  | iso8601-duration | luxon | temporal | vs iso8601-duration | vs luxon | vs temporal |
-| ---------------- | ----- | ---------------- | ----- | -------- | ------------------- | -------- | ----------- |
-| `P1Y2M10DT2H30M` | 3.36M | 2.56M            | 2.82M | 1.66M    | 1.3×                | 1.2×     | 2.0×        |
-| `PT0.5H`         | 7.73M | 3.47M            | 4.99M | 1.66M    | 2.2×                | 1.5×     | 4.7×        |
+| Source           | piso  | iso8601-duration | luxon | temporal | native temporal | vs iso8601-duration | vs luxon | vs temporal | vs native temporal |
+| ---------------- | ----- | ---------------- | ----- | -------- | --------------- | ------------------- | -------- | ----------- | ------------------ |
+| `P1Y2M10DT2H30M` | 3.56M | 2.61M            | 2.91M | 1.83M    | 7.64M           | 1.4×                | 1.2×     | 2.0×        | 0.5×               |
+| `PT0.5H`         | 8.30M | 3.50M            | 5.19M | 1.81M    | 7.39M           | 2.4×                | 1.6×     | 4.6×        | 1.1×               |
 
-| Capability                                  | piso | iso8601-duration | luxon | temporal |
-| ------------------------------------------- | ---- | ---------------- | ----- | -------- |
-| Fractional time designator                  | ✓    | ✓                | ✓     | ✓        |
-| Invalid if more than one fraction           | ✓    | ✓                | ❌    | ✓        |
-| Invalid if fraction not on least designator | ✓    | ✓                | ❌    | ✓        |
-| Year designator                             | ✓    | ✓                | ✓     | ❌       |
-| Fractional date designator                  | ✓    | ❌               | ✓     | ❌       |
-| Comma as fraction separator                 | ✓    | ✓                | ❌    | ✓        |
-| Repeated duration instruction               | ✓    | ❌\*             | ❌    | ❌       |
-| Negative duration instruction               | ✓    | ❌\*             | ✓     | ✓        |
+| Capability                                  | piso | iso8601-duration | luxon | temporal | native temporal |
+| ------------------------------------------- | ---- | ---------------- | ----- | -------- | --------------- |
+| Fractional time designator                  | ✓    | ✓                | ✓     | ✓        | ✓               |
+| Invalid if more than one fraction           | ✓    | ✓                | ❌    | ✓        | ✓               |
+| Invalid if fraction not on least designator | ✓    | ✓                | ❌    | ✓        | ✓               |
+| Year designator                             | ✓    | ✓                | ✓     | ❌       | ❌              |
+| Fractional date designator                  | ✓    | ❌               | ✓     | ❌       | ❌              |
+| Comma as fraction separator                 | ✓    | ✓                | ❌    | ✓        | ✓               |
+| Repeated duration instruction               | ✓    | ❌\*             | ❌    | ❌       | ❌              |
+| Negative duration instruction               | ✓    | ❌\*             | ✓     | ✓        | ✓               |
 
 > \* parses but the instruction is ignored
 
@@ -69,65 +71,66 @@ npm run compare
 
 Parsing is only half the job, so `suites/apply.js` measures the outcome: parse a duration and get its expire at date or milliseconds, parse an interval and get its expire at or start at date. Every library is verified to produce the same result before timing.
 
-| Outcome                                       | piso  | luxon | temporal | iso8601-duration | vs luxon | vs temporal | vs iso8601-duration |
-| --------------------------------------------- | ----- | ----- | -------- | ---------------- | -------- | ----------- | ------------------- |
-| Duration `P1Y2M10DT2H30M` expire at from date | 1.24M | 557k  | 170k     | n/a\*            | 2.2×     | 7.3×        | n/a\*               |
-| Negative duration `-P1D` expire at from date  | 3.70M | 624k  | 186k     | n/a\*            | 5.9×     | 19.8×       | n/a\*               |
-| Duration `PT2H30M` milliseconds               | 4.27M | 3.02M | 412k     | 896k             | 1.4×     | 10.4×       | 4.8×                |
-| Interval start/duration expire at             | 800k  | 299k  | n/a      | n/a              | 2.7×     | n/a         | n/a                 |
-| Interval duration/end start at                | 876k  | 290k  | n/a      | n/a              | 3.0×     | n/a         | n/a                 |
-| Interval start/end expire at                  | 1.26M | 383k  | n/a      | n/a              | 3.3×     | n/a         | n/a                 |
+| Outcome                                       | piso  | luxon | temporal | native temporal | iso8601-duration | vs luxon | vs temporal | vs native temporal | vs iso8601-duration |
+| --------------------------------------------- | ----- | ----- | -------- | --------------- | ---------------- | -------- | ----------- | ------------------ | ------------------- |
+| Duration `P1Y2M10DT2H30M` expire at from date | 1.15M | 523k  | 170k     | 2.44M           | n/a\*            | 2.2×     | 6.7×        | 0.5×               | n/a\*               |
+| Negative duration `-P1D` expire at from date  | 3.24M | 585k  | 179k     | 2.54M           | n/a\*            | 5.5×     | 18.1×       | 1.3×               | n/a\*               |
+| Duration `PT2H30M` milliseconds               | 4.87M | 3.18M | 456k     | 3.91M           | 901k             | 1.5×     | 10.7×       | 1.2×               | 5.4×                |
+| Interval start/duration expire at             | 724k  | 288k  | n/a      | n/a             | n/a              | 2.5×     | n/a         | n/a                | n/a                 |
+| Interval duration/end start at                | 779k  | 276k  | n/a      | n/a             | n/a              | 2.8×     | n/a         | n/a                | n/a                 |
+| Interval start/end expire at                  | 1.10M | 371k  | n/a      | n/a             | n/a              | 3.0×     | n/a         | n/a                | n/a                 |
 
 \* iso8601-duration `end()` applies the duration in local time so it is not comparable with the UTC results of the others.
 
 ## Date
 
-Native `new Date('2024-03-26')` is, of course, still faster — 2.3–2.9 times in the benchmark. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+Native `new Date('2024-03-26')` is, of course, still faster — 2.4–3.1 times in the benchmark, with native Temporal about 2 times faster than piso. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
-| Source                        | piso  | luxon | temporal | `new Date` | vs luxon | vs temporal | native vs piso |
-| ----------------------------- | ----- | ----- | -------- | ---------- | -------- | ----------- | -------------- |
-| `2024-03-26T12:30:15.5+02:00` | 2.91M | 692k  | 656k     | 7.40M      | 4.2×     | 4.4×        | 2.5×           |
-| `2025-03-26T12:30:15.5Z`      | 3.24M | 700k  | 1.21M    | 7.54M      | 4.6×     | 2.7×        | 2.3×           |
-| `2024-03-26`                  | 4.00M | 817k  | 1.44M    | 11.5M      | 4.9×     | 2.8×        | 2.9×           |
+| Source                        | piso  | luxon | temporal | native temporal | `new Date` | vs luxon | vs temporal | vs native temporal | native vs piso |
+| ----------------------------- | ----- | ----- | -------- | --------------- | ---------- | -------- | ----------- | ------------------ | -------------- |
+| `2024-03-26T12:30:15.5+02:00` | 2.88M | 643k  | 651k     | 5.77M           | 7.25M      | 4.5×     | 4.4×        | 0.5×               | 2.5×           |
+| `2025-03-26T12:30:15.5Z`      | 3.00M | 648k  | 1.13M    | 6.03M           | 7.13M      | 4.6×     | 2.7×        | 0.5×               | 2.4×           |
+| `2024-03-26`                  | 3.60M | 756k  | 1.36M    | 7.49M           | 11.1M      | 4.8×     | 2.6×        | 0.5×               | 3.1×           |
 
-Parsing the three sources above one million times each under `node --prof` shows how the runtime shifts the ratio. piso gains about 9% from the newer runtime, luxon about 38%, and piso still finishes first on both:
+Parsing the three sources above one million times each under `node --prof` shows how the runtime shifts the ratio. From Node 20 to 26 piso sheds about 23% of its ticks, luxon about 36%, and piso still finishes first on all three:
 
 | Node    | piso               | luxon              | luxon / piso |
 | ------- | ------------------ | ------------------ | ------------ |
 | 20.20.2 | 1025 ticks, 1.36 s | 5568 ticks, 7.01 s | 5.4×         |
 | 24.21.0 | 931 ticks, 1.26 s  | 3469 ticks, 4.38 s | 3.7×         |
+| 26.9.0  | 793 ticks, 1.07 s  | 3542 ticks, 4.51 s | 4.5×         |
 
 Wall time includes process start and module loading, so the ratio is a little lower than the throughput ratio above.
 
-| Capability                  | piso   | luxon | temporal | node 24 |
-| --------------------------- | ------ | ----- | -------- | ------- |
-| The 24:th hour              | ✓      | ✓     | ❌       | ✓       |
-| Year +10000                 | ✓      | ✓     | ✓        | ✓       |
-| Year 9999                   | ✓      | ✓     | ✓        | ✓       |
-| Year only (`YYYY`)          | ✓      | ✓     | ❌       | ✓       |
-| BC dates                    | ✓      | ✓     | ✓        | ✓       |
-| Week                        | ✓      | ✓     | ❌       | ❌      |
-| Ordinal date                | ✓      | ✓     | ❌       | ❌      |
-| Without separators          | ✓      | ✓     | ✓        | ❌      |
-| Without offset minutes      | ✓      | ✓     | ✓        | ❌      |
-| Comma as fraction separator | ✓      | ✓     | ✓        | ❌      |
-| Throw on invalid leap year  | ✓      | ✓     | ✓        | ❌\*    |
-| Offset unicode minus (−)    | ✓      | ❌    | ❌       | ❌      |
-| Offset seconds              | ✓      | ❌    | ✓        | ❌      |
-| 36 fractions of a second    | ❌\*\* | ❌    | ❌       | ✓       |
+| Capability                  | piso   | luxon | temporal | native temporal | node 26 |
+| --------------------------- | ------ | ----- | -------- | --------------- | ------- |
+| The 24:th hour              | ✓      | ✓     | ❌       | ❌              | ✓       |
+| Year +10000                 | ✓      | ✓     | ✓        | ✓               | ✓       |
+| Year 9999                   | ✓      | ✓     | ✓        | ✓               | ✓       |
+| Year only (`YYYY`)          | ✓      | ✓     | ❌       | ❌              | ✓       |
+| BC dates                    | ✓      | ✓     | ✓        | ✓               | ✓       |
+| Week                        | ✓      | ✓     | ❌       | ❌              | ❌      |
+| Ordinal date                | ✓      | ✓     | ❌       | ❌              | ❌      |
+| Without separators          | ✓      | ✓     | ✓        | ✓               | ❌      |
+| Without offset minutes      | ✓      | ✓     | ✓        | ✓               | ❌      |
+| Comma as fraction separator | ✓      | ✓     | ✓        | ✓               | ❌      |
+| Throw on invalid leap year  | ✓      | ✓     | ✓        | ✓               | ❌\*    |
+| Offset unicode minus (−)    | ✓      | ❌    | ❌       | ❌              | ❌      |
+| Offset seconds              | ✓      | ❌    | ✓        | ✓               | ❌      |
+| 36 fractions of a second    | ❌\*\* | ❌    | ❌       | ❌              | ✓       |
 
 > \* node is benevolent when parsing `2100-02-29` as `2100-03-01`<br/>
 > \*\* piso accepts at most 17 fraction digits, more throws RangeError
 
 ## Error messages
 
-What each library reports for a malformed source, from the last table `npm run compare` prints. piso throws `RangeError`, temporal and iso8601-duration throw, luxon returns an invalid instance whose `invalidReason` and `invalidExplanation` are shown.
+What each library reports for a malformed source, from the last table `npm run compare` prints. piso throws `RangeError`, temporal and iso8601-duration throw, luxon returns an invalid instance whose `invalidReason` and `invalidExplanation` are shown. Native Temporal throws too, with a `Temporal error:` prefix and no echo of the input.
 
-| Malformed                      | Source                                | piso                                                                                  | luxon                                                                                     | temporal                                                | iso8601-duration                         |
-| ------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| Letter O for zero in minutes   | `2024-03-26T12:3O:15Z`                | `Unexpected ISO 8601 date character "2024-03-26T12:3[O]" at 15`                       | `unparsable: the input "2024-03-26T12:3O:15Z" can't be parsed as ISO 8601`                | `invalid RFC 9557 string: 2024-03-26T12:3O:15Z`         | `invalid duration: 2024-03-26T12:3O:15Z` |
-| Day out of range               | `2024-02-30T12:00:00Z`                | `Invalid ISO 8601 date "2024-02-30T12:00:00Z"`                                        | `unit out of range: you specified 30 (of type number) as a day, which is invalid`         | `value out of range: 1 <= 30 <= 29`                     | `invalid duration: 2024-02-30T12:00:00Z` |
-| Unknown duration designator    | `P1Y2M10DT2H30X`                      | `Unexpected ISO 8601 duration character "P1Y2M10DT2H30[X]" at 13`                     | `unparsable: the input "P1Y2M10DT2H30X" can't be parsed as ISO 8601`                      | `invalid duration: P1Y2M10DT2H30X`                      | ❌ accepted                              |
-| Typo inside repeating interval | `R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM` | `Unexpected ISO 8601 duration character "R5/2024-01-01T00:00Z/P1Y2M10DT2H3[O]" at 33` | `unparsable: the input "R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM" can't be parsed as ISO 8601` | `invalid duration: R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM` | ❌ accepted                              |
+| Malformed                      | Source                                | piso                                                                                  | luxon                                                                                     | temporal                                                | native temporal                                                                         | iso8601-duration                         |
+| ------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Letter O for zero in minutes   | `2024-03-26T12:3O:15Z`                | `Unexpected ISO 8601 date character "2024-03-26T12:3[O]" at 15`                       | `unparsable: the input "2024-03-26T12:3O:15Z" can't be parsed as ISO 8601`                | `invalid RFC 9557 string: 2024-03-26T12:3O:15Z`         | `Temporal error: Invalid character while parsing minute/second value in (0, 59] range.` | `invalid duration: 2024-03-26T12:3O:15Z` |
+| Day out of range               | `2024-02-30T12:00:00Z`                | `Invalid ISO 8601 date "2024-02-30T12:00:00Z"`                                        | `unit out of range: you specified 30 (of type number) as a day, which is invalid`         | `value out of range: 1 <= 30 <= 29`                     | `Temporal error: Parsed day value not in a valid range.`                                | `invalid duration: 2024-02-30T12:00:00Z` |
+| Unknown duration designator    | `P1Y2M10DT2H30X`                      | `Unexpected ISO 8601 duration character "P1Y2M10DT2H30[X]" at 13`                     | `unparsable: the input "P1Y2M10DT2H30X" can't be parsed as ISO 8601`                      | `invalid duration: P1Y2M10DT2H30X`                      | `Temporal error: Parsing ended abruptly.`                                               | ❌ accepted                              |
+| Typo inside repeating interval | `R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM` | `Unexpected ISO 8601 duration character "R5/2024-01-01T00:00Z/P1Y2M10DT2H3[O]" at 33` | `unparsable: the input "R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM" can't be parsed as ISO 8601` | `invalid duration: R5/2024-01-01T00:00Z/P1Y2M10DT2H3OM` | `Temporal error: Invalid duration designator.`                                          | ❌ accepted                              |
 
-For a syntax error piso brackets the unexpected character and gives its index, even 33 characters into a repeating interval, where the others echo the whole input. For a value that is well-formed but out of range, luxon and temporal name the offending unit while piso only names the date. iso8601-duration's pattern is unanchored, so trailing garbage and a leading repeat are accepted and silently produce a partial result.
+For a syntax error piso brackets the unexpected character and gives its index, even 33 characters into a repeating interval, where the others echo the whole input or, in native Temporal's case, describe the failing rule without locating it. For a value that is well-formed but out of range, luxon and temporal name the offending unit while piso only names the date. iso8601-duration's pattern is unanchored, so trailing garbage and a leading repeat are accepted and silently produce a partial result.

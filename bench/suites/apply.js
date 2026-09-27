@@ -1,11 +1,11 @@
 import { fileURLToPath } from 'node:url';
 
 import { parseDuration, parseInterval } from '@0dep/piso';
-import { Temporal } from '@js-temporal/polyfill';
 import { parse as parseIso8601Duration, toSeconds } from 'iso8601-duration';
 import { DateTime, Duration, Interval } from 'luxon';
 
 import { runSuite } from '../runner.js';
+import { temporalCases } from '../temporal.js';
 
 const start = new Date(Date.UTC(2007, 2, 1, 13));
 const duration = 'P1Y2M10DT2H30M';
@@ -15,26 +15,35 @@ const startDuration = '2007-03-01T13:00:00Z/P1Y2M10DT2H30M';
 const durationEnd = 'P1Y2M10DT2H30M/2008-05-11T15:30:00Z';
 const startEnd = '2007-03-01T13:00:00Z/2008-05-11T15:30:00Z';
 
-const temporalStart = Temporal.Instant.fromEpochMilliseconds(start.getTime()).toZonedDateTimeISO('UTC');
+/** Start as a UTC ZonedDateTime, resolved once per Temporal implementation so only the add is timed */
+function temporalStart(Temporal) {
+  return Temporal.Instant.fromEpochMilliseconds(start.getTime()).toZonedDateTimeISO('UTC');
+}
 
 // iso8601-duration end() applies in local time, so it is left out of the UTC expire at comparison
 const durationExpireAt = {
   '@0dep/piso parseDuration().getExpireAt': () => parseDuration(duration).getExpireAt(start).getTime(),
   'luxon DateTime.plus(Duration.fromISO)': () => DateTime.fromJSDate(start, { zone: 'utc' }).plus(Duration.fromISO(duration)).toMillis(),
-  'temporal ZonedDateTime.add(Duration.from)': () => temporalStart.add(Temporal.Duration.from(duration)).epochMilliseconds,
+  ...temporalCases((Temporal) => {
+    const zoned = temporalStart(Temporal);
+    return () => zoned.add(Temporal.Duration.from(duration)).epochMilliseconds;
+  }, 'ZonedDateTime.add(Duration.from)'),
 };
 
 const negativeExpireAt = {
   '@0dep/piso parseDuration().getExpireAt': () => parseDuration(negative).getExpireAt(start).getTime(),
   'luxon DateTime.plus(Duration.fromISO)': () => DateTime.fromJSDate(start, { zone: 'utc' }).plus(Duration.fromISO(negative)).toMillis(),
-  'temporal ZonedDateTime.add(Duration.from)': () => temporalStart.add(Temporal.Duration.from(negative)).epochMilliseconds,
+  ...temporalCases((Temporal) => {
+    const zoned = temporalStart(Temporal);
+    return () => zoned.add(Temporal.Duration.from(negative)).epochMilliseconds;
+  }, 'ZonedDateTime.add(Duration.from)'),
 };
 
 const durationMilliseconds = {
   '@0dep/piso parseDuration().toMilliseconds': () => parseDuration(timeDuration).toMilliseconds(start),
   'iso8601-duration toSeconds(parse())': () => toSeconds(parseIso8601Duration(timeDuration), start) * 1000,
   'luxon Duration.fromISO().toMillis': () => Duration.fromISO(timeDuration).toMillis(),
-  'temporal Duration.from().total': () => Temporal.Duration.from(timeDuration).total('milliseconds'),
+  ...temporalCases((Temporal) => () => Temporal.Duration.from(timeDuration).total('milliseconds'), 'Duration.from().total'),
 };
 
 const intervalStartDuration = {

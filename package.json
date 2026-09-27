@@ -27,7 +27,7 @@
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
     "test:md": "texample",
-    "toc": "toc README.md,bench/README.md",
+    "toc": "toc -c README.md bench/README.md",
     "dist": "npm run toc && rollup -c && dts-buddy"
   },
   "engines": {
@@ -58,13 +58,13 @@
   "homepage": "https://0dep.se/tools/",
   "license": "MIT",
   "devDependencies": {
-    "@0dep/toc": "^1.0.1",
+    "@0dep/toc": "^2.1.0",
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.3",
-    "@types/node": "^18.19.7",
+    "@types/node": "^20.19.43",
     "c8": "^12.0.0",
     "chai": "^6.0.1",
     "chronokinesis": "^8.0.0",
