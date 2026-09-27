@@ -968,7 +968,7 @@ describe('ISO 8601 interval', () => {
     ['2007-03-01/32', '2007-02-01/29', '2019-02-01/29', '2007-04-01/31', '2007-01-01/00', '2007-02-01/02-29', '2020-02-01/02-30'].forEach(
       (interval) => {
         it(`invalid partial end date in "${interval}" throws RangeError`, () => {
-          expect(() => parseInterval(interval)).to.throw(RangeError, /partial date/i);
+          expect(() => parseInterval(interval)).to.throw(RangeError, /ISO 8601 date day .* is out of range/);
         });
       },
     );
@@ -1232,7 +1232,7 @@ describe('ISO 8601 interval', () => {
       it(`invalid end date "${interval}" interval throws`, () => {
         expect(() => {
           parseInterval(interval);
-        }).to.throw(RangeError, /Invalid .* date/i);
+        }).to.throw(RangeError, /ISO 8601 date (day|month) .* is out of range/);
       });
     });
 
@@ -1492,7 +1492,10 @@ describe('ISO 8601 interval', () => {
     });
 
     it('invalid start date throws before reaching duration', () => {
-      expect(() => parseInterval('R1/2025-13-15/PT12H')).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2025-13-15');
+      expect(() => parseInterval('R1/2025-13-15/PT12H')).to.throw(
+        RangeError,
+        'ISO 8601 date month "R1/2025-13-15[/]" at 13 is out of range 1-12',
+      );
     });
 
     it('invalid start date hours throws', () => {
@@ -1504,7 +1507,27 @@ describe('ISO 8601 interval', () => {
     });
 
     it('invalid end date throws', () => {
-      expect(() => parseInterval('R1/2025-01-15/2025-02-29')).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2025-01-15/2025-02-29"');
+      expect(() => parseInterval('R1/2025-01-15/2025-02-29')).to.throw(
+        RangeError,
+        'ISO 8601 date day "R1/2025-01-15/2025-02-29[EOL]" at 24 is out of range 1-28',
+      );
+    });
+
+    [
+      ['2007-03-01/32', 'ISO 8601 date day "2007-03-01/32[EOL]" at 13 is out of range 1-31'],
+      ['2007-02-01/29', 'ISO 8601 date day "2007-02-01/29[EOL]" at 13 is out of range 1-28'],
+      ['2007-01-01/00', 'ISO 8601 date day "2007-01-01/00[EOL]" at 13 is out of range 1-31'],
+      ['2007-02-01/30T10:00', 'ISO 8601 date day "2007-02-01/3[0]" at 12 is out of range 1-28'],
+      ['2007-02-01/02-29', 'ISO 8601 date day "2007-02-01/02-2[9]" at 15 is out of range 1-28'],
+      ['2007-02-01/02-29T10:00', 'ISO 8601 date day "2007-02-01/02-2[9]" at 15 is out of range 1-28'],
+      ['2007-02-01/13-01', 'ISO 8601 date month "2007-02-01/13-0[1]" at 15 is out of range 1-12'],
+      ['2007-W03-1/W53', 'ISO 8601 date week "2007-W03-1/W5[3]" at 13 is out of range 1-52'],
+      ['2007-W03-1/2007-W53-1', 'ISO 8601 date week "2007-W03-1/2007-W5[3]" at 18 is out of range 1-52'],
+      ['2023-01-01/2023-366', 'ISO 8601 date ordinal day "2023-01-01/2023-366[EOL]" at 19 is out of range 1-365'],
+    ].forEach(([interval, message]) => {
+      it(`out of range end date in "${interval}" tells which unit is off`, () => {
+        expect(() => parseInterval(interval), interval).to.throw(RangeError, message);
+      });
     });
 
     it('indicated invalid duration error position', () => {

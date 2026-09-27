@@ -655,6 +655,13 @@ try {
   console.log(err.message);
   // Unexpected ISO 8601 duration character "R5/2024-01-01T00:00Z/P1Y2M10DT2H3[O]" at 33
 }
+
+try {
+  parseInterval('R5/2024-02-30T00:00Z/P1Y');
+} catch (err) {
+  console.log(err.message);
+  // ISO 8601 date day "R5/2024-02-30[T]" at 13 is out of range 1-29
+}
 ```
 
 Throughput tables, the capability and error message comparison against luxon, iso8601-duration, and temporal, and how to run the suites are in [bench/README.md](bench/README.md). The numbers there come from executed `npm run bench` and `npm run compare` runs and note the Node version, since the margins over the RegExp-based libraries shift between V8 versions.

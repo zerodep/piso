@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v5.2.0 - 2026-09-27
+
+- date validation errors tell which unit is off and its valid range, in the same shape as the digit cap errors: `2024-02-30T12:00:00Z` throws `ISO 8601 date day "2024-02-30[T]" at 10 is out of range 1-29`, and the same goes for `date month` (1-12), `date ordinal day` (1-365 or 1-366) and `date week` (1-52 or 1-53), for full, partial, and interval dates alike. The `Invalid ISO 8601 date`, `partial date`, `ordinal date` and `week date` messages are gone, so update anything matching on them
+- an out of range week is reported at the week digits, before the weekday is read
+- an unseparated five or six digit date such as `202401`, and a bare year followed by a time such as `2024T10`, throw the unexpected character error at the position where the date ends rather than an invalid date error, since `YYYYMM` without a hyphen is not ISO 8601
+- a two digit end date after a week start date, e.g. `2007-W03-1/10`, throws the unexpected character error rather than an invalid partial date error, since there is no month to relate the day to
+
 ## v5.1.2 - 2026-09-15
 
 Documentation update. Source not touched.

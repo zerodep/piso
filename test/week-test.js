@@ -103,7 +103,7 @@ describe('ISO week', () => {
           it(`anno ${year} throws if week is ${w + 1}`, () => {
             expect(() => {
               ISODate.parse(`${year}-W${w + 1}-1`);
-            }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 week date/i);
+            }).to.throw(RangeError, `ISO 8601 date week "${year}-W5[3]" at 7 is out of range 1-52`);
           });
         }
       });
@@ -233,13 +233,13 @@ describe('ISO week', () => {
 
     ['2007-W03-1/W53', '2007W031/W53', '2007-W03-1/W00'].forEach((interval) => {
       it(`invalid partial week "${interval}" throws week RangeError`, () => {
-        expect(() => parseInterval(interval)).to.throw(RangeError, /Invalid ISO 8601 week date/i);
+        expect(() => parseInterval(interval)).to.throw(RangeError, /ISO 8601 date week .* is out of range 1-52/);
       });
     });
 
     ['2007-W03-1/10', '2007W031/10'].forEach((interval) => {
-      it(`invalid partial end date "${interval}" throws invalid partial RangeError`, () => {
-        expect(() => parseInterval(interval)).to.throw(RangeError, /partial date/i);
+      it(`invalid partial end date "${interval}" throws unexpected character RangeError`, () => {
+        expect(() => parseInterval(interval)).to.throw(RangeError, /Unexpected ISO 8601 date character/);
       });
     });
 
@@ -267,7 +267,7 @@ describe('ISO week', () => {
       it(`parse "${wd}" throws RangeError`, () => {
         expect(() => {
           ISODate.parse(wd);
-        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601/i);
+        }).to.throw(RangeError, /Unexpected ISO 8601|ISO 8601 date week .* is out of range/);
       });
     });
 

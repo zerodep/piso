@@ -325,7 +325,10 @@ describe('ISO date', () => {
     it(`parse "${dt}" throws RangeError`, () => {
       expect(() => {
         ISODate.parse(dt);
-      }).to.throw(RangeError, /(Unexpected|Invalid|Unbalanced) ISO 8601 date|ISO 8601 date (year|fraction) .* exceeds \d+ digits/i);
+      }).to.throw(
+        RangeError,
+        /(Unexpected|Unbalanced) ISO 8601 date|ISO 8601 date (year|fraction) .* exceeds \d+ digits|ISO 8601 date (day|month|ordinal day|week) .* is out of range/i,
+      );
     });
   });
 
@@ -387,7 +390,7 @@ describe('ISO date', () => {
       it(`parse "${dt}" throws RangeError`, () => {
         expect(() => {
           ISODate.parse(dt);
-        }).to.throw(RangeError, /(Unexpected|Invalid) ISO 8601 date/i);
+        }).to.throw(RangeError, /ISO 8601 date day .* is out of range 1-28/);
       });
     });
   });
@@ -415,7 +418,10 @@ describe('ISO date', () => {
     });
 
     it('error message prefix reflects parsed up to the bad character', () => {
-      expect(() => new ISODate('2024-13-01').parse()).to.throw(RangeError, 'Invalid ISO 8601 date "2024-13-01"');
+      expect(() => new ISODate('2024-13-01').parse()).to.throw(
+        RangeError,
+        'ISO 8601 date month "2024-13-01[EOL]" at 10 is out of range 1-12',
+      );
     });
 
     it('unexpected character error message includes parsed prefix and bad char', () => {
@@ -423,7 +429,10 @@ describe('ISO date', () => {
     });
 
     it('child parse error message includes the parent-consumed prefix', () => {
-      expect(() => new ISODate('R1/2024-13-01', { offset: 2 }).parse()).to.throw(RangeError, 'Invalid ISO 8601 date "R1/2024-13-01');
+      expect(() => new ISODate('R1/2024-13-01', { offset: 2 }).parse()).to.throw(
+        RangeError,
+        'ISO 8601 date month "R1/2024-13-01[EOL]" at 13 is out of range 1-12',
+      );
     });
 
     it('toString after parse returns the consumed slice (top-level)', () => {
@@ -524,6 +533,62 @@ describe('ISO date', () => {
     const bc0 = '-0000-01-01T12:00Z';
     it(`${bc0} is a monday`, () => {
       expect(new ISODate(bc0).toDate().getUTCDay()).to.equal(1);
+    });
+  });
+
+  describe('out of range', () => {
+    [
+      ['2024-02-30', 'ISO 8601 date day "2024-02-30[EOL]" at 10 is out of range 1-29'],
+      ['2023-02-29', 'ISO 8601 date day "2023-02-29[EOL]" at 10 is out of range 1-28'],
+      ['2024-04-31', 'ISO 8601 date day "2024-04-31[EOL]" at 10 is out of range 1-30'],
+      ['2024-01-32', 'ISO 8601 date day "2024-01-32[EOL]" at 10 is out of range 1-31'],
+      ['2024-01-00', 'ISO 8601 date day "2024-01-00[EOL]" at 10 is out of range 1-31'],
+      ['2024-02-30T12:00:00Z', 'ISO 8601 date day "2024-02-30[T]" at 10 is out of range 1-29'],
+      ['20240230', 'ISO 8601 date day "20240230[EOL]" at 8 is out of range 1-29'],
+      ['20240230T12', 'ISO 8601 date day "20240230[T]" at 8 is out of range 1-29'],
+      ['2024-13-15', 'ISO 8601 date month "2024-13-15[EOL]" at 10 is out of range 1-12'],
+      ['2024-00-15', 'ISO 8601 date month "2024-00-15[EOL]" at 10 is out of range 1-12'],
+      ['2024-13', 'ISO 8601 date month "2024-13[EOL]" at 7 is out of range 1-12'],
+      ['20241315', 'ISO 8601 date month "20241315[EOL]" at 8 is out of range 1-12'],
+      ['2023-366', 'ISO 8601 date ordinal day "2023-366[EOL]" at 8 is out of range 1-365'],
+      ['2024-367', 'ISO 8601 date ordinal day "2024-367[EOL]" at 8 is out of range 1-366'],
+      ['2024-000', 'ISO 8601 date ordinal day "2024-000[EOL]" at 8 is out of range 1-366'],
+      ['2023366', 'ISO 8601 date ordinal day "2023366[EOL]" at 7 is out of range 1-365'],
+      ['2023-366T12', 'ISO 8601 date ordinal day "2023-366[T]" at 8 is out of range 1-365'],
+      ['2023-W53-1', 'ISO 8601 date week "2023-W5[3]" at 7 is out of range 1-52'],
+      ['2023-W53', 'ISO 8601 date week "2023-W5[3]" at 7 is out of range 1-52'],
+      ['2023W531', 'ISO 8601 date week "2023W5[3]" at 6 is out of range 1-52'],
+      ['2020-W54-1', 'ISO 8601 date week "2020-W5[4]" at 7 is out of range 1-53'],
+      ['2020-W00-1', 'ISO 8601 date week "2020-W0[0]" at 7 is out of range 1-53'],
+      ['+002024-02-30', 'ISO 8601 date day "+002024-02-30[EOL]" at 13 is out of range 1-29'],
+      ['-000001-02-29', 'ISO 8601 date day "-000001-02-29[EOL]" at 13 is out of range 1-28'],
+    ].forEach(([source, message]) => {
+      it(`"${source}" throws RangeError telling which unit is off`, () => {
+        expect(() => new ISODate(source).parse(), source).to.throw(RangeError, message);
+      });
+    });
+
+    [
+      ['202401', 'Unexpected ISO 8601 date character "202401[EOL]" at 6'],
+      ['20245', 'Unexpected ISO 8601 date character "20245[EOL]" at 5'],
+      ['202401T10', 'Unexpected ISO 8601 date character "202401[T]" at 6'],
+      ['2024T10', 'Unexpected ISO 8601 date character "2024[T]" at 4'],
+    ].forEach(([source, message]) => {
+      it(`"${source}" lacks a unit to report and throws unexpected character RangeError`, () => {
+        expect(() => new ISODate(source).parse(), source).to.throw(RangeError, message);
+      });
+    });
+
+    it('two digit end date after a week start date throws unexpected character RangeError', () => {
+      expect(() => parseInterval('2007-W03-1/10')).to.throw(RangeError, 'Unexpected ISO 8601 date character "2007-W03-1/10[EOL]" at 13');
+      expect(() => parseInterval('2007-W03-1/10T10:00')).to.throw(RangeError, 'Unexpected ISO 8601 date character "2007-W03-1/1[0]" at 12');
+    });
+
+    it('offset child parse includes the parent-consumed prefix and position', () => {
+      expect(() => new ISODate('R5/2024-02-30/P1D', { offset: 2, endChars: '/' }).parse()).to.throw(
+        RangeError,
+        'ISO 8601 date day "R5/2024-02-30[/]" at 13 is out of range 1-29',
+      );
     });
   });
 });

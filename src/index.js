@@ -28,6 +28,7 @@ const ISOTIME_CONT = ISOTIME_OFFSET + NUMBERS;
 const ISOTIME_CONT_SEPARATED = ISOTIME_SEPARATOR + ISOTIME_CONT;
 const ISOTIME_FRACTION_OR_OFFSET = FRACTIONS + ISOTIME_OFFSET;
 const POW10 = [1, 10, 100, 1000, 10000];
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MILLISECONDS_PER_HOUR = 3600000;
 const MILLISECONDS_PER_DAY = 24 * MILLISECONDS_PER_HOUR;
 
@@ -502,10 +503,12 @@ ISODate.prototype.parse = function parseISODate() {
       const D = (this.result.D = rest);
       this.continueOrdinalDatePrecision(Y, D, c);
     } else {
-      const M = (this.result.M = (len === 8 ? (rest / 100) | 0 : rest) - 1);
-      const D = (this.result.D = len === 8 ? rest % 100 : 0);
+      if (len !== 8) throw this.createUnexpectedError();
 
-      if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.parsed}"`);
+      const M = (this.result.M = ((rest / 100) | 0) - 1);
+      const D = (this.result.D = rest % 100);
+
+      if (!validateDate(Y, M, D)) throw createDateOutOfRangeError(this, Y, M);
 
       if (c) this.continueFromTimeInstruction();
     }
@@ -626,13 +629,13 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
     this.consume();
     const day = (this.result.D = value);
 
-    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
+    if (!validateDate(Y, M, day)) throw createDateOutOfRangeError(this, Y, M);
 
     return this;
   } else if (next === ISODATE_TIMEINSTRUCTION) {
     const day = (this.result.D = value);
 
-    if (!validateDate(Y, M, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
+    if (!validateDate(Y, M, day)) throw createDateOutOfRangeError(this, Y, M);
 
     this.consume();
 
@@ -667,7 +670,7 @@ ISODate.prototype._parseRelativeDate = function parseRelativeDate(Y, M, D, W) {
     const month = (this.result.M = value - 1);
     const day = (this.result.D = twoDigits(this.consumeChar('0123'), this.consumeChar()));
 
-    if (!validateDate(Y, month, day)) throw new RangeError(`Invalid ISO 8601 partial date "${this.parsed}"`);
+    if (!validateDate(Y, month, day)) throw createDateOutOfRangeError(this, Y, month);
 
     const c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
     if (c) {
@@ -729,7 +732,7 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
   const M = (this.result.M = ((numbers / pow) | 0) - 1);
   const D = (this.result.D = len === 2 ? 1 : numbers % pow);
 
-  if (!validateDate(Y, M, D)) throw new RangeError(`Invalid ISO 8601 date "${this.source}"`);
+  if (!validateDate(Y, M, D)) throw createDateOutOfRangeError(this, Y, M);
 
   if (!c) return this;
 
@@ -743,7 +746,7 @@ ISODate.prototype.continueDatePrecision = function continueDatePrecision(Y) {
  * @param {string} [next] next char if any
  */
 ISODate.prototype.continueOrdinalDatePrecision = function continueOrdinalDatePrecision(Y, D, next) {
-  if (!validateOrdinalDate(Y, D)) throw new RangeError(`Invalid ISO 8601 ordinal date "${this.source}"`);
+  if (!validateOrdinalDate(Y, D)) throw createOutOfRangeError(this, 'ordinal day', isLeapYear(Y) ? 366 : 365);
 
   this.result.Y = Y;
   this.result.D = D;
@@ -760,11 +763,12 @@ ISODate.prototype.continueOrdinalDatePrecision = function continueOrdinalDatePre
 ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruction(Y) {
   const W = (this.result.W = twoDigits(this.consumeChar('012345'), this.consumeChar()));
 
+  if (!validateWeek(Y, W)) throw createOutOfRangeError(this, 'week', getUTCLastWeekOfYear(Y));
+
   let c;
   if (this.enforceSeparators) {
     c = this.consumeCharOrEnd(ISODATE_HYPHEN);
     if (!c) {
-      if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
       this.result.D = 1;
       return this;
     }
@@ -777,8 +781,6 @@ ISODate.prototype.continueFromWeekInstruction = function continueFromWeekInstruc
   } else {
     this.result.D = Number(c);
   }
-
-  if (!validateWeek(Y, W)) throw new RangeError(`Invalid ISO 8601 week date "${this.source}"`);
 
   c = this.consumeCharOrEnd(ISODATE_TIMEINSTRUCTION);
   if (!c) return this;
@@ -1492,6 +1494,30 @@ function validateDate(Y, M, D) {
   }
 
   return false;
+}
+
+/**
+ * Create out of range error for a date unit
+ * @param {ISODate} parser
+ * @param {string} unit date unit name
+ * @param {number} max max unit value
+ */
+function createOutOfRangeError(parser, unit, max) {
+  const c = parser.c;
+  return new RangeError(`ISO 8601 date ${unit} "${parser.parsed}[${c ? c : 'EOL'}]" at ${parser.idx} is out of range 1-${max}`);
+}
+
+/**
+ * Create out of range error for a date that failed validation
+ * @param {ISODate} parser
+ * @param {number} Y year
+ * @param {number} [M] javascript month, undefined when a partial date lacks a month to relate to
+ */
+function createDateOutOfRangeError(parser, Y, M) {
+  if (M === undefined) return parser.createUnexpectedError();
+  const daysInMonth = DAYS_IN_MONTH[M];
+  if (!daysInMonth) return createOutOfRangeError(parser, 'month', 12);
+  return createOutOfRangeError(parser, 'day', M === 1 && isLeapYear(Y) ? 29 : daysInMonth);
 }
 
 /**

@@ -29,12 +29,18 @@ describe('ISO ordinal date', () => {
 
   it('throws range error if too many days in ordinal date', () => {
     const dateString = '1981-366';
-    expect(() => getDate(dateString), dateString).to.throw(RangeError, /invalid/i);
+    expect(() => getDate(dateString), dateString).to.throw(
+      RangeError,
+      'ISO 8601 date ordinal day "1981-366[EOL]" at 8 is out of range 1-365',
+    );
   });
 
   it('throws range error if 0 days in ordinal date', () => {
     const dateString = '1981-000';
-    expect(() => getDate(dateString), dateString).to.throw(RangeError, /invalid/i);
+    expect(() => getDate(dateString), dateString).to.throw(
+      RangeError,
+      'ISO 8601 date ordinal day "1981-000[EOL]" at 8 is out of range 1-365',
+    );
   });
 
   ['1981-001-', '1981001-', '1981-001-01'].forEach((dateString) => {
