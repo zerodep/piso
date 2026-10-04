@@ -2,7 +2,7 @@
 
 Throughput and capability comparison of `@0dep/piso` against [luxon](https://www.npmjs.com/package/luxon), [iso8601-duration](https://www.npmjs.com/package/iso8601-duration), [temporal](https://www.npmjs.com/package/@js-temporal/polyfill), and native `Date`. All three libraries parse with regular expressions, piso reads the source character by character.
 
-The numbers below are from an executed `npm run bench` on Node v26.9.0, Apple M3 Pro, macOS 26.6.2. Throughput is the tinybench average in operations per second, rounded, and the ratio is piso divided by the other library. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
+The numbers below are from an executed `npm run bench` on Node v26.9.0, Apple M3 Pro, macOS 27.0.1. Throughput is the tinybench average in operations per second, rounded, and the ratio is piso divided by the other library. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
 
 Speed is not the only difference. A regular expression either matches or it does not, so the other libraries can only echo the input back when it is malformed. piso reads the source with a cursor and reports the offending character and its position, see [Error messages](#error-messages).
 
@@ -32,9 +32,9 @@ npm run compare
 
 | Source                                      | piso  | luxon | ratio |
 | ------------------------------------------- | ----- | ----- | ----- |
-| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.35M | 327k  | 4.1×  |
-| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.78M | 265k  | 6.7×  |
-| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.11M | 251k  | 8.4×  |
+| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.38M | 342k  | 4.0×  |
+| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.82M | 277k  | 6.6×  |
+| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.18M | 261k  | 8.3×  |
 
 | Capability         | piso | luxon |
 | ------------------ | ---- | ----- |
@@ -51,8 +51,8 @@ npm run compare
 
 | Source           | piso  | iso8601-duration | luxon | temporal | native temporal | vs iso8601-duration | vs luxon | vs temporal | vs native temporal |
 | ---------------- | ----- | ---------------- | ----- | -------- | --------------- | ------------------- | -------- | ----------- | ------------------ |
-| `P1Y2M10DT2H30M` | 3.56M | 2.61M            | 2.91M | 1.83M    | 7.64M           | 1.4×                | 1.2×     | 2.0×        | 0.5×               |
-| `PT0.5H`         | 8.30M | 3.50M            | 5.19M | 1.81M    | 7.39M           | 2.4×                | 1.6×     | 4.6×        | 1.1×               |
+| `P1Y2M10DT2H30M` | 3.81M | 2.76M            | 3.03M | 2.04M    | 8.42M           | 1.4×                | 1.3×     | 1.9×        | 0.5×               |
+| `PT0.5H`         | 8.65M | 3.67M            | 5.44M | 2.01M    | 7.90M           | 2.4×                | 1.6×     | 4.3×        | 1.1×               |
 
 | Capability                                  | piso | iso8601-duration | luxon | temporal | native temporal |
 | ------------------------------------------- | ---- | ---------------- | ----- | -------- | --------------- |
@@ -73,24 +73,24 @@ Parsing is only half the job, so `suites/apply.js` measures the outcome: parse a
 
 | Outcome                                       | piso  | luxon | temporal | native temporal | iso8601-duration | vs luxon | vs temporal | vs native temporal | vs iso8601-duration |
 | --------------------------------------------- | ----- | ----- | -------- | --------------- | ---------------- | -------- | ----------- | ------------------ | ------------------- |
-| Duration `P1Y2M10DT2H30M` expire at from date | 1.15M | 523k  | 170k     | 2.44M           | n/a\*            | 2.2×     | 6.7×        | 0.5×               | n/a\*               |
-| Negative duration `-P1D` expire at from date  | 3.24M | 585k  | 179k     | 2.54M           | n/a\*            | 5.5×     | 18.1×       | 1.3×               | n/a\*               |
-| Duration `PT2H30M` milliseconds               | 4.87M | 3.18M | 456k     | 3.91M           | 901k             | 1.5×     | 10.7×       | 1.2×               | 5.4×                |
-| Interval start/duration expire at             | 724k  | 288k  | n/a      | n/a             | n/a              | 2.5×     | n/a         | n/a                | n/a                 |
-| Interval duration/end start at                | 779k  | 276k  | n/a      | n/a             | n/a              | 2.8×     | n/a         | n/a                | n/a                 |
-| Interval start/end expire at                  | 1.10M | 371k  | n/a      | n/a             | n/a              | 3.0×     | n/a         | n/a                | n/a                 |
+| Duration `P1Y2M10DT2H30M` expire at from date | 1.20M | 557k  | 182k     | 2.59M           | n/a\*            | 2.1×     | 6.6×        | 0.5×               | n/a\*               |
+| Negative duration `-P1D` expire at from date  | 3.32M | 615k  | 188k     | 2.67M           | n/a\*            | 5.4×     | 17.7×       | 1.2×               | n/a\*               |
+| Duration `PT2H30M` milliseconds               | 4.85M | 3.26M | 479k     | 4.01M           | 773k             | 1.5×     | 10.1×       | 1.2×               | 6.3×                |
+| Interval start/duration expire at             | 738k  | 295k  | n/a      | n/a             | n/a              | 2.5×     | n/a         | n/a                | n/a                 |
+| Interval duration/end start at                | 802k  | 289k  | n/a      | n/a             | n/a              | 2.8×     | n/a         | n/a                | n/a                 |
+| Interval start/end expire at                  | 1.12M | 378k  | n/a      | n/a             | n/a              | 3.0×     | n/a         | n/a                | n/a                 |
 
 \* iso8601-duration `end()` applies the duration in local time so it is not comparable with the UTC results of the others.
 
 ## Date
 
-Native `new Date('2024-03-26')` is, of course, still faster — 2.4–3.1 times in the benchmark, with native Temporal about 2 times faster than piso. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+Native `new Date('2024-03-26')` is, of course, still faster — 2.5–3.1 times in the benchmark, with native Temporal about 2 times faster than piso. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
 | Source                        | piso  | luxon | temporal | native temporal | `new Date` | vs luxon | vs temporal | vs native temporal | native vs piso |
 | ----------------------------- | ----- | ----- | -------- | --------------- | ---------- | -------- | ----------- | ------------------ | -------------- |
-| `2024-03-26T12:30:15.5+02:00` | 2.88M | 643k  | 651k     | 5.77M           | 7.25M      | 4.5×     | 4.4×        | 0.5×               | 2.5×           |
-| `2025-03-26T12:30:15.5Z`      | 3.00M | 648k  | 1.13M    | 6.03M           | 7.13M      | 4.6×     | 2.7×        | 0.5×               | 2.4×           |
-| `2024-03-26`                  | 3.60M | 756k  | 1.36M    | 7.49M           | 11.1M      | 4.8×     | 2.6×        | 0.5×               | 3.1×           |
+| `2024-03-26T12:30:15.5+02:00` | 2.67M | 683k  | 719k     | 6.30M           | 7.50M      | 3.9×     | 3.7×        | 0.4×               | 2.8×           |
+| `2025-03-26T12:30:15.5Z`      | 3.04M | 678k  | 1.24M    | 6.65M           | 7.53M      | 4.5×     | 2.5×        | 0.5×               | 2.5×           |
+| `2024-03-26`                  | 3.81M | 792k  | 1.52M    | 8.62M           | 11.7M      | 4.8×     | 2.5×        | 0.4×               | 3.1×           |
 
 Parsing the three sources above one million times each under `node --prof` shows how the runtime shifts the ratio. From Node 20 to 26 piso sheds about 23% of its ticks, luxon about 36%, and piso still finishes first on all three:
 
