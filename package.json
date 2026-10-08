@@ -1,6 +1,6 @@
 {
   "name": "@0dep/piso",
-  "version": "5.2.0",
+  "version": "6.0.0",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
@@ -21,7 +21,7 @@
     "test": "mocha",
     "bench": "npm run bench --workspace bench",
     "compare": "npm run compare --workspace bench",
-    "posttest": "npm run dist && npm run lint && tsc -p test && npm run test:md",
+    "posttest": "npm run dist && npm run lint && tsc -p . --noEmit && tsc -p test && npm run test:md",
     "lint": "eslint . --cache && prettier . --check --cache",
     "prepublishOnly": "npm run dist",
     "cov:html": "c8 -n src -r html -r text mocha",

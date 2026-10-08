@@ -272,10 +272,6 @@ declare module '@0dep/piso' {
 		 * @returns new date with applied duration
 		 */
 		applyDateDuration(fromDate: Date, repetitions?: number, useUtc?: boolean): Date;
-		/**
-		 * Get date designator getter and setter;
-		 * */
-		_getDateFns(designator: string, useUtc: boolean): any;
 	}
 	export namespace ISODuration {
 		/**

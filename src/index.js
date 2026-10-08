@@ -36,12 +36,17 @@ const NONLEAPYEAR = new Date(Date.UTC(1971, 0, 1));
 
 const kIsParsed = Symbol.for('is parsed');
 
+/**
+ * Date unit getter and setter pairs, called with the date as this
+ * @type {Record<string, [(this: Date) => number, (this: Date, value: number) => number]>}
+ */
 const dateUTCFns = {
   Y: [Date.prototype.getUTCFullYear, Date.prototype.setUTCFullYear],
   M: [Date.prototype.getUTCMonth, Date.prototype.setUTCMonth],
   D: [Date.prototype.getUTCDate, Date.prototype.setUTCDate],
 };
 
+/** @type {typeof dateUTCFns} */
 const dateLocalFns = {
   Y: [Date.prototype.getFullYear, Date.prototype.setFullYear],
   M: [Date.prototype.getMonth, Date.prototype.setMonth],
@@ -1277,6 +1282,7 @@ ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, r
 
   /** @type {any} */
   const result = this.result;
+  const fns = useUtc ? dateUTCFns : dateLocalFns;
 
   for (const designator of 'YMWD') {
     if (!(designator in result)) continue;
@@ -1291,22 +1297,18 @@ ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, r
     const fromDate = new Date(endTime);
     const toDate = new Date(endTime);
 
-    // @ts-ignore
-    const [getter, setter] = this._getDateFns(designatorKey, useUtc);
-    const current = getter.call(toDate);
-
     if (this.fractionedDesignator !== designator) {
-      setter.call(toDate, current + value);
+      addDateUnits(toDate, fns, designatorKey, value);
       endTime += toDate.getTime() - fromDate.getTime();
     } else {
       const fullValue = ~~value;
       if (fullValue) {
-        setter.call(toDate, current + fullValue);
+        addDateUnits(toDate, fns, designatorKey, fullValue);
         endTime += toDate.getTime() - fromDate.getTime();
       }
 
-      const fraction = new Date(endTime);
-      setter.call(fraction, getter.call(fraction) + repetitions);
+      const fraction = new Date(fromDate.getTime());
+      addDateUnits(fraction, fns, designatorKey, fullValue + repetitions);
 
       endTime += repetitions * (fraction.getTime() - toDate.getTime()) * (value - fullValue);
     }
@@ -1318,16 +1320,40 @@ ISODuration.prototype.applyDateDuration = function applyDateDuration(fromDate, r
 };
 
 /**
- * Get date designator getter and setter;
- * @internal
- * @param {string} designator
- * @param {boolean} useUtc
+ * Add whole years, months, or days to date in place
+ *
+ * Years and months are added on the first of the month and the day is then
+ * clamped to the last day of the target month, e.g. Jan 31 + 1M = Feb 28,
+ * Feb 29 + 1Y = Feb 28, instead of rolling over into the next month.
+ * @param {Date} date date to mutate
+ * @param {typeof dateUTCFns} fns date getter and setter pairs, UTC or local
+ * @param {string} designator Y, M, or D
+ * @param {number} value whole units to add, negative to subtract
  */
-ISODuration.prototype._getDateFns = function getDateFns(designator, useUtc) {
-  const fns = useUtc ? dateUTCFns : dateLocalFns;
-  // @ts-ignore
-  return fns[designator];
-};
+function addDateUnits(date, fns, designator, value) {
+  const [getter, setter] = fns[designator];
+  if (designator === 'D') {
+    setter.call(date, getter.call(date) + value);
+    return;
+  }
+
+  const [getDate, setDate] = fns.D;
+  const day = getDate.call(date);
+
+  // every month has at least 28 days so only the 29th to 31st can overflow
+  if (day <= 28) {
+    setter.call(date, getter.call(date) + value);
+    return;
+  }
+
+  const [getMonth] = fns.M;
+  setDate.call(date, 1);
+  setter.call(date, getter.call(date) + value);
+
+  const month = getMonth.call(date);
+  setDate.call(date, day);
+  if (getMonth.call(date) !== month) setDate.call(date, 0);
+}
 
 /**
  * @param {Date} date

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v6.0.0 - 2026-10-08
+
+### Breaking
+
+- adding years or months clamps the day to the last day of the target month instead of rolling over into the next month, matching Temporal and luxon: January 31 plus `P1M` is now February 28 where it used to be March 3, and February 29 plus `P1Y` is February 28 where it used to be March 1. This changes the result of `getExpireAt`, `getStartAt`, `toMilliseconds`, and `untilMilliseconds` for start and end dates on the 29th to 31st
+- repetitions count from the original day, so `R-1/2021-01-31T00:00Z/P1M` yields February 28, March 31, April 30, and a fractional month or year is measured between the clamped whole units. Day and week designators are unchanged
+
+### Other
+
+- `npm run compare` verifies the month end clamp against luxon and `bench/README.md` has the row
+- the internal `ISODuration.prototype._getDateFns` is replaced by a module-private helper and no longer appears in the type declarations
+
 ## v5.2.0 - 2026-09-27
 
 - date validation errors tell which unit is off and its valid range, in the same shape as the digit cap errors: `2024-02-30T12:00:00Z` throws `ISO 8601 date day "2024-02-30[T]" at 10 is out of range 1-29`, and the same goes for `date month` (1-12), `date ordinal day` (1-365 or 1-366) and `date week` (1-52 or 1-53), for full, partial, and interval dates alike. The `Invalid ISO 8601 date`, `partial date`, `ordinal date` and `week date` messages are gone, so update anything matching on them

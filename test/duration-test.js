@@ -403,6 +403,64 @@ describe('duration', () => {
     });
   });
 
+  describe('end of month', () => {
+    it('adding a month to the 31st clamps the day to the last day of the target month', () => {
+      expect(parseDuration('P1M').getExpireAt(new Date(Date.UTC(2021, 0, 31)))).to.deep.equal(new Date(Date.UTC(2021, 1, 28)));
+      expect(parseDuration('P1M').getExpireAt(new Date(Date.UTC(2024, 0, 31)))).to.deep.equal(new Date(Date.UTC(2024, 1, 29)));
+      expect(parseDuration('P1M').getExpireAt(new Date(Date.UTC(2021, 2, 31)))).to.deep.equal(new Date(Date.UTC(2021, 3, 30)));
+    });
+
+    it('adding a year to Feb 29 clamps to Feb 28', () => {
+      expect(parseDuration('P1Y').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2025, 1, 28)));
+      expect(parseDuration('P4Y').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2028, 1, 29)));
+    });
+
+    it('day designator is added after the clamped month', () => {
+      expect(parseDuration('P1M1D').getExpireAt(new Date(Date.UTC(2021, 0, 31)))).to.deep.equal(new Date(Date.UTC(2021, 2, 1)));
+      expect(parseDuration('P1Y1D').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2025, 2, 1)));
+    });
+
+    it('target month with enough days is unaffected', () => {
+      expect(parseDuration('P2M').getExpireAt(new Date(Date.UTC(2021, 0, 31)))).to.deep.equal(new Date(Date.UTC(2021, 2, 31)));
+      expect(parseDuration('P1M').getExpireAt(new Date(Date.UTC(2021, 0, 15)))).to.deep.equal(new Date(Date.UTC(2021, 1, 15)));
+      expect(parseDuration('P1Y').getExpireAt(new Date(Date.UTC(2023, 1, 28)))).to.deep.equal(new Date(Date.UTC(2024, 1, 28)));
+    });
+
+    it('subtracting a month from the 31st clamps as well', () => {
+      expect(parseDuration('P1M').getStartAt(new Date(Date.UTC(2021, 2, 31)))).to.deep.equal(new Date(Date.UTC(2021, 1, 28)));
+      expect(parseDuration('P1Y').getStartAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2023, 1, 28)));
+    });
+
+    it('time of day is kept when the day is clamped', () => {
+      expect(parseDuration('P1M').getExpireAt(new Date(Date.UTC(2021, 0, 31, 13, 45, 30, 500)))).to.deep.equal(
+        new Date(Date.UTC(2021, 1, 28, 13, 45, 30, 500)),
+      );
+    });
+
+    it('repetitions are counted from the original day, not the clamped one', () => {
+      const dur = parseDuration('P1M');
+      const start = new Date(Date.UTC(2021, 0, 31));
+      expect(dur.getExpireAt(start, 1)).to.deep.equal(new Date(Date.UTC(2021, 1, 28)));
+      expect(dur.getExpireAt(start, 2)).to.deep.equal(new Date(Date.UTC(2021, 2, 31)));
+      expect(dur.getExpireAt(start, 3)).to.deep.equal(new Date(Date.UTC(2021, 3, 30)));
+      expect(dur.getExpireAt(start, 13)).to.deep.equal(new Date(Date.UTC(2022, 1, 28)));
+    });
+
+    it('fractioned month measures the fraction between the clamped whole months', () => {
+      // Jan 31 + 1M = Feb 28, Jan 31 + 2M = Mar 31, half of the 31 days in between = 15.5 days
+      expect(parseDuration('P1.5M').getExpireAt(new Date(Date.UTC(2021, 0, 31)))).to.deep.equal(new Date(Date.UTC(2021, 2, 15, 12)));
+      // Jan 31 + 0M = Jan 31, Jan 31 + 1M = Feb 28, half of 28 days = 14 days
+      expect(parseDuration('P0.5M').getExpireAt(new Date(Date.UTC(2021, 0, 31)))).to.deep.equal(new Date(Date.UTC(2021, 1, 14)));
+    });
+
+    it('local dates clamp too', () => {
+      expect(parseDuration('P1M').applyDuration(new Date(2021, 0, 31), 1, false)).to.deep.equal(new Date(2021, 1, 28));
+      expect(parseDuration('P1Y').applyDuration(new Date(2024, 1, 29), 1, false)).to.deep.equal(new Date(2025, 1, 28));
+      expect(parseDuration('P1M').applyDuration(new Date(2021, 2, 31), -1, false)).to.deep.equal(new Date(2021, 1, 28));
+      expect(new ISOInterval('2021-01-31T12:00/P1M').getExpireAt()).to.deep.equal(new Date(2021, 1, 28, 12));
+    });
+  });
+
   describe('negative duration', () => {
     afterEach(ck.reset);
 
@@ -438,8 +496,8 @@ describe('duration', () => {
 
     it('getExpireAt with date designators subtracts calendar units', () => {
       const dur = parseDuration('-P1M');
-      expect(dur.getExpireAt(new Date(Date.UTC(2024, 2, 31)))).to.deep.equal(new Date(Date.UTC(2024, 2, 2)));
-      expect(parseDuration('-P1Y').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2023, 2, 1)));
+      expect(dur.getExpireAt(new Date(Date.UTC(2024, 2, 31)))).to.deep.equal(new Date(Date.UTC(2024, 1, 29)));
+      expect(parseDuration('-P1Y').getExpireAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2023, 1, 28)));
       expect(parseDuration('-P1W').getExpireAt(new Date(Date.UTC(2024, 2, 4)))).to.deep.equal(new Date(Date.UTC(2024, 1, 26)));
     });
 
@@ -453,6 +511,7 @@ describe('duration', () => {
       expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 1)));
       expect(dur.getStartAt(new Date(Date.UTC(2024, 2, 29)), 2)).to.deep.equal(new Date(Date.UTC(2024, 2, 29, 0, 2)));
       expect(parseDuration('-P1M').getStartAt(new Date(Date.UTC(2024, 1, 29)))).to.deep.equal(new Date(Date.UTC(2024, 2, 29)));
+      expect(parseDuration('-P1M').getStartAt(new Date(Date.UTC(2024, 0, 31)))).to.deep.equal(new Date(Date.UTC(2024, 1, 29)));
     });
 
     it('toMilliseconds and untilMilliseconds are negative', () => {

@@ -123,6 +123,11 @@ compare(
       source: '2007-11-13/15',
       verify: (v) => anyOf(local(2007, 10, 15), utc(2007, 10, 15))(v.end),
     },
+    {
+      name: 'Month end clamped',
+      source: '2021-01-31T00:00:00Z/P1M',
+      verify: (v) => v.end === utc(2021, 1, 28),
+    },
   ],
 );
 

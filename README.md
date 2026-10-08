@@ -93,6 +93,25 @@ Each duration designator value accepts at most 17 digits, so a valid duration ne
 
 A leading minus (`-` or unicode minus `−`) as of ISO 8601-2:2019 negates the duration, e.g. `-P1D`, and is only accepted by `parseDuration` and [ISODuration](#new-isodurationsource-offset) — not in intervals. The parsed result then has `sign: -1`, `getExpireAt` subtracts the duration and `getStartAt` adds it.
 
+Years and months are calendar units, so when the start day does not exist in the target month the day is clamped to the last day of that month, as in Temporal and luxon: January 31 plus `P1M` is February 28, February 29 plus `P1Y` is February 28. Repetitions count from the original day, so the third month from January 31 is April 30 and not April 28, and a day designator is added after the clamped month, so January 31 plus `P1M1D` is March 1.
+
+```javascript
+import { parseDuration } from '@0dep/piso';
+
+const monthly = parseDuration('P1M');
+const start = new Date(Date.UTC(2021, 0, 31));
+
+console.log(monthly.getExpireAt(start).toISOString());
+// 2021-02-28T00:00:00.000Z
+console.log(monthly.getExpireAt(start, 3).toISOString());
+// 2021-04-30T00:00:00.000Z
+
+const leapDay = new Date(Date.UTC(2024, 1, 29));
+
+console.log(parseDuration('P1Y').getExpireAt(leapDay).toISOString());
+// 2025-02-28T00:00:00.000Z
+```
+
 ```javascript
 import { parseDuration } from '@0dep/piso';
 
@@ -564,7 +583,7 @@ Throws `RangeError` if something is off.
 
 ### `duration.getExpireAt([startDate[, repetition]])`
 
-Get the date the duration expires at, applied in UTC. A negative duration subtracts instead.
+Get the date the duration expires at, applied in UTC. A negative duration subtracts instead. Years and months clamp the day to the target month, see [parseDuration](#parsedurationiso8601duration).
 
 - `startDate`: optional start date, defaults to now
 - `repetition`: optional number of times to apply the duration, defaults to 1
@@ -644,7 +663,7 @@ console.log('duration milliseconds', duration.toMilliseconds(new Date()));
 
 ## Benchmarking
 
-On Node 26 piso parses intervals 4–8.3 times and dates 3.9–4.8 times faster than luxon, and durations 1.3–2.4 times faster than luxon and iso8601-duration. Native `new Date` is still 2.5–3.1 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
+On Node 26 piso parses intervals 4.1–7.7 times and dates 4.5–4.6 times faster than luxon, and durations 1.2–2.5 times faster than luxon and iso8601-duration. Native `new Date` is still 2.4–3.1 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
 
 ```javascript
 import { parseInterval } from '@0dep/piso';
