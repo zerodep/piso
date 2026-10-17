@@ -663,7 +663,7 @@ console.log('duration milliseconds', duration.toMilliseconds(new Date()));
 
 ## Benchmarking
 
-On Node 26 piso parses intervals 4.1–7.7 times and dates 4.5–4.6 times faster than luxon, and durations 1.2–2.5 times faster than luxon and iso8601-duration. Native `new Date` is still 2.4–3.1 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
+On Node 26 piso parses intervals 4–7 times and dates 4 times faster than luxon, and durations faster than both luxon and iso8601-duration. Native `new Date` is still 2–3 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
 
 ```javascript
 import { parseInterval } from '@0dep/piso';
@@ -683,4 +683,4 @@ try {
 }
 ```
 
-Throughput tables, the capability and error message comparison against luxon, iso8601-duration, and temporal, and how to run the suites are in [bench/README.md](bench/README.md). The numbers there come from executed `npm run bench` and `npm run compare` runs and note the Node version, since the margins over the RegExp-based libraries shift between V8 versions.
+Throughput tables, the capability and error message comparison against luxon, iso8601-duration, and the Temporal polyfills, and how to run the suites are in [bench/README.md](bench/README.md). The numbers there come from executed `npm run bench` and `npm run compare` runs and note the Node version, since the margins over the RegExp-based libraries shift between V8 versions.

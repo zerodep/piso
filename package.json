@@ -1,10 +1,11 @@
 {
   "name": "@0dep/piso",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "ISO 8601 interval, date, and duration parser",
   "sideEffects": false,
   "type": "module",
   "module": "./src/index.js",
+  "browser": "./src/index.js",
   "main": "./lib/index.cjs",
   "types": "./types/index.d.ts",
   "exports": {

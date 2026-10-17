@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## v6.0.1 - 2026-10-17
+
+- add pkg `browser` property
+- bench against `temporal-polyfill`
+
 ## v6.0.0 - 2026-10-08
 
 ### Breaking
