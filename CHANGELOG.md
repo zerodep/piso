@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- re-run bench against `temporal-polyfill` 1.0.7, which no longer builds a debug string per instance under Node
+
 ## v6.0.1 - 2026-10-17
 
 - add pkg `browser` property
