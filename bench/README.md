@@ -2,20 +2,21 @@
 
 Throughput and capability comparison of `@0dep/piso` against [luxon](https://www.npmjs.com/package/luxon), [iso8601-duration](https://www.npmjs.com/package/iso8601-duration), the two Temporal polyfills [js-temporal](https://www.npmjs.com/package/@js-temporal/polyfill) and [temporal-polyfill](https://www.npmjs.com/package/temporal-polyfill), and native `Date`. All four libraries parse with regular expressions, piso reads the source character by character.
 
-The numbers below are from an executed `npm run bench` on Node v26.9.0, Apple M3 Pro, macOS 27.0.1. Throughput is the tinybench average in operations per second, rounded, and the ratio in parentheses is piso divided by that library, so below 1× means the other library is faster. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
+The numbers below are from an executed `npm run bench` on Node v26.13.0, Apple M3 Pro, macOS 27.0.1. Throughput is the tinybench average in operations per second, rounded, and the ratio in parentheses is piso divided by that library, so below 1× means the other library is faster. The ✓/✗ tables are the output of `npm run compare` on the same Node version.
 
 Speed is not the only difference. A regular expression either matches or it does not, so the other libraries can only echo the input back when it is malformed. piso reads the source with a cursor and reports the offending character and its position, see [Error messages](#error-messages).
 
 The ratios depend on the Node version. luxon spends most of its time copying objects, and V8 in Node 22 and later made object spread and clone considerably cheaper, so the margin over luxon is narrower on Node 24 and 26 than the 6–11 times measured on Node 20. Re-run before quoting.
 
-The js-temporal column is the `@js-temporal/polyfill` package, the reference polyfill maintained by the proposal champions, at 0.5.1. The temporal-polyfill column is the `temporal-polyfill` package from fullcalendar, at 1.0.7. Its default entry returns the native Temporal when the runtime ships one, so `temporal.js` imports `temporal-polyfill/implementation` to measure the polyfill itself. The native temporal column is `globalThis.Temporal`, which Node 26 ships, and `npm run bench` and `npm run compare` add it only when the runtime has it. Native Temporal is 4–15 times faster than js-temporal and lands just below `new Date`: about twice as fast as piso on parsing dates and `P1Y2M10DT2H30M`, while piso is still ahead on the fractional `PT0.5H` parse, the negative duration expire at and `PT2H30M` milliseconds. The two polyfills and native accept and reject the same capability rows.
+The js-temporal column is the `@js-temporal/polyfill` package, the reference polyfill maintained by the proposal champions, at 0.5.1. The temporal-polyfill column is the `temporal-polyfill` package from fullcalendar, at 1.0.8. Its default entry returns the native Temporal when the runtime ships one, so `temporal.js` imports `temporal-polyfill/implementation` to measure the polyfill itself. The native temporal column is `globalThis.Temporal`, which Node 26 ships, and `npm run bench` and `npm run compare` add it only when the runtime has it. Native Temporal is 4–15 times faster than js-temporal and lands just below `new Date`: about twice as fast as piso on parsing dates and `P1Y2M10DT2H30M`, while piso is still ahead on the fractional `PT0.5H` parse, the negative duration expire at and `PT2H30M` milliseconds. The two polyfills and native accept and reject the same capability rows.
 
-temporal-polyfill parses dates 2–2.4 times slower than piso and durations 3–6 times slower. Up to 1.0.6 durations were 100–200 times slower: `node --prof` put the time outside the parser, in a `_str_` debug property every new instance got from `toJSON()`, whose duration formatter calls `Number.prototype.toLocaleString` once per non-zero field. The debug string was only skipped when the bundle was minified, so it was on when running from `node_modules`. 1.0.7 also skips it when `globalThis.process` exists, so it is off under Node.
+temporal-polyfill parses dates 2.2–2.5 times slower than piso and durations 3–6 times slower. Up to 1.0.6 durations were 100–200 times slower: `node --prof` put the time outside the parser, in a `_str_` debug property every new instance got from `toJSON()`, whose duration formatter calls `Number.prototype.toLocaleString` once per non-zero field. The debug string was only skipped when the bundle was minified, so it was on when running from `node_modules`. 1.0.7 also skips it when `globalThis.process` exists, so it is off under Node.
 
 ```sh
 npm install
 npm run bench
 npm run compare
+npm run prof
 ```
 
 ## Contents
@@ -34,9 +35,9 @@ npm run compare
 
 | Source                                      | piso  | luxon       |
 | ------------------------------------------- | ----- | ----------- |
-| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.38M | 337k (4.1×) |
-| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.79M | 279k (6.4×) |
-| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.08M | 266k (7.8×) |
+| `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z` | 1.52M | 368k (4.1×) |
+| `2007-03-01T13:00:00Z/P1Y2M10DT2H30M`       | 1.95M | 303k (6.4×) |
+| `P1Y2M10DT2H30M/2008-05-11T15:30:00Z`       | 2.34M | 281k (8.3×) |
 
 | Capability         | piso | luxon |
 | ------------------ | ---- | ----- |
@@ -54,8 +55,8 @@ npm run compare
 
 | Source           | piso  | iso8601-duration | luxon        | js-temporal  | temporal-polyfill | native temporal |
 | ---------------- | ----- | ---------------- | ------------ | ------------ | ----------------- | --------------- |
-| `P1Y2M10DT2H30M` | 3.60M | 2.63M (1.4×)     | 2.97M (1.2×) | 1.88M (1.9×) | 1.27M (2.8×)      | 8.09M (0.4×)    |
-| `PT0.5H`         | 8.38M | 3.62M (2.3×)     | 5.25M (1.6×) | 1.84M (4.6×) | 1.46M (5.7×)      | 7.81M (1.1×)    |
+| `P1Y2M10DT2H30M` | 3.77M | 2.89M (1.3×)     | 3.29M (1.1×) | 2.00M (1.9×) | 1.39M (2.7×)      | 8.65M (0.4×)    |
+| `PT0.5H`         | 8.96M | 3.73M (2.4×)     | 5.52M (1.6×) | 1.97M (4.6×) | 1.58M (5.7×)      | 8.46M (1.1×)    |
 
 | Capability                                  | piso | iso8601-duration | luxon | js-temporal | temporal-polyfill | native temporal |
 | ------------------------------------------- | ---- | ---------------- | ----- | ----------- | ----------------- | --------------- |
@@ -76,32 +77,32 @@ Parsing is only half the job, so `suites/apply.js` measures the outcome: parse a
 
 | Outcome                                       | piso  | luxon        | js-temporal  | temporal-polyfill | native temporal | iso8601-duration |
 | --------------------------------------------- | ----- | ------------ | ------------ | ----------------- | --------------- | ---------------- |
-| Duration `P1Y2M10DT2H30M` expire at from date | 1.19M | 537k (2.2×)  | 174k (6.8×)  | 630k (1.9×)       | 2.56M (0.5×)    | n/a\*            |
-| Negative duration `-P1D` expire at from date  | 3.27M | 614k (5.3×)  | 191k (17.1×) | 556k (5.9×)       | 2.69M (1.2×)    | n/a\*            |
-| Duration `PT2H30M` milliseconds               | 4.96M | 3.09M (1.6×) | 451k (11.0×) | 967k (5.1×)       | 4.02M (1.2×)    | 740k (6.7×)      |
-| Interval start/duration expire at             | 736k  | 293k (2.5×)  | n/a          | n/a               | n/a             | n/a              |
-| Interval duration/end start at                | 779k  | 275k (2.8×)  | n/a          | n/a               | n/a             | n/a              |
-| Interval start/end expire at                  | 1.08M | 372k (2.9×)  | n/a          | n/a               | n/a             | n/a              |
+| Duration `P1Y2M10DT2H30M` expire at from date | 1.21M | 585k (2.1×)  | 179k (6.8×)  | 661k (1.8×)       | 2.71M (0.4×)    | n/a\*            |
+| Negative duration `-P1D` expire at from date  | 3.40M | 639k (5.3×)  | 193k (17.6×) | 590k (5.8×)       | 2.75M (1.2×)    | n/a\*            |
+| Duration `PT2H30M` milliseconds               | 4.70M | 3.47M (1.4×) | 463k (10.2×) | 1.08M (4.4×)      | 4.27M (1.1×)    | 805k (5.8×)      |
+| Interval start/duration expire at             | 757k  | 303k (2.5×)  | n/a          | n/a               | n/a             | n/a              |
+| Interval duration/end start at                | 797k  | 302k (2.6×)  | n/a          | n/a               | n/a             | n/a              |
+| Interval start/end expire at                  | 1.15M | 388k (3.0×)  | n/a          | n/a               | n/a             | n/a              |
 
 \* iso8601-duration `end()` applies the duration in local time so it is not comparable with the UTC results of the others.
 
 ## Date
 
-Native `new Date('2024-03-26')` is, of course, still faster — 2.6–3.1 times in the benchmark, with native Temporal about 2 times faster than piso. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
+Native `new Date('2024-03-26')` is, of course, still faster — 2.3–3.1 times in the benchmark, with native Temporal about 2 times faster than piso. On the other hand `new Date('2024-03-26')` resolves to UTC while `new Date(2024, 2, 26)` does not. Not sure what to expect but IMHO `new Date('2024-03-26')` should be a local date.
 
 | Source                        | piso  | luxon       | js-temporal  | temporal-polyfill | native temporal | `new Date`   |
 | ----------------------------- | ----- | ----------- | ------------ | ----------------- | --------------- | ------------ |
-| `2024-03-26T12:30:15.5+02:00` | 2.61M | 670k (3.9×) | 672k (3.9×)  | 1.13M (2.3×)      | 5.90M (0.4×)    | 7.27M (0.4×) |
-| `2025-03-26T12:30:15.5Z`      | 2.79M | 639k (4.4×) | 1.15M (2.4×) | 1.40M (2.0×)      | 6.37M (0.4×)    | 7.37M (0.4×) |
-| `2024-03-26`                  | 3.62M | 815k (4.4×) | 1.43M (2.5×) | 1.51M (2.4×)      | 8.35M (0.4×)    | 11.3M (0.3×) |
+| `2024-03-26T12:30:15.5+02:00` | 3.08M | 696k (4.4×) | 654k (4.7×)  | 1.22M (2.5×)      | 6.20M (0.5×)    | 7.90M (0.4×) |
+| `2025-03-26T12:30:15.5Z`      | 3.28M | 683k (4.8×) | 1.24M (2.7×) | 1.50M (2.2×)      | 6.93M (0.5×)    | 7.64M (0.4×) |
+| `2024-03-26`                  | 3.88M | 842k (4.6×) | 1.53M (2.5×) | 1.69M (2.3×)      | 8.89M (0.4×)    | 12.0M (0.3×) |
 
-Parsing the three sources above one million times each under `node --prof` shows how the runtime shifts the ratio. From Node 20 to 26 piso sheds about 23% of its ticks, luxon about 36%, and piso still finishes first on all three:
+Parsing the three sources above one million times each under `node --prof` shows how the runtime shifts the ratio. `npm run prof` runs `prof/piso.js` and `prof/luxon.js` under the profiler, counts the ticks, and prints the table row for the current Node, with the processed profiles left in the temp directory it names. From Node 20 to 26 piso sheds about 14% of its ticks, luxon about 36%, and piso still finishes first on all three:
 
-| Node    | piso               | luxon              | luxon / piso |
-| ------- | ------------------ | ------------------ | ------------ |
-| 20.20.2 | 1025 ticks, 1.36 s | 5568 ticks, 7.01 s | 5.4×         |
-| 24.21.0 | 931 ticks, 1.26 s  | 3469 ticks, 4.38 s | 3.7×         |
-| 26.9.0  | 793 ticks, 1.07 s  | 3542 ticks, 4.51 s | 4.5×         |
+| Node    | piso              | luxon              | luxon / piso |
+| ------- | ----------------- | ------------------ | ------------ |
+| 20.20.2 | 893 ticks, 1.13 s | 4974 ticks, 6.24 s | 5.6×         |
+| 24.22.2 | 798 ticks, 1.02 s | 3111 ticks, 3.91 s | 3.9×         |
+| 26.13.0 | 772 ticks, 1.03 s | 3173 ticks, 4.04 s | 4.1×         |
 
 Wall time includes process start and module loading, so the ratio is a little lower than the throughput ratio above.
 

@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- re-run bench against `temporal-polyfill` 1.0.7, which no longer builds a debug string per instance under Node
+- re-run bench against `temporal-polyfill` 1.0.8; since 1.0.7 it no longer builds a debug string per instance under Node
+- add `npm run prof` to the bench workspace, the `node --prof` scripts behind the tick table in `bench/README.md`
 
 ## v6.0.1 - 2026-10-17
 

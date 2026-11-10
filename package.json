@@ -22,6 +22,7 @@
     "test": "mocha",
     "bench": "npm run bench --workspace bench",
     "compare": "npm run compare --workspace bench",
+    "prof": "npm run prof --workspace bench",
     "posttest": "npm run dist && npm run lint && tsc -p . --noEmit && tsc -p test && npm run test:md",
     "lint": "eslint . --cache && prettier . --check --cache",
     "prepublishOnly": "npm run dist",

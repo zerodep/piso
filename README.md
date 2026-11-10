@@ -663,7 +663,7 @@ console.log('duration milliseconds', duration.toMilliseconds(new Date()));
 
 ## Benchmarking
 
-On Node 26 piso parses intervals 4–7 times and dates 4 times faster than luxon, and durations faster than both luxon and iso8601-duration. Native `new Date` is still 2–3 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
+On Node 26 piso parses intervals 4–8 times and dates 4–5 times faster than luxon, and durations faster than both luxon and iso8601-duration. Native `new Date` is still 2–3 times faster than piso, and the native Temporal that ships with Node 26 parses dates about twice as fast as piso while piso stays ahead on fractional durations and duration arithmetic. What piso does that neither native `Date` nor the RegExp-based libraries do is tell you where a malformed string went wrong:
 
 ```javascript
 import { parseInterval } from '@0dep/piso';
