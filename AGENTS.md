@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run cov:html` / `npm run test:lcov` — coverage via c8 over `src`.
 - Single test: `npx mocha test/interval-test.js` or `npx mocha --grep "pattern"`.
 - Tests run with `TZ=Europe/Stockholm` (set in `test/setup.js`); local-time behavior is asserted against this zone, so don't assume UTC.
-- `.nvmrc` selects Node 24 for local work, but CI runs `npm run dist` and the tests on Node 20, 22, 24, and latest. Lint, rollup, `dts-buddy`, and `@0dep/toc` (engines `>=20`) must keep working on Node 20 — don't add dev tooling that needs a newer Node, and verify with `fnm exec --using=20 npm run dist` when touching the build chain.
+- `.nvmrc` selects Node 24 for local work, but CI runs `npm run dist` and the tests on Node 20, 22, 24, and latest. Lint, rollup, `dts-buddy`, and `@0dep/toc` (engines `>=20`) must keep working on Node 20 — don't add dev tooling that needs a newer Node, and verify with `fnm exec --using=20 npm run dist` when touching the build chain. `texample` 2 (engines `>=22`) is the one exception: it only runs in `posttest`, which CI never invokes, so `npm test` needs Node 22+ while `npm run dist` and `npm run test:lcov` stay Node 20 compatible.
 
 ## Architecture
 
